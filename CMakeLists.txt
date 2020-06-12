@@ -14,7 +14,7 @@ find_path(VICONSDK_PATH DataStreamClient.h PATHS C:/Program Files/Vicon/DataStre
 find_library(VICONSDK_LIB ViconDataStreamSDK_CPP.lib PATHS "${VICONSDK_PATH}")
 
 # find path to OpenSim include and lib folders
-find_path(OPENSIM_INCLUDE_PATH OpenSim.h PATHS "$ENV{OPENSIM_HOME}/sdk/include/OpenSim")
+find_path(OPENSIM_INCLUDE_PATH OpenSim.h PATHS "$ENV{OPENSIM_HOME}/sdk/include")
 find_path(SIMBODY_INCLUDE_PATH Simbody.h PATHS "$ENV{OPENSIM_HOME}/sdk/Simbody/include")
 find_path(OPENSIM_LIB_PATH osimCommon.lib PATHS "$ENV{OPENSIM_HOME}/sdk/lib")
 find_path(SIMBODY_LIB_PATH SimTKcommon.lib PATHS "$ENV{OPENSIM_HOME}/sdk/Simbody/lib")
@@ -67,10 +67,13 @@ target_link_libraries(OpenSimLive PRIVATE "${VICONSDK_LIB}")
 target_link_libraries(OpenSimLive PRIVATE "${OPENSIM_LIBRARY}")
 target_link_libraries(OpenSimLive PRIVATE "${SIMBODY_LIBRARY}")
 
+set(OPENSIM_INCLUDE_PATH_TWO "$ENV{OPENSIM_HOME}/sdk/include")
+
 target_include_directories(OpenSimLive PUBLIC
 						   "${PROJECT_BINARY_DIR}"
 						   "${VICONSDK_PATH}"
 						   "${OPENSIM_INCLUDE_PATH}"
+						   "${OPENSIM_INCLUDE_PATH_TWO}"
 						   "${SIMBODY_INCLUDE_PATH}"
 						   )
 
