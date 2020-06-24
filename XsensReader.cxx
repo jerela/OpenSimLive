@@ -185,8 +185,168 @@ private:
 };
 
 
+std::string sensorIdToLabel(std::string id, std::string mappingsFileName) {
 
-void InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<MtwCallback*> mtwCallbacks, int timeInteger){
+	// get the file connecting IMU serials to their names in the model
+	SimTK::Xml::Document sensorMappingsXML(mappingsFileName);
+	// get the root element of the XML file
+	SimTK::Xml::Element rootElement = sensorMappingsXML.getRootElement();
+	// get the child element of the root element
+	SimTK::Xml::Element xsensDataReaderSettingsElement = rootElement.getRequiredElement("XsensDataReaderSettings");
+	// get the child element of the child element of the root element
+	SimTK::Xml::Element experimentalSensorsElement = xsensDataReaderSettingsElement.getRequiredElement("ExperimentalSensors");
+	// get all child elements with tag <ExperimentalSensor> of the element <ExperimentalSensors>
+	SimTK::Array_<SimTK::Xml::Element> experimentalSensorElements = experimentalSensorsElement.getAllElements("ExperimentalSensor");
+	// get the number of sensors defined in the XML file
+	int numberOfXMLSensors = experimentalSensorElements.size();
+	SimTK::Xml::Element nameInModelElement;
+
+	// boolean to check if we have found a matching sensor
+	bool sensorMatchFound;
+
+	// initially as "NotFound"
+	std::string sensorNameInModel("NotFound");
+
+	// initially no matching IDs/serials are found
+	sensorMatchFound = 0;
+
+	// iterate through all sensors defined in the XML file
+	for (int m = 0; m < numberOfXMLSensors; m++) {
+
+		// get the serial number of m'th sensors
+		std::string currentXMLSerial = experimentalSensorElements.at(m).getRequiredAttributeValue("name");
+		// remove the first char (underscore) from the string
+		currentXMLSerial.erase(0, 1);
+
+		// get the serial number of m'
+		nameInModelElement = experimentalSensorElements.at(m).getRequiredElement("name_in_model");
+		//std::cout << "Checking if " << currentXMLSerial << " matches " << currentSensorId << std::endl;
+
+		// if serial of currently iterated IMU in XML file matches the serial of the IMU we are receiving data from
+		if (id == currentXMLSerial) {
+			sensorMatchFound = 1;
+			//std::cout << "Match found!" << std::endl;
+
+			// get the name of the experimental sensor in the model
+			sensorNameInModel = nameInModelElement.getValue();
+			break;
+		}
+
+	}
+	return sensorNameInModel;
+}
+
+// this program creates a calibrated .osim model from live data (as opposed to data exported after recording from MT manager)
+std::string calibrateOpenSimModel(std::vector<MtwCallback*> mtwCallbacks){
+
+	// model used as a base for the calibrated model
+	OpenSim::Model baseModel("C:/Users/wksadmin/source/repos/OpenSimLive/gait2392_full.osim");
+	std::string baseIMU("pelvis_imu");
+	std::string baseHeadingAxis("z");
+	SimTK::Vec3 sensorToOpenSimRotations(-1.570796, 0, 0);
+	std::string outModelFile("C:/Users/wksadmin/source/repos/OpenSimLive/gait2392_full_calib.osim");
+	// get initial orientations
+	std::vector<XsEuler> initialEuler(mtwCallbacks.size());
+	// vector of booleans telling us which sensors have sent data to us
+	std::vector<bool> initialDataGot;
+	// boolean variable telling us whether all sensors have sent their data or not
+	bool initialDataFinished = false;
+	// assign all elements to false
+	initialDataGot.assign(mtwCallbacks.size(), false);
+	// iterate through all sensors
+	while (!initialDataFinished) {
+		initialDataFinished = true;
+		for (size_t k = 0; k < mtwCallbacks.size(); ++k) {
+			// if data is available for a sensor, get its Euler angles
+			if (mtwCallbacks[k]->dataAvailable()) {
+				XsDataPacket const* packet = mtwCallbacks[k]->getOldestPacket();
+				initialEuler[k] = packet->orientationEuler();
+				initialDataGot[k] = true;
+			}
+			// if any data was unobtained, initialDataFinished for this iteration is false
+			if (initialDataGot[k] == false) {
+				initialDataFinished = false;
+			}
+		}
+	}
+
+	// now we should have Euler data in initialEuler for all sensors
+	// the next step is to add PhysicalOffsetFrames representing the IMUs under each body in the model
+
+	SimTK::Xml::Document baseModelFile("C:/Users/wksadmin/source/repos/OpenSimLive/gait2392_full.osim");
+	// get the root element of the XML file
+	SimTK::Xml::Element rootElement = baseModelFile.getRootElement();
+	// get the child element of the root element
+	SimTK::Xml::Element bodySetElement = rootElement.getRequiredElement("BodySet");
+	// get the child element of the child element of the root element
+	SimTK::Xml::Element objectsElement = bodySetElement.getRequiredElement("objects");
+	// get all child elements with tag <Body> of the element <objects>
+	SimTK::Array_<SimTK::Xml::Element> bodyElements = objectsElement.getAllElements("Body");
+	// get the number of sensors defined in the XML file
+	int numberOfBodies = bodyElements.size();
+
+	std::string sensorLabel; std::string currentSensorId; std::string bodyName; std::string currentBody;
+
+	// iterate through all sensors that are active
+	for (size_t k = 0; k < mtwCallbacks.size(); ++k) {
+		// get ID/serial of currently iterated sensor
+		currentSensorId = mtwCallbacks[k]->device().deviceId().toString().toStdString();
+		// get the corresponding label
+		sensorLabel = sensorIdToLabel(currentSensorId, "C:/Users/wksadmin/source/repos/OpenSimLive/SensorMappings.xml");
+		bodyName = sensorLabel;
+		// remove 4 trailing characters ("_imu") from bodyName
+		for (int m = 0; m < 4; ++m) {
+			bodyName.pop_back();
+		}
+		// iterate through bodies in the model until a match to bodyName is found
+		for (int m = 0; m < numberOfBodies; ++m) {
+			currentBody = bodyElements.at(m).getRequiredAttributeValue("name");
+			// if we find a match, add PhysicalOffsetFrame for the IMU
+			if (bodyName == currentBody) {
+				SimTK::Xml::Element componentsElement = bodyElements[m].getRequiredElement("components");
+				// create the new XML element to be inserted
+				SimTK::Xml::Element physicalOffsetFrameElement("PhysicalOffsetFrame");
+				physicalOffsetFrameElement.setAttributeValue("name", sensorLabel);
+				// create child elements of the new XML element
+				SimTK::Xml::Element frameGeometryElement("FrameGeometry");
+				frameGeometryElement.setAttributeValue("name", "frame_geometry");
+				SimTK::Xml::Element socketFrameElement("socket_frame", "..");
+				SimTK::Xml::Element scaleFactorsElement("scale_factors", "0.2 0.2 0.2");
+				frameGeometryElement.appendNode(socketFrameElement);
+				frameGeometryElement.appendNode(scaleFactorsElement);
+				SimTK::Xml::Element attachedGeometryElement("attached_geometry");
+				SimTK::Xml::Element brickElement("Brick");
+				brickElement.setAttributeValue("name", sensorLabel+"_geom1");
+				SimTK::Xml::Element appearanceElement("Appearance");
+				SimTK::Xml::Element colorElement("color", "1 0.5 0");
+				appearanceElement.appendNode(colorElement);
+				SimTK::Xml::Element halfLengthsElement("half_lengths", "0.02 0.01 0.005");
+				brickElement.appendNode(socketFrameElement);
+				brickElement.appendNode(appearanceElement);
+				brickElement.appendNode(halfLengthsElement);
+				SimTK::Xml::Element socketParentElement("socket_parent", "..");
+				SimTK::Xml::Element translationElement("translation", "-0.0707 0 0");
+				// orientation must be calculated from initial IMU orientations
+				SimTK::Xml::Element orientationElement("orientation", "-1 -1 0.25");
+				// insert child elements into the XML element to be inserted
+				physicalOffsetFrameElement.appendNode(frameGeometryElement);
+				physicalOffsetFrameElement.appendNode(attachedGeometryElement);
+				physicalOffsetFrameElement.appendNode(socketParentElement);
+				physicalOffsetFrameElement.appendNode(translationElement);
+				physicalOffsetFrameElement.appendNode(orientationElement);
+				// insert the new XML element under the parent node
+				componentsElement.appendNode(physicalOffsetFrameElement);
+			}
+		}
+	}
+
+	// write the modified model file into an XML document
+	baseModelFile.writeToFile(outModelFile);
+
+
+}
+
+void InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<MtwCallback*> mtwCallbacks, SimTK::Real timeInteger){
 
 	/* ALTERNATIVE WAY TO HANDLE THIS?
 	Use OpenSim:DataAdapter::OutputTables.createTablesFromMatrices to create an OutputTables object from matrix data given by XSens
@@ -210,26 +370,6 @@ void InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<Mtw
 	// create a matrix for IMU orientations
 	SimTK::Matrix_<SimTK::Rotation_<double>> orientationDataMatrix(1, numberOfSensors); // marker positions go here
 
-	// get the connection between IMU serials and bodies on the model from an XML file - necessary or not?
-	//OpenSim::XMLDocument SensorMappingsFile("C:/Users/wksadmin/source/repos/OpenSimLive/SensorMappings.xml");
-	
-	// get the file connecting IMU serials to their names in the model
-	SimTK::Xml::Document sensorMappingsXML("C:/Users/wksadmin/source/repos/OpenSimLive/SensorMappings.xml");
-	// get the root element of the XML file
-	SimTK::Xml::Element rootElement = sensorMappingsXML.getRootElement();
-	// get the child element of the root element
-	SimTK::Xml::Element xsensDataReaderSettingsElement = rootElement.getRequiredElement("XsensDataReaderSettings");
-	// get the child element of the child element of the root element
-	SimTK::Xml::Element experimentalSensorsElement = xsensDataReaderSettingsElement.getRequiredElement("ExperimentalSensors");
-	// get all child elements with tag <ExperimentalSensor> of the element <ExperimentalSensors>
-	SimTK::Array_<SimTK::Xml::Element> experimentalSensorElements = experimentalSensorsElement.getAllElements("ExperimentalSensor");
-	// get the number of sensors defined in the XML file
-	int numberOfXMLSensors = experimentalSensorElements.size();
-	SimTK::Xml::Element nameInModelElement;
-
-	// boolean to check if we have found a matching sensor
-	bool sensorMatchFound;
-
 	// declare variables to be used in the loop
 	double m11, m12, m13, m21, m22, m23, m31, m32, m33;
 	SimTK::Rotation_<double> tempMatrix;
@@ -241,9 +381,13 @@ void InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<Mtw
 	// insert orientation data from matrixData to orientationDataMatrix; note that orientationDataMatrix elements are 3x3 rotation matrices
 	for (int k = 0; k < numberOfSensors; k++) {
 
-		std::cout << "Finding values of matrixData at index k" << std::endl;
+		std::cout << "Finding values of matrixData at index k=" << k << std::endl;
 
 		xsMatrix = matrixData[k];
+		if (xsMatrix.empty()) {
+			std::cout << "Matrix at k=" << k << " is empty. Returning." << std::endl;
+			return;
+		}
 
 		// give values to variables representing individual elements of a 3x3 rotation matrix
 		m11 = xsMatrix.value(1, 1);
@@ -255,6 +399,9 @@ void InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<Mtw
 		m31 = xsMatrix.value(3, 1);
 		m32 = xsMatrix.value(3, 2);
 		m33 = xsMatrix.value(3, 3);
+		std::cout << "[" << m11 << "; " << m12 << "; " << m13 << " " << std::endl;
+		std::cout << " " << m21 << "; " << m22 << "; " << m23 << " " << std::endl;
+		std::cout << " " << m31 << "; " << m32 << "; " << m33 << "]" << std::endl;
 
 		std::cout << "Setting the values to tempMatrix" << std::endl;
 		// set these values to tempMatrix
@@ -268,48 +415,21 @@ void InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<Mtw
 		tempMatrix.set(1, 1, m32);
 		tempMatrix.set(1, 1, m33);
 
-		std::cout << "Filling orientationDataMatrix" << std::endl;
+		//std::cout << "Filling orientationDataMatrix" << std::endl;
 
 		// fill orientationDataMatrix with orientation matrices for each sensor
 		orientationDataMatrix.set(0, k, tempMatrix);
 
-		std::cout << "Matrix data inserted. Now populating vector of sensor names in the model." << std::endl;
+		//std::cout << "Matrix data inserted. Now populating vector of sensor names in the model." << std::endl;
 
 		// populate sensorNameVector with names of the IMUs on the model
 
 		// initialize currentSensorId with the serial of the IMU
 		currentSensorId = mtwCallbacks[k]->device().deviceId().toString().toStdString();
 		
-		// initially no matching IDs/serials are found
-		sensorMatchFound = 0;
-		
-		// iterate through all sensors defined in the XML file
-		for (int m = 0; m<numberOfXMLSensors; m++){
-			
-			// get the serial number of m'th sensors
-			std::string currentXMLSerial = experimentalSensorElements.at(m).getRequiredAttributeValue("name");
-			// remove the first char (underscore) from the string
-			currentXMLSerial.erase(0, 1);
-			
-			// get the serial number of m'
-			nameInModelElement = experimentalSensorElements.at(m).getRequiredElement("name_in_model");
-			std::cout << "Checking if " << currentXMLSerial << " matches " << currentSensorId << std::endl;
-			
-			// if serial of currently iterated IMU in XML file matches the serial of the IMU we are receiving data from
-			if (currentSensorId == currentXMLSerial){
-				sensorMatchFound = 1;
-				std::cout << "Match found!" << std::endl;
-				
-				// get the name of the experimental sensor in the model
-				sensorNameInModel = nameInModelElement.getValue();
-				std::cout << "Sensor name in model: " << sensorNameInModel << std::endl;
-				break;
-			}
-			
-		}
-		
-		if (sensorMatchFound == 1){
-			std::cout << "Pushing sensor name into its vector" << std::endl;
+		sensorNameInModel = sensorIdToLabel(currentSensorId, "C:/Users/wksadmin/source/repos/OpenSimLive/SensorMappings.xml");
+
+		if (sensorNameInModel != "NotFound"){
 			// push the name of the IMU in the model into sensorNameVector
 			sensorNameVector.push_back(sensorNameInModel);
 		}
@@ -327,15 +447,15 @@ void InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<Mtw
 	// load model
 	OpenSim::Model model("C:/Users/wksadmin/source/repos/OpenSimLive/gait2392_full_calibrated.osim");
 
-	std::cout << "TimeSeriesTable and Model objects created, preparing to initialize state." << std::endl;
+	//std::cout << "TimeSeriesTable and Model objects created, preparing to initialize state." << std::endl;
 
 	// create state
 	SimTK::State s = model.initSystem();
 
 	// update state time
-	s.updTime() = timeInteger;
+	//s.updTime() = timeInteger/1000;
 
-	std::cout << "State initialized, creating Reference objects." << std::endl;
+	//std::cout << "State initialized, creating Reference objects." << std::endl;
 
 	// create MarkersReference object
 	OpenSim::MarkersReference markersReference;
@@ -346,7 +466,7 @@ void InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<Mtw
 	// create coordinate reference
 	SimTK::Array_<OpenSim::CoordinateReference> coordinateReference;
 
-	std::cout << "Reference objects created, constructing InverseKinematicsSolver" << std::endl;
+	//std::cout << "Reference objects created, constructing InverseKinematicsSolver" << std::endl;
 
 	// use inversekinematicssolver with markersreference to solve
 	OpenSim::InverseKinematicsSolver iks(model, markersReference, orientationsReference, coordinateReference, SimTK::Infinity);
@@ -364,7 +484,7 @@ void InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<Mtw
 		}
 	}
 
-	std::cout << "Preparing to track state s" << std::endl;
+	//std::cout << "Preparing to track state s" << std::endl;
 	// calculate coordinates for state s
 	iks.track(s);
 
@@ -379,9 +499,8 @@ void InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<Mtw
 	}
 
 	std::cout << "IK finished successfully." << std::endl;
-
+	return;
 }
-
 
 
 void ConnectToDataStream() {
@@ -442,7 +561,7 @@ void ConnectToDataStream() {
 		}
 
 		std::cout << "XsDevice instance created @ " << *wirelessMasterDevice << std::endl;
-		
+
 		// 4. CONFIGURE DEVICES
 		std::cout << "Setting config mode..." << std::endl;
 		if (!wirelessMasterDevice->gotoConfig())
@@ -569,13 +688,23 @@ void ConnectToDataStream() {
 		std::cout << "\nMain loop. Press any key to quit\n" << std::endl;
 		std::cout << "Waiting for data available..." << std::endl;
 
+
+		// Calibrating IMUs into model could take place here
+		//string modelName = calibrateOpenSimModel();
+
+
+
+
+
+
+
 		/*
 		PROCESSING PHASE
 		*/
 
 		// 1. HANDLE INCOMING DATA
 
-		int timeInteger = 1;
+		SimTK::Real timeInteger = 1;
 		std::vector<XsEuler> eulerData(mtwCallbacks.size()); // Room to store euler data for each mtw
 		std::vector<XsMatrix> matrixData(mtwCallbacks.size()); // for data in orientation matrix form that OpenSim requires
 		unsigned int printCounter = 0;
@@ -653,7 +782,7 @@ void ConnectToDataStream() {
 	// finally done with try...catch
 
 	/*
-	EXIT PHAE
+	EXIT PHASE
 	*/
 
 	// 1. CLOSE OPEN DEVICES
