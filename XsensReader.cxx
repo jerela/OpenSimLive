@@ -207,7 +207,25 @@ void InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<Mtw
 	SimTK::Matrix_<SimTK::Rotation_<double>> orientationDataMatrix(1, numberOfSensors); // marker positions go here
 
 	// get the connection between IMU serials and bodies on the model from an XML file - necessary or not?
-	OpenSim::XMLDocument SensorMappingsFile("C:/Users/wksadmin/source/repos/OpenSimLive/SensorMappings.xml");
+	//OpenSim::XMLDocument SensorMappingsFile("C:/Users/wksadmin/source/repos/OpenSimLive/SensorMappings.xml");
+	
+	// get the file connecting IMU serials to their names in the model
+	OpenSim::XsensDataReaderSettings sensorMappingsFile("C:/Users/wksadmin/source/repos/OpenSimLive/SensorMappings.xml");
+	SimTK::Xml::Document sensorMappingsXML("C:/Users/wksadmin/source/repos/OpenSimLive/SensorMappings.xml");
+	// get the root element of the XML file
+	SimTK::Xml::Element rootElement = sensorMappingsXML.getRootElement();
+	// get the child element of the root element
+	SimTK::Xml::Element xsensDataReaderSettingsElement = rootElement.getRequiredElement("XsensDataReaderSettings");
+	// get the child element of the child element of the root element
+	SimTK::Xml::Element experimentalSensorsElement = xsensDataReaderSettingsElement.getRequiredElement("ExperimentalSensors");
+	// get all child elements with tag <ExperimentalSensor> of the element <ExperimentalSensors>
+	SimTK::Array_<Element> experimentalSensorElements = experimentalSensorsElement.getAllElements("ExperimentalSensor");
+	// get the number of sensors defined in the XML file
+	int numberOfXMLSensors = experimentalSensorElements.size();
+	SimTK::Xml::Element nameInModelElement;
+
+	// boolean to check if we have found a matching sensor
+	bool sensorMatchFound;
 
 	// declare variables to be used in the loop
 	double m11, m12, m13, m21, m22, m23, m31, m32, m33;
@@ -248,7 +266,7 @@ void InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<Mtw
 		// initialize currentSensorId with the serial of the IMU
 		currentSensorId = mtwCallbacks[k]->device().deviceId().toString().toStdString();
 		
-		// find the ExperimentalSensors element
+/*		// find the ExperimentalSensors element
 		SimTK::Xml::Element elementXSensDataReaderSettings("XSensDataReaderSettings");
 		SimTK::Xml::Element elementExperimentalSensors = SensorMappingsFile.findElementWithName(elementXSensDataReaderSettings, "ExperimentalSensors");
 		// inform the user if nothing was found
@@ -265,9 +283,46 @@ void InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<Mtw
 					sensorNameInModel = elementArray.at(elit).getRequiredElement("name_in_model").getValue();
 				}
 			}
+		}*/
+		
+		sensorMatchFound = 0;
+		
+		// iterate through all sensors defined in the XML file
+		for (int m = 0; m<numberOfXMLSensors; m++){
+			
+			// get the serial number of m'th sensors
+			std::string currentXMLSerial = experimentalSensorElements.at(m).getRequiredAttributeValue("name");
+			
+			// get the serial number of m'
+			nameInModelElement = experimentalSensorElements.at(m).getRequiredElement("name_in_model");
+			std::cout << "Checking if " << currentXMLSerial << " or " <<  << " matches " << currentSensorId << std::endl;
+			
+			// if serial of currently iterated IMU in XML file matches the serial of the IMU we are receiving data from
+			if (currentSensorId == currentXMLSerial){
+				sensorMatchFound = 1;
+				std::cout << "Match found!" << std::endl;
+				// get the experimental sensor in question
+				OpenSim::ExperimentalSensor experimentalSensor = sensorMappingsFile.get_ExperimentalSensors(m);
+				// get the name of the experimental sensor
+				sensorNameInModel = experimentalSensor.get_name_in_model();
+				std::cout << "Sensor name in model using XsensDataReaderSettings: " << sensorNameInModel << std::endl;
+				
+				// alternative way to get the name of the experimental sensor without using XsensDataReaderSettings class
+				sensorNameInModel = nameInModelElement.getValue();
+				std::cout << "Sensor name in model using direct XML: " << sensorNameinModel << std::endl;
+				
+			}
+			
 		}
-		// push the name of the IMU in the model into sensorNameVector
-		sensorNameVector.push_back(sensorNameInModel);
+		
+		
+		if (sensorMatchFound == 1){
+			// push the name of the IMU in the model into sensorNameVector
+			sensorNameVector.push_back(sensorNameInModel);
+		}
+		else{
+			std::cout << "No match found for sensor " << currentSensorId << std::endl;
+		}
 	}
 
 	// form a timeseriestable of the IMU orientations
