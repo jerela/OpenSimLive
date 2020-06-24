@@ -8,6 +8,7 @@
 #include <thread>
 #include <OpenSim.h>
 #include <vector>
+#include "conio.h"
 using namespace ViconDataStreamSDK::CPP;
 
 void ConnectToDataStream(int msDelay) {
@@ -85,8 +86,10 @@ void ConnectToDataStream(int msDelay) {
 	// create a matrix for marker translations
 	SimTK::Matrix_<SimTK::Vec3> markerDataMatrix(1,numberOfMarkers); // marker positions go here
 
+	// load model
+	OpenSim::Model model("C:/Users/wksadmin/source/repos/OpenSimLive/gait2392_full.osim");
 
-	for (int n = 0; n < 3; n++) {
+	while (!_kbhit()) {
 
 		markerDataMatrix.setToNaN();
 		markerNameVector.clear();
@@ -96,11 +99,11 @@ void ConnectToDataStream(int msDelay) {
 		frame = client.GetFrame();
 		// get the number of the current frame
 		frameNumber = client.GetFrameNumber();
-		std::cout << "Got frame number " << frameNumber.FrameNumber << std::endl;
+		//std::cout << "Got frame number " << frameNumber.FrameNumber << std::endl;
 
 		timeVector.push_back(frameNumber.FrameNumber);
 
-		std::cout << "Inserting global marker translations into marker data matrix..." << std::endl;
+		//std::cout << "Inserting global marker translations into marker data matrix..." << std::endl;
 
 		for (int k = 0; k < numberOfMarkers; k++) {
 			// get the name of the marker at index k
@@ -113,13 +116,10 @@ void ConnectToDataStream(int msDelay) {
 			SimTK::Vec3 markerTranslations(markerGlobalTranslation.Translation[0]*0.001, markerGlobalTranslation.Translation[1]*0.001, markerGlobalTranslation.Translation[2]*0.001);
 			// set translations of marker at index k into markerDataMatrix
 			markerDataMatrix.set(0, k, markerTranslations);
-			std::cout << "[" << markerTranslations.get(0) << ", " << markerTranslations.get(1) << ", " << markerTranslations.get(2) << "]" << std::endl;
-			std::cout << markerNameVector.at(k) << std::endl;
+			//std::cout << "[" << markerTranslations.get(0) << ", " << markerTranslations.get(1) << ", " << markerTranslations.get(2) << "]" << std::endl;
+			//std::cout << markerNameVector.at(k) << std::endl;
 		}
-		std::cout << "Done." << std::endl;
-
-		// load model
-		OpenSim::Model model("C:/Users/wksadmin/source/repos/OpenSimLive/gait2392_full.osim");
+		//std::cout << "Done." << std::endl;
 
 		// create state
 		SimTK::State s = model.initSystem();
@@ -145,13 +145,11 @@ void ConnectToDataStream(int msDelay) {
 		bool isAssembled = false;
 		while (!isAssembled) {
 			try {
-
 				iks.assemble(s);
 				isAssembled = true;
 			}
 			catch (...) {
-				std::cerr << "Time " << s.getTime() << " Model not assembled" << std::endl;
-				isAssembled = false;
+				std::cerr << "Model not assembled at " << s.getTime() << std::endl;
 			}
 		}
 		// calculate coordinates for state s
@@ -169,6 +167,7 @@ void ConnectToDataStream(int msDelay) {
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(msDelay));
 	}
+	(void)_getch();
 
 	std::cout << "Disconnecting..." << std::endl;
 	client.Disconnect();
