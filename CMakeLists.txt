@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 # set the project name and version
-project(OpenSimLive VERSION 0.1)
+project(OpenSimLive VERSION 0.2)
 
 # specify the C++ standard
 set(CMAKE_CXX_STANDARD 11)
@@ -54,15 +54,15 @@ endforeach()
 configure_file(OpenSimLiveConfig.h.in OpenSimLiveConfig.h)
 
 # add the executables
-add_executable(OpenSimLive OpenSimLive.cxx)
-add_executable(XSensReader XSensReader.cxx)
+add_executable(ViconMarkerReader ViconMarkerReader.cxx)
+add_executable(XsensReader XsensReader.cxx)
 
 # link Vicon SDK library
-target_link_libraries(OpenSimLive PRIVATE "${VICONSDK_LIB}")
+target_link_libraries(ViconMarkerReader PRIVATE "${VICONSDK_LIB}")
 
 # link OpenSim and Simbody libraries
-target_link_libraries(OpenSimLive PRIVATE "${OPENSIM_LIBRARY}")
-target_link_libraries(OpenSimLive PRIVATE "${SIMBODY_LIBRARY}")
+target_link_libraries(ViconMarkerReader PRIVATE "${OPENSIM_LIBRARY}")
+target_link_libraries(ViconMarkerReader PRIVATE "${SIMBODY_LIBRARY}")
 
 set(OPENSIM_INCLUDE_PATH_TWO "$ENV{OPENSIM_HOME}/sdk/include")
 
@@ -92,11 +92,11 @@ endforeach()
 find_path(MTSDK_PATH xsensdeviceapi.h PATHS "C:/Program Files/Xsens/MT Software Suite 4.6/MT SDK/x64/include")
 
 # link MT SDK libraries
-target_link_libraries(XSensReader PRIVATE "${MT_LIBRARY}")
-target_link_libraries(XSensReader PRIVATE "${OPENSIM_LIBRARY}")
-target_link_libraries(XSensReader PRIVATE "${SIMBODY_LIBRARY}")
+target_link_libraries(XsensReader PRIVATE "${MT_LIBRARY}")
+target_link_libraries(XsensReader PRIVATE "${OPENSIM_LIBRARY}")
+target_link_libraries(XsensReader PRIVATE "${SIMBODY_LIBRARY}")
 
-target_include_directories(OpenSimLive PUBLIC
+target_include_directories(ViconMarkerReader PUBLIC
 						   "${PROJECT_BINARY_DIR}"
 						   "${VICONSDK_PATH}"
 						   "${OPENSIM_INCLUDE_PATH}"
@@ -104,7 +104,7 @@ target_include_directories(OpenSimLive PUBLIC
 						   "${SIMBODY_INCLUDE_PATH}"
 						   )
 
-target_include_directories(XSensReader PUBLIC
+target_include_directories(XsensReader PUBLIC
 						   "${PROJECT_BINARY_DIR}"
 						   "${OPENSIM_INCLUDE_PATH}"
 						   "${OPENSIM_INCLUDE_PATH_TWO}"
