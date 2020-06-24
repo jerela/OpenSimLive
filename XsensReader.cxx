@@ -253,7 +253,7 @@ void InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<Mtw
 		SimTK::Xml::Element elementExperimentalSensors = SensorMappingsFile.findElementWithName(elementXSensDataReaderSettings, "ExperimentalSensors");
 		// inform the user if nothing was found
 		if (!elementExperimentalSensors.isValid()) {
-			std::cout << "Failed to find the XML element." << std::endl;
+			std::cout << "Failed to find the XML element." << std::endl; //TÄHÄN TYSSÄÄ
 			break;
 		}
 		// iterate through the immediate child elements until match to currentSensorId is found
