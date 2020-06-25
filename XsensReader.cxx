@@ -184,7 +184,7 @@ private:
 	XsDevice* m_device;
 };
 
-
+// this function takes a serial/ID of a sensor and the filename of an XML file mapping serials to IMU labels, and returns the label
 std::string sensorIdToLabel(std::string id, std::string mappingsFileName) {
 
 	// get the file connecting IMU serials to their names in the model
@@ -236,8 +236,15 @@ std::string sensorIdToLabel(std::string id, std::string mappingsFileName) {
 	return sensorNameInModel;
 }
 
-// this program creates a calibrated .osim model from live data (as opposed to data exported after recording from MT manager)
+// this function converts degrees to radians
+double deg2rad(double deg) {
+	return (deg * acos(0.0) / 90);
+}
+
+// this function creates a calibrated .osim model from live data (as opposed to data exported after recording from MT manager)
 std::string calibrateOpenSimModel(std::vector<MtwCallback*> mtwCallbacks){
+
+	size_t callbacksSize = mtwCallbacks.size();
 
 	// model used as a base for the calibrated model
 	OpenSim::Model baseModel("C:/Users/wksadmin/source/repos/OpenSimLive/gait2392_full.osim");
@@ -246,17 +253,17 @@ std::string calibrateOpenSimModel(std::vector<MtwCallback*> mtwCallbacks){
 	SimTK::Vec3 sensorToOpenSimRotations(-1.570796, 0, 0);
 	std::string outModelFile("C:/Users/wksadmin/source/repos/OpenSimLive/gait2392_full_calib.osim");
 	// get initial orientations
-	std::vector<XsEuler> initialEuler(mtwCallbacks.size());
+	std::vector<XsEuler> initialEuler(callbacksSize);
 	// vector of booleans telling us which sensors have sent data to us
 	std::vector<bool> initialDataGot;
 	// boolean variable telling us whether all sensors have sent their data or not
 	bool initialDataFinished = false;
 	// assign all elements to false
-	initialDataGot.assign(mtwCallbacks.size(), false);
+	initialDataGot.assign(callbacksSize, false);
 	// iterate through all sensors
 	while (!initialDataFinished) {
 		initialDataFinished = true;
-		for (size_t k = 0; k < mtwCallbacks.size(); ++k) {
+		for (size_t k = 0; k < callbacksSize; ++k) {
 			// if data is available for a sensor, get its Euler angles
 			if (mtwCallbacks[k]->dataAvailable()) {
 				XsDataPacket const* packet = mtwCallbacks[k]->getOldestPacket();
@@ -271,6 +278,20 @@ std::string calibrateOpenSimModel(std::vector<MtwCallback*> mtwCallbacks){
 	}
 
 	// now we should have Euler data in initialEuler for all sensors
+	// let's calculate that in OpenSim coordinate system
+
+	// declare vectors for angles around the x-, y- and z-axis
+	std::vector<XsReal> rollVector;
+	std::vector<XsReal> pitchVector;
+	std::vector<XsReal> yawVector;
+	// iterate through all active sensors and save their roll, pitch and yaw values into the vector as radians
+	for (size_t k = 0; k < callbacksSize; ++k)
+	{
+		rollVector.push_back(deg2rad(initialEuler[k].roll()));
+		pitchVector.push_back(deg2rad(initialEuler[k].pitch()));
+		yawVector.push_back(deg2rad(initialEuler[k].yaw()));
+	}
+
 	// the next step is to add PhysicalOffsetFrames representing the IMUs under each body in the model
 
 	SimTK::Xml::Document baseModelFile("C:/Users/wksadmin/source/repos/OpenSimLive/gait2392_full.osim");
@@ -288,7 +309,7 @@ std::string calibrateOpenSimModel(std::vector<MtwCallback*> mtwCallbacks){
 	std::string sensorLabel; std::string currentSensorId; std::string bodyName; std::string currentBody;
 
 	// iterate through all sensors that are active
-	for (size_t k = 0; k < mtwCallbacks.size(); ++k) {
+	for (size_t k = 0; k < callbacksSize; ++k) {
 		// get ID/serial of currently iterated sensor
 		currentSensorId = mtwCallbacks[k]->device().deviceId().toString().toStdString();
 		// get the corresponding label
@@ -326,8 +347,9 @@ std::string calibrateOpenSimModel(std::vector<MtwCallback*> mtwCallbacks){
 				brickElement.appendNode(halfLengthsElement);
 				SimTK::Xml::Element socketParentElement("socket_parent", "..");
 				SimTK::Xml::Element translationElement("translation", "-0.0707 0 0");
-				// orientation must be calculated from initial IMU orientations
-				SimTK::Xml::Element orientationElement("orientation", "-1 -1 0.25");
+				// orientation must be calculated from initial IMU orientations and given as a string with 3 elements separated by whitespaces
+				std::string orientationVector = std::to_string(rollVector[k]) + " " + std::to_string(pitchVector[k]) + " " + std::to_string(yawVector[k]);
+				SimTK::Xml::Element orientationElement("orientation", orientationVector);
 				// insert child elements into the XML element to be inserted
 				physicalOffsetFrameElement.appendNode(frameGeometryElement);
 				physicalOffsetFrameElement.appendNode(attachedGeometryElement);
@@ -343,10 +365,10 @@ std::string calibrateOpenSimModel(std::vector<MtwCallback*> mtwCallbacks){
 	// write the modified model file into an XML document
 	baseModelFile.writeToFile(outModelFile);
 
-
+	return outModelFile;
 }
 
-void InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<MtwCallback*> mtwCallbacks, SimTK::Real timeInteger){
+void InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<MtwCallback*> mtwCallbacks, SimTK::Real timeInteger, std::string modelFileName){
 
 	/* ALTERNATIVE WAY TO HANDLE THIS?
 	Use OpenSim:DataAdapter::OutputTables.createTablesFromMatrices to create an OutputTables object from matrix data given by XSens
@@ -445,7 +467,7 @@ void InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<Mtw
 
 
 	// load model
-	OpenSim::Model model("C:/Users/wksadmin/source/repos/OpenSimLive/gait2392_full_calibrated.osim");
+	OpenSim::Model model(modelFileName);
 
 	//std::cout << "TimeSeriesTable and Model objects created, preparing to initialize state." << std::endl;
 
@@ -690,7 +712,7 @@ void ConnectToDataStream() {
 
 
 		// Calibrating IMUs into model could take place here
-		//string modelName = calibrateOpenSimModel();
+		std::string calibratedModelFile = calibrateOpenSimModel(mtwCallbacks);
 
 
 
@@ -730,7 +752,7 @@ void ConnectToDataStream() {
 
 				// OPENSIM BEGINS
 				//size_t numberOfSensors = mtwCallbacks.size();
-				InverseKinematicsFromIMUs(matrixData, mtwCallbacks, timeInteger);
+				InverseKinematicsFromIMUs(matrixData, mtwCallbacks, timeInteger, calibratedModelFile);
 				timeInteger++;
 				// OPENSIM ENDS
 

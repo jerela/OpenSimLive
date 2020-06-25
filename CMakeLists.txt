@@ -53,18 +53,32 @@ endforeach()
 
 configure_file(OpenSimLiveConfig.h.in OpenSimLiveConfig.h)
 
-# add the executables
-add_executable(ViconMarkerReader ViconMarkerReader.cxx)
+set(OPENSIM_INCLUDE_PATH_TWO "$ENV{OPENSIM_HOME}/sdk/include")
+
+# add and link the executables, libraries and directories for ViconMarkerReader
+if(${VICONSDK_LIB})
+	add_executable(ViconMarkerReader ViconMarkerReader.cxx)
+	# link Vicon SDK library
+	target_link_libraries(ViconMarkerReader PRIVATE "${VICONSDK_LIB}")
+	# link OpenSim and Simbody libraries
+	target_link_libraries(ViconMarkerReader PRIVATE "${OPENSIM_LIBRARY}")
+	target_link_libraries(ViconMarkerReader PRIVATE "${SIMBODY_LIBRARY}")
+	target_include_directories(ViconMarkerReader PUBLIC
+						   "${PROJECT_BINARY_DIR}"
+						   "${VICONSDK_PATH}"
+						   "${OPENSIM_INCLUDE_PATH}"
+						   "${OPENSIM_INCLUDE_PATH_TWO}"
+						   "${SIMBODY_INCLUDE_PATH}"
+						   )
+endif()
 add_executable(XsensReader XsensReader.cxx)
 
-# link Vicon SDK library
-target_link_libraries(ViconMarkerReader PRIVATE "${VICONSDK_LIB}")
 
-# link OpenSim and Simbody libraries
-target_link_libraries(ViconMarkerReader PRIVATE "${OPENSIM_LIBRARY}")
-target_link_libraries(ViconMarkerReader PRIVATE "${SIMBODY_LIBRARY}")
 
-set(OPENSIM_INCLUDE_PATH_TWO "$ENV{OPENSIM_HOME}/sdk/include")
+
+
+
+
 
 
 
@@ -96,13 +110,7 @@ target_link_libraries(XsensReader PRIVATE "${MT_LIBRARY}")
 target_link_libraries(XsensReader PRIVATE "${OPENSIM_LIBRARY}")
 target_link_libraries(XsensReader PRIVATE "${SIMBODY_LIBRARY}")
 
-target_include_directories(ViconMarkerReader PUBLIC
-						   "${PROJECT_BINARY_DIR}"
-						   "${VICONSDK_PATH}"
-						   "${OPENSIM_INCLUDE_PATH}"
-						   "${OPENSIM_INCLUDE_PATH_TWO}"
-						   "${SIMBODY_INCLUDE_PATH}"
-						   )
+
 
 target_include_directories(XsensReader PUBLIC
 						   "${PROJECT_BINARY_DIR}"
