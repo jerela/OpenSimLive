@@ -335,7 +335,7 @@ SimTK::Vec3 transformEuler(SimTK::Vec3 sensorToOpenSim, SimTK::Vec3 sensorEuler)
 }
 
 // this function creates a calibrated .osim model from live data (as opposed to data exported after recording from MT manager)
-std::string calibrateOpenSimModel(std::vector<MtwCallback*> mtwCallbacks){
+std::string calibrateOpenSimModel(std::vector<MtwCallback*> mtwCallbacks, std::vector<XsEuler> initialEuler){
 
 	size_t callbacksSize = mtwCallbacks.size();
 
@@ -345,7 +345,7 @@ std::string calibrateOpenSimModel(std::vector<MtwCallback*> mtwCallbacks){
 	std::string baseHeadingAxis("z");
 	SimTK::Vec3 sensorToOpenSimRotations(-1.570796, 0, 0);
 	std::string outModelFile("C:/Users/wksadmin/source/repos/OpenSimLive/gait2392_full_calib.osim");
-	// get initial orientations
+/*	// get initial orientations
 	std::vector<XsEuler> initialEuler(callbacksSize);
 	// vector of booleans telling us which sensors have sent data to us
 	std::vector<bool> initialDataGot;
@@ -368,7 +368,7 @@ std::string calibrateOpenSimModel(std::vector<MtwCallback*> mtwCallbacks){
 				initialDataFinished = false;
 			}
 		}
-	}
+	}*/
 
 	// now we should have Euler data in initialEuler for all sensors
 	// let's calculate that in OpenSim coordinate system
@@ -472,17 +472,6 @@ std::string calibrateOpenSimModel(std::vector<MtwCallback*> mtwCallbacks){
 
 void InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<MtwCallback*> mtwCallbacks, SimTK::Real timeInteger, std::string modelFileName){
 
-	/* ALTERNATIVE WAY TO HANDLE THIS?
-	Use OpenSim:DataAdapter::OutputTables.createTablesFromMatrices to create an OutputTables object from matrix data given by XSens
-	Use OpenSim::IMUDataReader.getOrientationsTable to construct a TimeSeriesTable_ with the orientations
-	Construct an OrientationsReference object using the TimeSeriesTable_
-	Use the constructed OrientationsReference object to solve IK using InverseKinematicsSolver
-	
-	Possibly use OpenSim::XsensDataReader instead of IMUDataReader?
-	*/
-
-	std::cout << "Entered InverseKinematicsFromIMUs..." << std::endl;
-
 	int numberOfSensors = mtwCallbacks.size();
 
 	std::cout << "Numbers of sensors: " << numberOfSensors << ", size of matrixData: " << matrixData.size() << std::endl;
@@ -500,12 +489,9 @@ void InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<Mtw
 	XsMatrix xsMatrix;
 	std::string currentSensorId; std::string sensorNameInModel;
 
-	std::cout << "Entering for loop to insert orientation data into the right variables." << std::endl;
 
 	// insert orientation data from matrixData to orientationDataMatrix; note that orientationDataMatrix elements are 3x3 rotation matrices
 	for (int k = 0; k < numberOfSensors; k++) {
-
-		std::cout << "Finding values of matrixData at index k=" << k << std::endl;
 
 		xsMatrix = matrixData[k];
 		if (xsMatrix.empty()) {
@@ -527,7 +513,6 @@ void InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<Mtw
 		std::cout << " " << m21 << "; " << m22 << "; " << m23 << " " << std::endl;
 		std::cout << " " << m31 << "; " << m32 << "; " << m33 << "]" << std::endl;
 
-		std::cout << "Setting the values to tempMatrix" << std::endl;
 		// set these values to tempMatrix
 		tempMatrix.set(0, 0, m11);
 		tempMatrix.set(0, 1, m12);
@@ -539,12 +524,8 @@ void InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<Mtw
 		tempMatrix.set(2, 1, m32);
 		tempMatrix.set(2, 2, m33);
 
-		//std::cout << "Filling orientationDataMatrix" << std::endl;
-
 		// fill orientationDataMatrix with orientation matrices for each sensor
 		orientationDataMatrix.set(0, k, tempMatrix);
-
-		//std::cout << "Matrix data inserted. Now populating vector of sensor names in the model." << std::endl;
 
 		// populate sensorNameVector with names of the IMUs on the model
 
@@ -566,7 +547,6 @@ void InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<Mtw
 
 	// form a timeseriestable of the IMU orientations
 	OpenSim::TimeSeriesTable_<SimTK::Rotation_<double>> timeSeriesTable(timeVector, orientationDataMatrix, sensorNameVector);
-
 
 	// load model
 	OpenSim::Model model(modelFileName);
@@ -599,7 +579,6 @@ void InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<Mtw
 	bool isAssembled = false;
 	while (!isAssembled) {
 		try {
-
 			iks.assemble(s);
 			isAssembled = true;
 		}
@@ -809,16 +788,10 @@ void ConnectToDataStream() {
 			mtwDevices[i]->addCallbackHandler(mtwCallbacks[i]);
 		}
 
-		std::cout << "\nMain loop. Press any key to quit\n" << std::endl;
-		std::cout << "Waiting for data available..." << std::endl;
 
 
-		// Calibrating IMUs into model could take place here
-		std::string calibratedModelFile = calibrateOpenSimModel(mtwCallbacks);
-
-
-
-
+		
+		
 
 
 
@@ -831,9 +804,23 @@ void ConnectToDataStream() {
 		SimTK::Real timeInteger = 1;
 		std::vector<XsEuler> eulerData(mtwCallbacks.size()); // Room to store euler data for each mtw
 		std::vector<XsMatrix> matrixData(mtwCallbacks.size()); // for data in orientation matrix form that OpenSim requires
-		unsigned int printCounter = 0;
-		while (!_kbhit()) {
-			XsTime::msleep(0);
+		//unsigned int printCounter = 0;
+		
+		std::string calibratedModelFile;
+
+
+		bool mainDataLoop = true;
+		bool getDataKeyHit = false;
+		bool calibrateModelKeyHit = false;
+		
+		std::cout << "Entering data streaming and IK loop. Press C to calibrate model, V to calculate IK and X to quit." << std::endl;
+
+		//while (!_kbhit()) {
+		do
+		{
+			//XsTime::msleep(0);
+
+		
 
 			bool newDataAvailable = false;
 			for (size_t i = 0; i < mtwCallbacks.size(); ++i)
@@ -849,15 +836,20 @@ void ConnectToDataStream() {
 				}
 			}
 
-			if (newDataAvailable)
+			if (newDataAvailable && calibrateModelKeyHit) {
+				calibratedModelFile = calibrateOpenSimModel(mtwCallbacks,eulerData);
+				calibrateModelKeyHit = false;
+				std::cout << "Model has been calibrated." << std::endl;
+			}
+
+			if (newDataAvailable && getDataKeyHit)
 			{
 
-				// OPENSIM BEGINS
 				//size_t numberOfSensors = mtwCallbacks.size();
 				InverseKinematicsFromIMUs(matrixData, mtwCallbacks, timeInteger, calibratedModelFile);
 				timeInteger++;
-				// OPENSIM ENDS
-
+				
+				/*
 				// Don't print too often for performance. Console output is very slow.
 				if (printCounter % 25 == 0)
 				{
@@ -870,10 +862,20 @@ void ConnectToDataStream() {
 							<< "\n";
 					}
 				}
-				++printCounter;
+				++printCounter;*/
+				getDataKeyHit = false;
 			}
 
-		}
+			char hitKey = ' ';
+			if (_kbhit())
+			{
+				hitKey = toupper((char)_getch());
+				mainDataLoop = (hitKey != 'X');
+				getDataKeyHit = (hitKey == 'V');
+				calibrateModelKeyHit = (hitKey == 'C');
+			}
+			
+		} while (mainDataLoop);
 		(void)_getch();
 
 		std::cout << "Setting config mode..." << std::endl;
