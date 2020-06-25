@@ -241,6 +241,99 @@ double deg2rad(double deg) {
 	return (deg * acos(0.0) / 90);
 }
 
+// this function creates a rotation matrix out of Euler angles
+SimTK::Matrix_<double> eulerToRotationMatrix(SimTK::Vec3 euler) {
+	// define the elements of the rotation matrix
+	double c1 = cos(euler[0]);
+	double c2 = cos(euler[1]);
+	double c3 = cos(euler[2]);
+	double s1 = sin(euler[0]);
+	double s2 = sin(euler[1]);
+	double s3 = sin(euler[2]);
+	// create a 3x3 matrix
+	SimTK::Matrix_<double> rotationMatrix(3, 3);
+	// set the values of the matrix
+	rotationMatrix.set(0, 0, c2 * c3);
+	rotationMatrix.set(0, 1, -c2 * s3);
+	rotationMatrix.set(0, 2, s2);
+	rotationMatrix.set(1, 0, c1 * s3 + c3 * s1 * s2);
+	rotationMatrix.set(1, 1, c1 * c3 - s1 * s2 * s3);
+	rotationMatrix.set(1, 2, c2 * s1);
+	rotationMatrix.set(2, 0, s1 * s3 - c1 * c3 * s2);
+	rotationMatrix.set(2, 1, c3 * s1 + c1 * s2 * s3);
+	rotationMatrix.set(2, 2, c1 * c2);
+
+	return rotationMatrix;
+}
+
+SimTK::Vec3 rotationMatrixToEuler(SimTK::Matrix_<double> matrix) {
+	double m11 = matrix.get(0, 0);
+	double m12 = matrix.get(0, 1);
+	double m13 = matrix.get(0, 2);
+	double m21 = matrix.get(1, 0);
+	double m22 = matrix.get(1, 1);
+	double m23 = matrix.get(1, 2);
+	double m31 = matrix.get(2, 0);
+	double m32 = matrix.get(2, 1);
+	double m33 = matrix.get(2, 2);
+
+	// get Euler angles as radians
+	double pitch = asin(m13);
+	double yaw = acos(m11 / cos(pitch));
+	double roll = acos(m33 / cos(pitch));
+	SimTK::Vec3 euler(roll, pitch, yaw);
+	return euler;
+}
+
+// performs matrix multiplication on 3x3 matrices and returns the product
+SimTK::Matrix_<double> matrixMultiplication(SimTK::Matrix_<double> firstMatrix, SimTK::Matrix_<double> secondMatrix) {
+	// construct the product matrix
+	SimTK::Matrix_<double> productMatrix(3, 3);
+	double value;
+
+	value = firstMatrix.get(0, 0) * secondMatrix.get(0, 0) + firstMatrix.get(0, 1) * secondMatrix.get(1, 0) + firstMatrix.get(0, 2) * secondMatrix.get(2, 0);
+	productMatrix.set(0, 0, value);
+	value = firstMatrix.get(0, 0) * secondMatrix.get(0, 1) + firstMatrix.get(0, 1) * secondMatrix.get(1, 1) + firstMatrix.get(0, 2) * secondMatrix.get(2, 1);
+	productMatrix.set(0, 1, value);
+	value = firstMatrix.get(0, 0) * secondMatrix.get(0, 2) + firstMatrix.get(0, 1) * secondMatrix.get(1, 2) + firstMatrix.get(0, 2) * secondMatrix.get(2, 2);
+	productMatrix.set(0, 2, value);
+
+	value = firstMatrix.get(1, 0) * secondMatrix.get(0, 0) + firstMatrix.get(1, 1) * secondMatrix.get(1, 0) + firstMatrix.get(1, 2) * secondMatrix.get(2, 0);
+	productMatrix.set(1, 0, value);
+	value = firstMatrix.get(1, 0) * secondMatrix.get(0, 1) + firstMatrix.get(1, 1) * secondMatrix.get(1, 1) + firstMatrix.get(1, 2) * secondMatrix.get(2, 1);
+	productMatrix.set(1, 1, value);
+	value = firstMatrix.get(1, 0) * secondMatrix.get(0, 2) + firstMatrix.get(1, 1) * secondMatrix.get(1, 2) + firstMatrix.get(1, 2) * secondMatrix.get(2, 2);
+	productMatrix.set(1, 2, value);
+
+	value = firstMatrix.get(2, 0) * secondMatrix.get(0, 0) + firstMatrix.get(2, 1) * secondMatrix.get(1, 0) + firstMatrix.get(2, 2) * secondMatrix.get(2, 0);
+	productMatrix.set(2, 0, value);
+	value = firstMatrix.get(2, 0) * secondMatrix.get(0, 1) + firstMatrix.get(2, 1) * secondMatrix.get(1, 1) + firstMatrix.get(2, 2) * secondMatrix.get(2, 1);
+	productMatrix.set(2, 1, value);
+	value = firstMatrix.get(2, 0) * secondMatrix.get(0, 2) + firstMatrix.get(2, 1) * secondMatrix.get(1, 2) + firstMatrix.get(2, 2) * secondMatrix.get(2, 2);
+	productMatrix.set(2, 2, value);
+
+	return productMatrix;
+}
+
+// this function takes as input two euler angle sets, converts them to rotation matrices, rotates the other set and returns it as Euler angles
+SimTK::Vec3 transformEuler(SimTK::Vec3 sensorToOpenSim, SimTK::Vec3 sensorEuler) {
+	
+	// convert Euler angles to rotation matrices
+	SimTK::Matrix_<double> sensorToOpenSimMatrix = eulerToRotationMatrix(sensorToOpenSim);
+	SimTK::Matrix_<double> sensorMatrix = eulerToRotationMatrix(sensorEuler);
+	std::cout << "Euler angles converted to rotation matrices." << std::endl;
+
+	// calculate the matrix product
+	SimTK::Matrix_<double> productMatrix = matrixMultiplication(sensorToOpenSimMatrix, sensorMatrix);
+	std::cout << "Matrix product calculated." << std::endl;
+
+	// convert it back into Euler angles
+	SimTK::Vec3 finalEuler = rotationMatrixToEuler(productMatrix);
+	std::cout << "Rotation matrix converted into Euler angles:" << std::endl;
+	std::cout << "[" << finalEuler[0] << ", " << finalEuler[1] << ", " << finalEuler[2] << "]" << std::endl;
+	return finalEuler;
+}
+
 // this function creates a calibrated .osim model from live data (as opposed to data exported after recording from MT manager)
 std::string calibrateOpenSimModel(std::vector<MtwCallback*> mtwCallbacks){
 
@@ -298,8 +391,10 @@ std::string calibrateOpenSimModel(std::vector<MtwCallback*> mtwCallbacks){
 	// get the root element of the XML file
 	SimTK::Xml::Element rootElement = baseModelFile.getRootElement();
 	// get the child element of the root element
-	SimTK::Xml::Element bodySetElement = rootElement.getRequiredElement("BodySet");
+	SimTK::Xml::Element modelElement = rootElement.getRequiredElement("Model");
 	// get the child element of the child element of the root element
+	SimTK::Xml::Element bodySetElement = modelElement.getRequiredElement("BodySet");
+	// get the child element of the BodySet element
 	SimTK::Xml::Element objectsElement = bodySetElement.getRequiredElement("objects");
 	// get all child elements with tag <Body> of the element <objects>
 	SimTK::Array_<SimTK::Xml::Element> bodyElements = objectsElement.getAllElements("Body");
@@ -324,31 +419,37 @@ std::string calibrateOpenSimModel(std::vector<MtwCallback*> mtwCallbacks){
 			currentBody = bodyElements.at(m).getRequiredAttributeValue("name");
 			// if we find a match, add PhysicalOffsetFrame for the IMU
 			if (bodyName == currentBody) {
-				SimTK::Xml::Element componentsElement = bodyElements[m].getRequiredElement("components");
+				// create components
+				//SimTK::Xml::Element componentsElement = bodyElements[m].getRequiredElement("components");
+				SimTK::Xml::Element componentsElement("components");
 				// create the new XML element to be inserted
 				SimTK::Xml::Element physicalOffsetFrameElement("PhysicalOffsetFrame");
 				physicalOffsetFrameElement.setAttributeValue("name", sensorLabel);
 				// create child elements of the new XML element
 				SimTK::Xml::Element frameGeometryElement("FrameGeometry");
 				frameGeometryElement.setAttributeValue("name", "frame_geometry");
-				SimTK::Xml::Element socketFrameElement("socket_frame", "..");
+				SimTK::Xml::Element socketFrameFGElement("socket_frame", "..");
 				SimTK::Xml::Element scaleFactorsElement("scale_factors", "0.2 0.2 0.2");
-				frameGeometryElement.appendNode(socketFrameElement);
+				frameGeometryElement.appendNode(socketFrameFGElement);
 				frameGeometryElement.appendNode(scaleFactorsElement);
 				SimTK::Xml::Element attachedGeometryElement("attached_geometry");
 				SimTK::Xml::Element brickElement("Brick");
 				brickElement.setAttributeValue("name", sensorLabel+"_geom1");
+				SimTK::Xml::Element socketFrameBElement("socket_frame", "..");
 				SimTK::Xml::Element appearanceElement("Appearance");
 				SimTK::Xml::Element colorElement("color", "1 0.5 0");
 				appearanceElement.appendNode(colorElement);
 				SimTK::Xml::Element halfLengthsElement("half_lengths", "0.02 0.01 0.005");
-				brickElement.appendNode(socketFrameElement);
+				brickElement.appendNode(socketFrameBElement);
 				brickElement.appendNode(appearanceElement);
 				brickElement.appendNode(halfLengthsElement);
+				attachedGeometryElement.appendNode(brickElement);
 				SimTK::Xml::Element socketParentElement("socket_parent", "..");
 				SimTK::Xml::Element translationElement("translation", "-0.0707 0 0");
 				// orientation must be calculated from initial IMU orientations and given as a string with 3 elements separated by whitespaces
-				std::string orientationVector = std::to_string(rollVector[k]) + " " + std::to_string(pitchVector[k]) + " " + std::to_string(yawVector[k]);
+				SimTK::Vec3 eulerIMU(rollVector[k], pitchVector[k], yawVector[k]);
+				SimTK::Vec3 finalIMUOrientation = transformEuler(sensorToOpenSimRotations, eulerIMU);
+				std::string orientationVector = std::to_string(finalIMUOrientation[0]) + " " + std::to_string(finalIMUOrientation[1]) + " " + std::to_string(finalIMUOrientation[2]);
 				SimTK::Xml::Element orientationElement("orientation", orientationVector);
 				// insert child elements into the XML element to be inserted
 				physicalOffsetFrameElement.appendNode(frameGeometryElement);
@@ -358,6 +459,7 @@ std::string calibrateOpenSimModel(std::vector<MtwCallback*> mtwCallbacks){
 				physicalOffsetFrameElement.appendNode(orientationElement);
 				// insert the new XML element under the parent node
 				componentsElement.appendNode(physicalOffsetFrameElement);
+				bodyElements[m].appendNode(componentsElement);
 			}
 		}
 	}
@@ -412,30 +514,30 @@ void InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<Mtw
 		}
 
 		// give values to variables representing individual elements of a 3x3 rotation matrix
-		m11 = xsMatrix.value(1, 1);
-		m12 = xsMatrix.value(1, 2);
-		m13 = xsMatrix.value(1, 3);
-		m21 = xsMatrix.value(2, 1);
-		m22 = xsMatrix.value(2, 2);
-		m23 = xsMatrix.value(2, 3);
-		m31 = xsMatrix.value(3, 1);
-		m32 = xsMatrix.value(3, 2);
-		m33 = xsMatrix.value(3, 3);
+		m11 = xsMatrix.value(0, 0);
+		m12 = xsMatrix.value(0, 1);
+		m13 = xsMatrix.value(0, 2);
+		m21 = xsMatrix.value(1, 0);
+		m22 = xsMatrix.value(1, 1);
+		m23 = xsMatrix.value(1, 2);
+		m31 = xsMatrix.value(2, 0);
+		m32 = xsMatrix.value(2, 1);
+		m33 = xsMatrix.value(2, 2);
 		std::cout << "[" << m11 << "; " << m12 << "; " << m13 << " " << std::endl;
 		std::cout << " " << m21 << "; " << m22 << "; " << m23 << " " << std::endl;
 		std::cout << " " << m31 << "; " << m32 << "; " << m33 << "]" << std::endl;
 
 		std::cout << "Setting the values to tempMatrix" << std::endl;
 		// set these values to tempMatrix
-		tempMatrix.set(1, 1, m11);
-		tempMatrix.set(1, 1, m12);
-		tempMatrix.set(1, 1, m13);
-		tempMatrix.set(1, 1, m21);
+		tempMatrix.set(0, 0, m11);
+		tempMatrix.set(0, 1, m12);
+		tempMatrix.set(0, 2, m13);
+		tempMatrix.set(1, 0, m21);
 		tempMatrix.set(1, 1, m22);
-		tempMatrix.set(1, 1, m23);
-		tempMatrix.set(1, 1, m31);
-		tempMatrix.set(1, 1, m32);
-		tempMatrix.set(1, 1, m33);
+		tempMatrix.set(1, 2, m23);
+		tempMatrix.set(2, 0, m31);
+		tempMatrix.set(2, 1, m32);
+		tempMatrix.set(2, 2, m33);
 
 		//std::cout << "Filling orientationDataMatrix" << std::endl;
 

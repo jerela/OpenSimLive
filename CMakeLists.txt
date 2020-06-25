@@ -55,8 +55,9 @@ configure_file(OpenSimLiveConfig.h.in OpenSimLiveConfig.h)
 
 set(OPENSIM_INCLUDE_PATH_TWO "$ENV{OPENSIM_HOME}/sdk/include")
 
-# add and link the executables, libraries and directories for ViconMarkerReader
-if(${VICONSDK_LIB})
+# add and link the executables, libraries and directories for ViconMarkerReader only if VICONSDK_LIB was found
+if(VICONSDK_LIB)
+	message([STATUS] "Vicon SDK found.")
 	add_executable(ViconMarkerReader ViconMarkerReader.cxx)
 	# link Vicon SDK library
 	target_link_libraries(ViconMarkerReader PRIVATE "${VICONSDK_LIB}")
@@ -70,16 +71,12 @@ if(${VICONSDK_LIB})
 						   "${OPENSIM_INCLUDE_PATH_TWO}"
 						   "${SIMBODY_INCLUDE_PATH}"
 						   )
+else()
+	message([STATUS] "Cannot find Vicon SDK.")	
 endif()
+
+
 add_executable(XsensReader XsensReader.cxx)
-
-
-
-
-
-
-
-
 
 
 # set variables for MT library name list
