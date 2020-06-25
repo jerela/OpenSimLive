@@ -315,13 +315,22 @@ SimTK::Matrix_<double> matrixMultiplication(SimTK::Matrix_<double> firstMatrix, 
 	return productMatrix;
 }
 
+/*
 // this function takes as input two euler angle sets, converts them to rotation matrices, rotates the other set and returns it as Euler angles
 SimTK::Vec3 transformEuler(SimTK::Vec3 sensorToOpenSim, SimTK::Vec3 sensorEuler) {
 	
+	std::cout << "Euler for sensor to OpenSim: [" << sensorToOpenSim[0] << ", " << sensorToOpenSim[1] << ", " << sensorToOpenSim[2] << "]" << std::endl;
+	std::cout << "Euler for IMU sensor: [" << sensorEuler[0] << ", " << sensorEuler[1] << ", " << sensorEuler[2] << "]" << std::endl;
+
 	// convert Euler angles to rotation matrices
 	SimTK::Matrix_<double> sensorToOpenSimMatrix = eulerToRotationMatrix(sensorToOpenSim);
 	SimTK::Matrix_<double> sensorMatrix = eulerToRotationMatrix(sensorEuler);
 	std::cout << "Euler angles converted to rotation matrices." << std::endl;
+
+	std::cout << "Rotation matrix for IMU:" << std::endl;
+	std::cout << "[" << sensorMatrix.get(0, 0) << ", " << sensorMatrix.get(0, 1) << ", " << sensorMatrix.get(0, 2) << std::endl;
+	std::cout << " " << sensorMatrix.get(1, 0) << ", " << sensorMatrix.get(1, 1) << ", " << sensorMatrix.get(1, 2) << std::endl;
+	std::cout << " " << sensorMatrix.get(0, 0) << ", " << sensorMatrix.get(0, 1) << ", " << sensorMatrix.get(0, 2) << "]" << std::endl;
 
 	// calculate the matrix product
 	SimTK::Matrix_<double> productMatrix = matrixMultiplication(sensorToOpenSimMatrix, sensorMatrix);
@@ -333,9 +342,49 @@ SimTK::Vec3 transformEuler(SimTK::Vec3 sensorToOpenSim, SimTK::Vec3 sensorEuler)
 	std::cout << "[" << finalEuler[0] << ", " << finalEuler[1] << ", " << finalEuler[2] << "]" << std::endl;
 	return finalEuler;
 }
+*/
+
+SimTK::Vec3 transformOrientation(SimTK::Vec3 sensorToOpenSim, XsMatrix sensorMatrix) {
+
+	std::cout << "Euler for sensor to OpenSim: [" << sensorToOpenSim[0] << ", " << sensorToOpenSim[1] << ", " << sensorToOpenSim[2] << "]" << std::endl;
+
+	// convert Euler angles to rotation matrices
+	SimTK::Matrix_<double> sensorToOpenSimMatrix = eulerToRotationMatrix(sensorToOpenSim);
+	std::cout << "Euler angles converted to rotation matrices." << std::endl;
+
+	std::cout << "Rotation matrix for IMU:" << std::endl;
+	std::cout << "[" << sensorMatrix.value(0, 0) << ", " << sensorMatrix.value(0, 1) << ", " << sensorMatrix.value(0, 2) << std::endl;
+	std::cout << " " << sensorMatrix.value(1, 0) << ", " << sensorMatrix.value(1, 1) << ", " << sensorMatrix.value(1, 2) << std::endl;
+	std::cout << " " << sensorMatrix.value(0, 0) << ", " << sensorMatrix.value(0, 1) << ", " << sensorMatrix.value(0, 2) << "]" << std::endl;
+
+	std::cout << "Rotation matrix for sensor to OpenSim:" << std::endl;
+	std::cout << "[" << sensorToOpenSimMatrix.get(0, 0) << ", " << sensorToOpenSimMatrix.get(0, 1) << ", " << sensorToOpenSimMatrix.get(0, 2) << std::endl;
+	std::cout << " " << sensorToOpenSimMatrix.get(1, 0) << ", " << sensorToOpenSimMatrix.get(1, 1) << ", " << sensorToOpenSimMatrix.get(1, 2) << std::endl;
+	std::cout << " " << sensorToOpenSimMatrix.get(0, 0) << ", " << sensorToOpenSimMatrix.get(0, 1) << ", " << sensorToOpenSimMatrix.get(0, 2) << "]" << std::endl;
+
+	// convert sensor rotation matrix from Xs to SimTK
+	SimTK::Matrix_<double> sensorMatrixSimTK(3,3);
+	for (int i = 0; i < 3; ++i) {
+		for (int j = 0; j < 3; ++j) {
+			sensorMatrixSimTK.set(i, j, sensorMatrix.value(i, j));
+		}
+	}
+	
+	
+	// calculate the matrix product
+	SimTK::Matrix_<double> productMatrix = matrixMultiplication(sensorToOpenSimMatrix, sensorMatrixSimTK);
+	std::cout << "Matrix product calculated." << std::endl;
+
+	// convert it back into Euler angles
+	SimTK::Vec3 finalEuler = rotationMatrixToEuler(productMatrix);
+	std::cout << "Rotation matrix converted into Euler angles:" << std::endl;
+	std::cout << "[" << finalEuler[0] << ", " << finalEuler[1] << ", " << finalEuler[2] << "]" << std::endl;
+	return finalEuler;
+}
+
 
 // this function creates a calibrated .osim model from live data (as opposed to data exported after recording from MT manager)
-std::string calibrateOpenSimModel(std::vector<MtwCallback*> mtwCallbacks, std::vector<XsEuler> initialEuler){
+std::string calibrateOpenSimModel(std::vector<MtwCallback*> mtwCallbacks, std::vector<XsMatrix> initialMatrix){
 
 	size_t callbacksSize = mtwCallbacks.size();
 
@@ -345,45 +394,8 @@ std::string calibrateOpenSimModel(std::vector<MtwCallback*> mtwCallbacks, std::v
 	std::string baseHeadingAxis("z");
 	SimTK::Vec3 sensorToOpenSimRotations(-1.570796, 0, 0);
 	std::string outModelFile("C:/Users/wksadmin/source/repos/OpenSimLive/gait2392_full_calib.osim");
-/*	// get initial orientations
-	std::vector<XsEuler> initialEuler(callbacksSize);
-	// vector of booleans telling us which sensors have sent data to us
-	std::vector<bool> initialDataGot;
-	// boolean variable telling us whether all sensors have sent their data or not
-	bool initialDataFinished = false;
-	// assign all elements to false
-	initialDataGot.assign(callbacksSize, false);
-	// iterate through all sensors
-	while (!initialDataFinished) {
-		initialDataFinished = true;
-		for (size_t k = 0; k < callbacksSize; ++k) {
-			// if data is available for a sensor, get its Euler angles
-			if (mtwCallbacks[k]->dataAvailable()) {
-				XsDataPacket const* packet = mtwCallbacks[k]->getOldestPacket();
-				initialEuler[k] = packet->orientationEuler();
-				initialDataGot[k] = true;
-			}
-			// if any data was unobtained, initialDataFinished for this iteration is false
-			if (initialDataGot[k] == false) {
-				initialDataFinished = false;
-			}
-		}
-	}*/
-
-	// now we should have Euler data in initialEuler for all sensors
+	
 	// let's calculate that in OpenSim coordinate system
-
-	// declare vectors for angles around the x-, y- and z-axis
-	std::vector<XsReal> rollVector;
-	std::vector<XsReal> pitchVector;
-	std::vector<XsReal> yawVector;
-	// iterate through all active sensors and save their roll, pitch and yaw values into the vector as radians
-	for (size_t k = 0; k < callbacksSize; ++k)
-	{
-		rollVector.push_back(deg2rad(initialEuler[k].roll()));
-		pitchVector.push_back(deg2rad(initialEuler[k].pitch()));
-		yawVector.push_back(deg2rad(initialEuler[k].yaw()));
-	}
 
 	// the next step is to add PhysicalOffsetFrames representing the IMUs under each body in the model
 
@@ -447,8 +459,7 @@ std::string calibrateOpenSimModel(std::vector<MtwCallback*> mtwCallbacks, std::v
 				SimTK::Xml::Element socketParentElement("socket_parent", "..");
 				SimTK::Xml::Element translationElement("translation", "-0.0707 0 0");
 				// orientation must be calculated from initial IMU orientations and given as a string with 3 elements separated by whitespaces
-				SimTK::Vec3 eulerIMU(rollVector[k], pitchVector[k], yawVector[k]);
-				SimTK::Vec3 finalIMUOrientation = transformEuler(sensorToOpenSimRotations, eulerIMU);
+				SimTK::Vec3 finalIMUOrientation = transformOrientation(sensorToOpenSimRotations, initialMatrix[k]);
 				std::string orientationVector = std::to_string(finalIMUOrientation[0]) + " " + std::to_string(finalIMUOrientation[1]) + " " + std::to_string(finalIMUOrientation[2]);
 				SimTK::Xml::Element orientationElement("orientation", orientationVector);
 				// insert child elements into the XML element to be inserted
@@ -553,6 +564,9 @@ void InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<Mtw
 
 	//std::cout << "TimeSeriesTable and Model objects created, preparing to initialize state." << std::endl;
 
+	// enable visualizer
+	//model.setUseVisualizer(true);
+
 	// create state
 	SimTK::State s = model.initSystem();
 
@@ -600,6 +614,9 @@ void InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<Mtw
 		q[j] = stateQ[j];
 		std::cout << "Q" << j << ": " << q[j] << std::endl;
 	}
+
+
+	//OpenSim::ModelVisualizer::show(s);
 
 	std::cout << "IK finished successfully." << std::endl;
 	return;
@@ -837,7 +854,7 @@ void ConnectToDataStream() {
 			}
 
 			if (newDataAvailable && calibrateModelKeyHit) {
-				calibratedModelFile = calibrateOpenSimModel(mtwCallbacks,eulerData);
+				calibratedModelFile = calibrateOpenSimModel(mtwCallbacks,matrixData);
 				calibrateModelKeyHit = false;
 				std::cout << "Model has been calibrated." << std::endl;
 			}
