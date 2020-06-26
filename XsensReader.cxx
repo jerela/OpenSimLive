@@ -258,7 +258,7 @@ SimTK::Matrix_<double> eulerToRotationMatrix(SimTK::Vec3 euler) {
 	rotationMatrix.set(0, 2, s2);
 	rotationMatrix.set(1, 0, c1 * s3 + c3 * s1 * s2);
 	rotationMatrix.set(1, 1, c1 * c3 - s1 * s2 * s3);
-	rotationMatrix.set(1, 2, c2 * s1);
+	rotationMatrix.set(1, 2, -c2 * s1);
 	rotationMatrix.set(2, 0, s1 * s3 - c1 * c3 * s2);
 	rotationMatrix.set(2, 1, c3 * s1 + c1 * s2 * s3);
 	rotationMatrix.set(2, 2, c1 * c2);
@@ -379,12 +379,12 @@ SimTK::Vec3 transformOrientationToEuler(SimTK::Vec3 sensorToOpenSim, XsMatrix se
 	std::cout << "Rotation matrix for IMU:" << std::endl;
 	std::cout << "[" << sensorMatrix.value(0, 0) << ", " << sensorMatrix.value(0, 1) << ", " << sensorMatrix.value(0, 2) << std::endl;
 	std::cout << " " << sensorMatrix.value(1, 0) << ", " << sensorMatrix.value(1, 1) << ", " << sensorMatrix.value(1, 2) << std::endl;
-	std::cout << " " << sensorMatrix.value(0, 0) << ", " << sensorMatrix.value(0, 1) << ", " << sensorMatrix.value(0, 2) << "]" << std::endl;
+	std::cout << " " << sensorMatrix.value(2, 0) << ", " << sensorMatrix.value(2, 1) << ", " << sensorMatrix.value(2, 2) << "]" << std::endl;
 
 	std::cout << "Rotation matrix for sensor to OpenSim:" << std::endl;
 	std::cout << "[" << sensorToOpenSimMatrix.get(0, 0) << ", " << sensorToOpenSimMatrix.get(0, 1) << ", " << sensorToOpenSimMatrix.get(0, 2) << std::endl;
 	std::cout << " " << sensorToOpenSimMatrix.get(1, 0) << ", " << sensorToOpenSimMatrix.get(1, 1) << ", " << sensorToOpenSimMatrix.get(1, 2) << std::endl;
-	std::cout << " " << sensorToOpenSimMatrix.get(0, 0) << ", " << sensorToOpenSimMatrix.get(0, 1) << ", " << sensorToOpenSimMatrix.get(0, 2) << "]" << std::endl;
+	std::cout << " " << sensorToOpenSimMatrix.get(2, 0) << ", " << sensorToOpenSimMatrix.get(2, 1) << ", " << sensorToOpenSimMatrix.get(2, 2) << "]" << std::endl;
 
 	// convert sensor rotation matrix from Xs to SimTK
 	SimTK::Matrix_<double> sensorMatrixSimTK(3,3);
@@ -417,12 +417,12 @@ SimTK::Rotation_<double> transformOrientationToRotation(SimTK::Vec3 sensorToOpen
 	std::cout << "Rotation matrix for IMU:" << std::endl;
 	std::cout << "[" << sensorMatrix.value(0, 0) << ", " << sensorMatrix.value(0, 1) << ", " << sensorMatrix.value(0, 2) << std::endl;
 	std::cout << " " << sensorMatrix.value(1, 0) << ", " << sensorMatrix.value(1, 1) << ", " << sensorMatrix.value(1, 2) << std::endl;
-	std::cout << " " << sensorMatrix.value(0, 0) << ", " << sensorMatrix.value(0, 1) << ", " << sensorMatrix.value(0, 2) << "]" << std::endl;
+	std::cout << " " << sensorMatrix.value(2, 0) << ", " << sensorMatrix.value(2, 1) << ", " << sensorMatrix.value(2, 2) << "]" << std::endl;
 
 	std::cout << "Rotation matrix for sensor to OpenSim:" << std::endl;
 	std::cout << "[" << sensorToOpenSimMatrix.get(0, 0) << ", " << sensorToOpenSimMatrix.get(0, 1) << ", " << sensorToOpenSimMatrix.get(0, 2) << std::endl;
 	std::cout << " " << sensorToOpenSimMatrix.get(1, 0) << ", " << sensorToOpenSimMatrix.get(1, 1) << ", " << sensorToOpenSimMatrix.get(1, 2) << std::endl;
-	std::cout << " " << sensorToOpenSimMatrix.get(0, 0) << ", " << sensorToOpenSimMatrix.get(0, 1) << ", " << sensorToOpenSimMatrix.get(0, 2) << "]" << std::endl;
+	std::cout << " " << sensorToOpenSimMatrix.get(2, 0) << ", " << sensorToOpenSimMatrix.get(2, 1) << ", " << sensorToOpenSimMatrix.get(2, 2) << "]" << std::endl;
 
 	// convert sensor rotation matrix from Xs to SimTK
 	SimTK::Matrix_<double> sensorMatrixSimTK(3, 3);
@@ -546,7 +546,7 @@ std::string calibrateOpenSimModel(std::vector<MtwCallback*> mtwCallbacks, std::v
 	return outModelFile;
 }
 
-void InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<MtwCallback*> mtwCallbacks, SimTK::Real timeInteger, std::string modelFileName, SimTK::Vec3 sensorToOpenSimRotations){
+std::vector<double> InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<MtwCallback*> mtwCallbacks, SimTK::Real timeInteger, std::string modelFileName, SimTK::Vec3 sensorToOpenSimRotations){
 
 	int numberOfSensors = mtwCallbacks.size();
 
@@ -579,30 +579,30 @@ void InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<Mtw
 		orientationDataMatrix.set(0, k, transformOrientationToRotation(sensorToOpenSimRotations, xsMatrix));
 
 		// give values to variables representing individual elements of a 3x3 rotation matrix
-		//m11 = xsMatrix.value(0, 0);
-		//m12 = xsMatrix.value(0, 1);
-		//m13 = xsMatrix.value(0, 2);
-		//m21 = xsMatrix.value(1, 0);
-		//m22 = xsMatrix.value(1, 1);
-		//m23 = xsMatrix.value(1, 2);
-		//m31 = xsMatrix.value(2, 0);
-		//m32 = xsMatrix.value(2, 1);
-		//m33 = xsMatrix.value(2, 2);
-		//std::cout << "[" << m11 << "; " << m12 << "; " << m13 << " " << std::endl;
-		//std::cout << " " << m21 << "; " << m22 << "; " << m23 << " " << std::endl;
-		//std::cout << " " << m31 << "; " << m32 << "; " << m33 << "]" << std::endl;
+		/*m11 = xsMatrix.value(0, 0);
+		m12 = xsMatrix.value(0, 1);
+		m13 = xsMatrix.value(0, 2);
+		m21 = xsMatrix.value(1, 0);
+		m22 = xsMatrix.value(1, 1);
+		m23 = xsMatrix.value(1, 2);
+		m31 = xsMatrix.value(2, 0);
+		m32 = xsMatrix.value(2, 1);
+		m33 = xsMatrix.value(2, 2);
+		std::cout << "[" << m11 << "; " << m12 << "; " << m13 << " " << std::endl;
+		std::cout << " " << m21 << "; " << m22 << "; " << m23 << " " << std::endl;
+		std::cout << " " << m31 << "; " << m32 << "; " << m33 << "]" << std::endl;
 
 		// set these values to tempMatrix
-		//tempMatrix.set(0, 0, m11);
-		//tempMatrix.set(0, 1, m12);
-		//tempMatrix.set(0, 2, m13);
-		//tempMatrix.set(1, 0, m21);
-		//tempMatrix.set(1, 1, m22);
-		//tempMatrix.set(1, 2, m23);
-		//tempMatrix.set(2, 0, m31);
-		//tempMatrix.set(2, 1, m32);
-		//tempMatrix.set(2, 2, m33);
-
+		tempMatrix.set(0, 0, m11);
+		tempMatrix.set(0, 1, m12);
+		tempMatrix.set(0, 2, m13);
+		tempMatrix.set(1, 0, m21);
+		tempMatrix.set(1, 1, m22);
+		tempMatrix.set(1, 2, m23);
+		tempMatrix.set(2, 0, m31);
+		tempMatrix.set(2, 1, m32);
+		tempMatrix.set(2, 2, m33);
+		*/
 		// fill orientationDataMatrix with orientation matrices for each sensor
 		//orientationDataMatrix.set(0, k, tempMatrix);
 
@@ -633,10 +633,14 @@ void InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<Mtw
 	//std::cout << "TimeSeriesTable and Model objects created, preparing to initialize state." << std::endl;
 
 	// enable visualizer
-	//model.setUseVisualizer(true);
+	model.setUseVisualizer(true);
 
 	// create state
 	SimTK::State s = model.initSystem();
+
+	SimTK::Visualizer &visualizer = model.updVisualizer().updSimbodyVisualizer();
+
+	visualizer.setMode(SimTK::Visualizer::Mode::PassThrough);
 
 	// update state time
 	//s.updTime() = timeInteger/1000;
@@ -685,9 +689,10 @@ void InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<Mtw
 
 
 	//OpenSim::ModelVisualizer::show(s);
+	model.getVisualizer().show(s);
 
 	std::cout << "IK finished successfully." << std::endl;
-	return;
+	return q;
 }
 
 
@@ -897,6 +902,7 @@ void ConnectToDataStream() {
 		bool mainDataLoop = true;
 		bool getDataKeyHit = false;
 		bool calibrateModelKeyHit = false;
+		std::vector<std::vector<double>> jointAngles;
 		
 		std::cout << "Entering data streaming and IK loop. Press C to calibrate model, V to calculate IK and X to quit." << std::endl;
 
@@ -931,23 +937,18 @@ void ConnectToDataStream() {
 			{
 
 				//size_t numberOfSensors = mtwCallbacks.size();
-				InverseKinematicsFromIMUs(matrixData, mtwCallbacks, timeInteger, calibratedModelFile, sensorToOpenSimRotations);
+				jointAngles.push_back(InverseKinematicsFromIMUs(matrixData, mtwCallbacks, timeInteger, calibratedModelFile, sensorToOpenSimRotations));
 				timeInteger++;
 				
-				/*
-				// Don't print too often for performance. Console output is very slow.
-				if (printCounter % 25 == 0)
+				for (size_t i = 0; i < mtwCallbacks.size(); ++i)
 				{
-					for (size_t i = 0; i < mtwCallbacks.size(); ++i)
-					{
-						std::cout << "[" << i << "]: ID: " << mtwCallbacks[i]->device().deviceId().toString().toStdString()
-							<< ", Roll: " << std::setw(7) << std::fixed << std::setprecision(2) << eulerData[i].roll()
-							<< ", Pitch: " << std::setw(7) << std::fixed << std::setprecision(2) << eulerData[i].pitch()
-							<< ", Yaw: " << std::setw(7) << std::fixed << std::setprecision(2) << eulerData[i].yaw()
-							<< "\n";
-					}
+					std::cout << "[" << i << "]: ID: " << mtwCallbacks[i]->device().deviceId().toString().toStdString()
+						<< ", Roll: " << std::setw(7) << std::fixed << std::setprecision(2) << eulerData[i].roll()
+						<< ", Pitch: " << std::setw(7) << std::fixed << std::setprecision(2) << eulerData[i].pitch()
+						<< ", Yaw: " << std::setw(7) << std::fixed << std::setprecision(2) << eulerData[i].yaw()
+						<< std::endl;
 				}
-				++printCounter;*/
+
 				getDataKeyHit = false;
 			}
 
