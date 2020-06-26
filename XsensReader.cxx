@@ -1010,106 +1010,6 @@ void ConnectToDataStream() {
 	std::cout << "Successful exit." << std::endl;
 	std::cout << "Press [ENTER] to continue." << std::endl; std::cin.get();
 
-
-
-	/*
-	// create marker weight set
-	OpenSim::Set<OpenSim::MarkerWeight> markerWeightSet;
-	markerWeightSet.setSize(numberOfMarkers);
-
-	// create a vector for marker names
-	std::vector<std::string> markerNameVector;
-	// create a vector for time (in a single frame, so just a vector with a single value)
-	std::vector<double> timeVector{ 0 };
-	// create a matrix for marker translations
-	SimTK::Matrix_<SimTK::Vec3> markerDataMatrix(1,numberOfMarkers); // marker positions go here
-
-
-	for (int n = 0; n < 3; n++) {
-
-		markerDataMatrix.setToNaN();
-		markerNameVector.clear();
-		timeVector.clear();
-
-		// get the current frame
-		frame = client.GetFrame();
-		// get the number of the current frame
-		frameNumber = client.GetFrameNumber();
-		std::cout << "Got frame number " << frameNumber.FrameNumber << std::endl;
-
-		timeVector.push_back(frameNumber.FrameNumber);
-
-		std::cout << "Inserting global marker translations into marker data matrix..." << std::endl;
-
-		for (int k = 0; k < numberOfMarkers; k++) {
-			// get the name of the marker at index k
-			//std::string markerName = client.GetMarkerName(subjectName, k).MarkerName;
-			markerNameVector.push_back(markerName); // push name of marker at index k to vector markerNameVector
-			markerWeightSet.insert(k, OpenSim::MarkerWeight(markerName, 10)); // insert a MarkerWeight object with weight 10 to index k in markerWeightSet
-			// get global translations of the marker
-			//Output_GetMarkerGlobalTranslation markerGlobalTranslation = client.GetMarkerGlobalTranslation(subjectName, markerName);
-			// insert global translations of the marker into a Vec3
-			//SimTK::Vec3 markerTranslations(markerGlobalTranslation.Translation[0]*0.001, markerGlobalTranslation.Translation[1]*0.001, markerGlobalTranslation.Translation[2]*0.001);
-			// set translations of marker at index k into markerDataMatrix
-			markerDataMatrix.set(0, k, markerTranslations);
-			std::cout << "[" << markerTranslations.get(0) << ", " << markerTranslations.get(1) << ", " << markerTranslations.get(2) << "]" << std::endl;
-			std::cout << markerNameVector.at(k) << std::endl;
-		}
-		std::cout << "Done." << std::endl;
-
-		// load model
-		OpenSim::Model model("C:/Users/wksadmin/source/repos/OpenSimLive/gait2392_full.osim");
-
-		// create state
-		SimTK::State s = model.initSystem();
-
-		s.updTime() = frameNumber.FrameNumber;
-
-		// form a timeseriestable of the marker coordinates
-		OpenSim::TimeSeriesTable_<SimTK::Vec3> timeSeriesTable(timeVector, markerDataMatrix, markerNameVector);
-
-		// create a markers reference using the timeseriestable
-		OpenSim::MarkersReference markersReference(timeSeriesTable, markerWeightSet, OpenSim::Units::Millimeters);
-
-		// write markers reference to file
-		markersReference.print("C:/Users/wksadmin/source/repos/OpenSimLive/markersRef.osim");
-
-		// create coordinate reference
-		SimTK::Array_<OpenSim::CoordinateReference> coordinateReference;
-
-		// use inversekinematicssolver with markersreference to solve
-		OpenSim::InverseKinematicsSolver iks(model, markersReference, coordinateReference, SimTK::Infinity);
-
-		iks.setAccuracy(1e-4);
-		bool isAssembled = false;
-		while (!isAssembled) {
-			try {
-
-				iks.assemble(s);
-				isAssembled = true;
-			}
-			catch (...) {
-				std::cerr << "Time " << s.getTime() << " Model not assembled" << std::endl;
-				isAssembled = false;
-			}
-		}
-		// calculate coordinates for state s
-		iks.track(s);
-
-		// get coordinates from state s
-		SimTK::Vector stateQ(s.getQ());
-		// get number of coordinates (joint angles) in the model
-		int numCoordinates = model.getNumCoordinates();
-		std::vector<double> q(numCoordinates);
-		for (int j = 0; j < numCoordinates; j++) {
-			q[j] = stateQ[j];
-			std::cout << "Q" << j << ": " << q[j] << std::endl;
-		}
-
-		std::this_thread::sleep_for(std::chrono::milliseconds(msDelay));
-	}
-	*/
-
 	return;
 }
 
@@ -1128,7 +1028,7 @@ int main(int argc, char *argv[])
 		ConnectToDataStream();
 
 		
-		std::cout << "Finished." << std::endl;
+		std::cout << "Program finished." << std::endl;
 		return 1;
 	}
 }
