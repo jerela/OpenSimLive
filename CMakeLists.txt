@@ -76,7 +76,7 @@ else()
 endif()
 
 
-add_executable(XsensReader XsensReader.cxx)
+
 
 
 # set variables for MT library name list
@@ -102,13 +102,20 @@ endforeach()
 # find path to MT SDK
 find_path(MTSDK_PATH xsensdeviceapi.h PATHS "C:/Program Files/Xsens/MT Software Suite 4.6/MT SDK/x64/include")
 
+
+
+find_path(INCLUDE_CLASSES_PATH IMUPlacerLive.h PATHS "${CMAKE_CURRENT_SOURCE_DIR}/Classes")
+set(XSENS_SOURCES XsensReader.cxx "${INCLUDE_CLASSES_PATH}/IMUPlacerLive.h" "${INCLUDE_CLASSES_PATH}/IMUPlacerLive.cxx")
+
+
+add_executable(XsensReader "${XSENS_SOURCES}")
+
 # link MT SDK libraries
 target_link_libraries(XsensReader PRIVATE "${MT_LIBRARY}")
 target_link_libraries(XsensReader PRIVATE "${OPENSIM_LIBRARY}")
 target_link_libraries(XsensReader PRIVATE "${SIMBODY_LIBRARY}")
 
-
-
+target_include_directories(XsensReader PRIVATE "${INCLUDE_CLASSES_PATH}")
 target_include_directories(XsensReader PUBLIC
 						   "${PROJECT_BINARY_DIR}"
 						   "${OPENSIM_INCLUDE_PATH}"
@@ -117,4 +124,3 @@ target_include_directories(XsensReader PUBLIC
 						   "${MTSDK_PATH}"
 						   "${MTSDK_XSENS_PATH}"
 						   )
-

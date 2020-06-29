@@ -5,6 +5,8 @@
 #include <OpenSimLiveConfig.h>
 #include <OpenSim.h>
 
+#include <IMUPlacerLive.h>
+
 #include <iostream>
 #include <chrono>
 #include <thread>
@@ -16,10 +18,13 @@
 #include <list>
 #include <utility>
 #include <vector>
+#include <filesystem>
 
 #include <xsensdeviceapi.h>
 #include "conio.h" // for non-ANSI _kbhit() and _getch()
 #include <xsens/xsmutex.h>
+
+
 
 /*! \brief Stream insertion operator overload for XsPortInfo */
 std::ostream& operator << (std::ostream& out, XsPortInfo const& p)
@@ -457,7 +462,7 @@ std::string calibrateOpenSimModel(std::vector<MtwCallback*> mtwCallbacks, std::v
 	// model used as a base for the calibrated model
 	OpenSim::Model baseModel("C:/Users/wksadmin/source/repos/OpenSimLive/gait2392_full.osim");
 	std::string baseIMU("pelvis_imu");
-	std::string baseHeadingAxis("z");
+	std::string baseHeadingAxis("-z");
 	std::string outModelFile("C:/Users/wksadmin/source/repos/OpenSimLive/gait2392_full_calib.osim");
 	
 	// let's calculate that in OpenSim coordinate system
@@ -485,7 +490,7 @@ std::string calibrateOpenSimModel(std::vector<MtwCallback*> mtwCallbacks, std::v
 		// get ID/serial of currently iterated sensor
 		currentSensorId = mtwCallbacks[k]->device().deviceId().toString().toStdString();
 		// get the corresponding label
-		sensorLabel = sensorIdToLabel(currentSensorId, "C:/Users/wksadmin/source/repos/OpenSimLive/SensorMappings.xml");
+		sensorLabel = sensorIdToLabel(currentSensorId, "C:/Users/wksadmin/source/repos/OpenSimLive/Config/SensorMappings.xml");
 		bodyName = sensorLabel;
 		// remove 4 trailing characters ("_imu") from bodyName
 		for (int m = 0; m < 4; ++m) {
@@ -544,6 +549,51 @@ std::string calibrateOpenSimModel(std::vector<MtwCallback*> mtwCallbacks, std::v
 	baseModelFile.writeToFile(outModelFile);
 
 	return outModelFile;
+}
+
+// fill a TimeSeriesTable with quaternion values
+OpenSim::TimeSeriesTable_<SimTK::Quaternion> fillQuaternionTable(std::vector<MtwCallback*> mtwCallbacks, std::vector<XsQuaternion> quaternionVector)
+{
+	int numberOfSensors = mtwCallbacks.size();
+
+	std::vector<std::string> sensorNameVector;
+
+	std::vector<double> timeVector{ 0 };
+
+	SimTK::Matrix_<SimTK::Quaternion> quaternionMatrix(1, numberOfSensors);
+
+	std::string currentSensorId; std::string sensorNameInModel;
+
+	SimTK::Quaternion_<SimTK::Real> quat;
+
+	for (size_t i = 0; i < mtwCallbacks.size(); ++i) {
+		// get the ID of the current IMU
+		currentSensorId = mtwCallbacks[i]->device().deviceId().toString().toStdString();
+
+		// match the ID of the sensor to the name of the sensor on the model
+		sensorNameInModel = sensorIdToLabel(currentSensorId, "C:/Users/wksadmin/source/repos/OpenSimLive/Config/SensorMappings.xml");
+
+		// populate the vector of sensor names
+		sensorNameVector.push_back(sensorNameInModel);
+
+		// get the quaternions from XsQuaternion, put them into SimTK::Quaternion and put that quaternion into quaternionMatrix
+		quat[0] = quaternionVector[i].w();
+		quat[1] = quaternionVector[i].x();
+		quat[2] = quaternionVector[i].y();
+		quat[3] = quaternionVector[i].z();
+		quaternionMatrix.set(0, i, quat);
+	}
+
+	OpenSim::TimeSeriesTable_<SimTK::Quaternion> outputTable(timeVector, quaternionMatrix, sensorNameVector);
+	return outputTable;
+}
+
+std::string calibrateModelFromSetupFile(std::string IMUPlacerSetupFile, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quaternionTimeSeriesTable)
+{
+	OpenSim::IMUPlacerLive IMUPlacer(IMUPlacerSetupFile);
+
+	IMUPlacer.setQuaternion(quaternionTimeSeriesTable);
+	IMUPlacer.run();
 }
 
 std::vector<double> InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<MtwCallback*> mtwCallbacks, SimTK::Real timeInteger, std::string modelFileName, SimTK::Vec3 sensorToOpenSimRotations){
@@ -611,7 +661,7 @@ std::vector<double> InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, 
 		// initialize currentSensorId with the serial of the IMU
 		currentSensorId = mtwCallbacks[k]->device().deviceId().toString().toStdString();
 		
-		sensorNameInModel = sensorIdToLabel(currentSensorId, "C:/Users/wksadmin/source/repos/OpenSimLive/SensorMappings.xml");
+		sensorNameInModel = sensorIdToLabel(currentSensorId, "C:/Users/wksadmin/source/repos/OpenSimLive/Config/SensorMappings.xml");
 
 		if (sensorNameInModel != "NotFound"){
 			// push the name of the IMU in the model into sensorNameVector
@@ -894,6 +944,7 @@ void ConnectToDataStream() {
 		SimTK::Real timeInteger = 1;
 		std::vector<XsEuler> eulerData(mtwCallbacks.size()); // Room to store euler data for each mtw
 		std::vector<XsMatrix> matrixData(mtwCallbacks.size()); // for data in orientation matrix form that OpenSim requires
+		std::vector<XsQuaternion> quaternionData(mtwCallbacks.size()); // for data in quaternion form
 		//unsigned int printCounter = 0;
 		
 		std::string calibratedModelFile;
@@ -923,12 +974,15 @@ void ConnectToDataStream() {
 					eulerData[i] = packet->orientationEuler();
 					// also get data as orientation matrices for OpenSim
 					matrixData[i] = packet->orientationMatrix();
+					quaternionData[i] = packet->orientationQuaternion();
 					mtwCallbacks[i]->deleteOldestPacket();
 				}
 			}
 
 			if (newDataAvailable && calibrateModelKeyHit) {
-				calibratedModelFile = calibrateOpenSimModel(mtwCallbacks,matrixData,sensorToOpenSimRotations);
+				//calibratedModelFile = calibrateOpenSimModel(mtwCallbacks,matrixData,sensorToOpenSimRotations);
+				OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable(fillQuaternionTable(mtwCallbacks, quaternionData));
+				calibratedModelFile = calibrateModelFromSetupFile("C:/Users/wksadmin/source/repos/OpenSimLive/Config/IMUPlacerSetup.xml", quaternionTimeSeriesTable);
 				calibrateModelKeyHit = false;
 				std::cout << "Model has been calibrated." << std::endl;
 			}
