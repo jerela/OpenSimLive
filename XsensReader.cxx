@@ -242,9 +242,9 @@ std::string sensorIdToLabel(std::string id, std::string mappingsFileName) {
 }
 
 // this function converts degrees to radians
-double deg2rad(double deg) {
+/*double deg2rad(double deg) {
 	return (deg * acos(0.0) / 90);
-}
+}*/
 
 // this function creates a rotation matrix out of Euler angles
 SimTK::Matrix_<double> eulerToRotationMatrix(SimTK::Vec3 euler) {
@@ -455,7 +455,7 @@ SimTK::Rotation_<double> transformOrientationToRotation(SimTK::Vec3 sensorToOpen
 
 
 // this function creates a calibrated .osim model from live data (as opposed to data exported after recording from MT manager)
-std::string calibrateOpenSimModel(std::vector<MtwCallback*> mtwCallbacks, std::vector<XsMatrix> initialMatrix, SimTK::Vec3 sensorToOpenSimRotations){
+/*std::string calibrateOpenSimModel(std::vector<MtwCallback*> mtwCallbacks, std::vector<XsMatrix> initialMatrix, SimTK::Vec3 sensorToOpenSimRotations){
 
 	size_t callbacksSize = mtwCallbacks.size();
 
@@ -549,9 +549,9 @@ std::string calibrateOpenSimModel(std::vector<MtwCallback*> mtwCallbacks, std::v
 	baseModelFile.writeToFile(outModelFile);
 
 	return outModelFile;
-}
+}*/
 
-// fill a TimeSeriesTable with quaternion values
+// This function fills a TimeSeriesTable with quaternion values for a single time frame.
 OpenSim::TimeSeriesTable_<SimTK::Quaternion> fillQuaternionTable(std::vector<MtwCallback*> mtwCallbacks, std::vector<XsQuaternion> quaternionVector)
 {
 	int numberOfSensors = mtwCallbacks.size();
@@ -588,6 +588,7 @@ OpenSim::TimeSeriesTable_<SimTK::Quaternion> fillQuaternionTable(std::vector<Mtw
 	return outputTable;
 }
 
+// This function calibrates an OpenSim model from setup file, similarly to how MATLAB scripting commands for OpenSense work.
 std::string calibrateModelFromSetupFile(std::string IMUPlacerSetupFile, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quaternionTimeSeriesTable)
 {
 	OpenSim::IMUPlacerLive IMUPlacer(IMUPlacerSetupFile);
@@ -596,7 +597,13 @@ std::string calibrateModelFromSetupFile(std::string IMUPlacerSetupFile, OpenSim:
 	IMUPlacer.run();
 }
 
-std::vector<double> InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<MtwCallback*> mtwCallbacks, SimTK::Real timeInteger, std::string modelFileName, SimTK::Vec3 sensorToOpenSimRotations){
+std::vector<double> InverseKinematicsFromIMUs(std::vector<XsQuaternion> quaternionData, std::vector<MtwCallback*> mtwCallbacks, std::string modelFileName, SimTK::Vec3 sensorToOpenSimRotations)
+{
+	// QUATERNION IK GOES HERE
+}
+
+std::vector<double> InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<MtwCallback*> mtwCallbacks, SimTK::Real timeInteger, std::string modelFileName, SimTK::Vec3 sensorToOpenSimRotations)
+{
 
 	int numberOfSensors = mtwCallbacks.size();
 
@@ -991,7 +998,8 @@ void ConnectToDataStream() {
 			{
 
 				//size_t numberOfSensors = mtwCallbacks.size();
-				jointAngles.push_back(InverseKinematicsFromIMUs(matrixData, mtwCallbacks, timeInteger, calibratedModelFile, sensorToOpenSimRotations));
+				//jointAngles.push_back(InverseKinematicsFromIMUs(matrixData, mtwCallbacks, timeInteger, calibratedModelFile, sensorToOpenSimRotations));
+				jointAngles.push_back(InverseKinematicsFromIMUs(quaternionData, mtwCallbacks, calibratedModelFile, sensorToOpenSimRotations));
 				timeInteger++;
 				
 				for (size_t i = 0; i < mtwCallbacks.size(); ++i)
