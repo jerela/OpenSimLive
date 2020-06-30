@@ -103,11 +103,14 @@ endforeach()
 find_path(MTSDK_PATH xsensdeviceapi.h PATHS "C:/Program Files/Xsens/MT Software Suite 4.6/MT SDK/x64/include")
 
 
-
+# find path to classes folder
 find_path(INCLUDE_CLASSES_PATH IMUPlacerLive.h PATHS "${CMAKE_CURRENT_SOURCE_DIR}/Classes")
-set(XSENS_SOURCES XsensReader.cxx "${INCLUDE_CLASSES_PATH}/IMUPlacerLive.h" "${INCLUDE_CLASSES_PATH}/IMUPlacerLive.cxx")
+set(XSENS_SOURCES XsensReader.cxx "${INCLUDE_CLASSES_PATH}/IMUPlacerLive.h"
+	"${INCLUDE_CLASSES_PATH}/IMUPlacerLive.cxx"
+	"${INCLUDE_CLASSES_PATH}/IMUInverseKinematicsToolLive.h"
+	"${INCLUDE_CLASSES_PATH}/IMUInverseKinematicsToolLive.cxx")
 
-
+# add executable for C++ files in XSENS_SOURCES
 add_executable(XsensReader "${XSENS_SOURCES}")
 
 # link MT SDK libraries

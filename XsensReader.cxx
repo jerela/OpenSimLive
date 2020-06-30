@@ -6,6 +6,7 @@
 #include <OpenSim.h>
 
 #include <IMUPlacerLive.h>
+#include <IMUInverseKinematicsToolLive.h>
 
 #include <iostream>
 #include <chrono>
@@ -532,18 +533,24 @@ SimTK::Vec3 transformEuler(SimTK::Vec3 sensorToOpenSim, SimTK::Vec3 sensorEuler)
 // This function fills a TimeSeriesTable with quaternion values for a single time frame.
 OpenSim::TimeSeriesTable_<SimTK::Quaternion> fillQuaternionTable(std::vector<MtwCallback*> mtwCallbacks, std::vector<XsQuaternion> quaternionVector)
 {
+	// get the number of active sensors
 	int numberOfSensors = mtwCallbacks.size();
 
+	// declare a vector for the sensor names in the OpenSim model
 	std::vector<std::string> sensorNameVector;
 
+	// define a vector with a single time value (such as zero) for constructing OpenSim::TimeSeriesTable
 	std::vector<double> timeVector{ 0 };
 
+	// initialize a matrix where each element is an entire quaternion, requires for constructing OpenSim::TimeSeriesTable
 	SimTK::Matrix_<SimTK::Quaternion> quaternionMatrix(1, numberOfSensors);
 
 	std::string currentSensorId; std::string sensorNameInModel;
 
+	// "intermediary" variable for populating quaternionMatrix inside the for-loop
 	SimTK::Quaternion_<SimTK::Real> quat;
 
+	// populate sensorNameVector and quaternionMatrix
 	for (size_t i = 0; i < mtwCallbacks.size(); ++i) {
 		// get the ID of the current IMU
 		currentSensorId = mtwCallbacks[i]->device().deviceId().toString().toStdString();
@@ -562,6 +569,7 @@ OpenSim::TimeSeriesTable_<SimTK::Quaternion> fillQuaternionTable(std::vector<Mtw
 		quaternionMatrix.set(0, i, quat);
 	}
 
+	// construct a TimeSeriesTable from the data we calculated in this function and return it
 	OpenSim::TimeSeriesTable_<SimTK::Quaternion> outputTable(timeVector, quaternionMatrix, sensorNameVector);
 	return outputTable;
 }
@@ -569,19 +577,26 @@ OpenSim::TimeSeriesTable_<SimTK::Quaternion> fillQuaternionTable(std::vector<Mtw
 // This function calibrates an OpenSim model from setup file, similarly to how MATLAB scripting commands for OpenSense work.
 std::string calibrateModelFromSetupFile(std::string IMUPlacerSetupFile, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quaternionTimeSeriesTable)
 {
-	OpenSim::IMUPlacerLive IMUPlacer(IMUPlacerSetupFile);
+	// construct IMUPlacer
+	OpenSimLive::IMUPlacerLive IMUPlacer(IMUPlacerSetupFile);
 
+	// give the TimeSeriesTable of quaternions to IMUPlacer and run IMUPlacer to calibrate the model
 	IMUPlacer.setQuaternion(quaternionTimeSeriesTable);
 	IMUPlacer.run(true);
 
 	return IMUPlacer.get_output_model_file();
 }
 
-/*std::vector<double> InverseKinematicsFromIMUs(std::vector<XsQuaternion> quaternionData, std::vector<MtwCallback*> mtwCallbacks, std::string modelFileName, SimTK::Vec3 sensorToOpenSimRotations)
-{
-	// QUATERNION IK GOES HERE
-}*/
+// This function calculates the values for all joint angles of the model based on live IMU data.
+std::vector<double> OpenSimInverseKinematicsFromIMUs(std::string modelFileName, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable) {
 
+	OpenSimLive::IMUInverseKinematicsToolLive IKTool(modelFileName, quatTable);
+	IKTool.run(true);
+
+	return IKTool.getQ();
+}
+
+/*
 std::vector<double> InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<MtwCallback*> mtwCallbacks, SimTK::Real timeInteger, std::string modelFileName, SimTK::Vec3 sensorToOpenSimRotations)
 {
 
@@ -731,6 +746,7 @@ std::vector<double> InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, 
 	std::cout << "IK finished successfully." << std::endl;
 	return q;
 }
+*/
 
 
 void ConnectToDataStream() {
@@ -979,7 +995,8 @@ void ConnectToDataStream() {
 
 				//size_t numberOfSensors = mtwCallbacks.size();
 				//jointAngles.push_back(InverseKinematicsFromIMUs(matrixData, mtwCallbacks, timeInteger, calibratedModelFile, sensorToOpenSimRotations));
-				jointAngles.push_back(InverseKinematicsFromIMUs(matrixData, mtwCallbacks, timeInteger, calibratedModelFile, sensorToOpenSimRotations));
+				OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(fillQuaternionTable(mtwCallbacks, quaternionData));
+				jointAngles.push_back(OpenSimInverseKinematicsFromIMUs(calibratedModelFile, quatTable));
 				timeInteger++;
 				
 				for (size_t i = 0; i < mtwCallbacks.size(); ++i)

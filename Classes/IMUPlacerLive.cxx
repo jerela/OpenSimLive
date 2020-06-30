@@ -6,7 +6,7 @@
 #include <OpenSim/Simulation/Model/Model.h>
 
 using namespace std;
-using namespace OpenSim;
+using namespace OpenSimLive;
 using SimTK::Vec3;
 
 IMUPlacerLive::IMUPlacerLive() {
@@ -14,7 +14,7 @@ IMUPlacerLive::IMUPlacerLive() {
     _calibrated = false;
 }
 
-IMUPlacerLive::IMUPlacerLive(const std::string& setupFile) : IMUPlacer(setupFile) {
+IMUPlacerLive::IMUPlacerLive(const std::string& setupFile) : OpenSim::IMUPlacer(setupFile) {
     std::cout << "Preparing to construct properties..." << std::endl;
     //constructProperties();
     std::cout << "Preparing to update from XML document..." << std::endl;
@@ -57,10 +57,10 @@ bool IMUPlacerLive::run(bool visualizeResults) {
     _calibrated = false;
     // Check there's a model file specified before trying to open it
     if (get_model_file().size() == 0) {
-        OPENSIM_THROW(Exception, "No model file specified for IMUPlacer.");
+        OPENSIM_THROW(OpenSim::Exception, "No model file specified for IMUPlacer.");
     }
-    if (_model.empty()) { _model.reset(new Model(get_model_file())); }
-    TimeSeriesTable_<SimTK::Quaternion> quatTable(
+    if (_model.empty()) { _model.reset(new OpenSim::Model(get_model_file())); }
+    OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(
         getQuaternion());
 
     std::cout << "Checkpoint 1" << std::endl;
@@ -73,14 +73,14 @@ bool IMUPlacerLive::run(bool visualizeResults) {
             sensor_to_opensim_rotations[1], SimTK::YAxis,
             sensor_to_opensim_rotations[2], SimTK::ZAxis);
     // Rotate data so Y-Axis is up
-    OpenSenseUtilities::rotateOrientationTable(quatTable, sensorToOpenSim);
+    OpenSim::OpenSenseUtilities::rotateOrientationTable(quatTable, sensorToOpenSim);
     // Check consistent heading correction specification
     // both base_heading_axis and base_imu_label should be specified
     // finer error checking is done downstream
     bool performHeadingRequested =
         !get_base_heading_axis().empty() && !get_base_imu_label().empty();
     if (performHeadingRequested) {
-        std::string imu_axis = IO::Lowercase(get_base_heading_axis());
+        std::string imu_axis = OpenSim::IO::Lowercase(get_base_heading_axis());
 
         SimTK::CoordinateDirection directionOnIMU(SimTK::ZAxis);
         int direction = 1;
@@ -96,29 +96,29 @@ bool IMUPlacerLive::run(bool visualizeResults) {
             directionOnIMU =
             SimTK::CoordinateDirection(SimTK::ZAxis, direction);
         else { // Throw, invalid specification
-            OPENSIM_THROW(Exception, "Invalid specification of heading axis '" +
+            OPENSIM_THROW(OpenSim::Exception, "Invalid specification of heading axis '" +
                 imu_axis + "' found.");
         }
 
         // Compute rotation matrix so that (e.g. "pelvis_imu"+ SimTK::ZAxis)
         // lines up with model forward (+X)
         SimTK::Vec3 headingRotationVec3 =
-            OpenSenseUtilities::computeHeadingCorrection(*_model, quatTable,
+            OpenSim::OpenSenseUtilities::computeHeadingCorrection(*_model, quatTable,
                 get_base_imu_label(), directionOnIMU);
         SimTK::Rotation headingRotation(
             SimTK::BodyOrSpaceType::SpaceRotationSequence,
             headingRotationVec3[0], SimTK::XAxis, headingRotationVec3[1],
             SimTK::YAxis, headingRotationVec3[2], SimTK::ZAxis);
 
-        OpenSenseUtilities::rotateOrientationTable(quatTable, headingRotation);
+        OpenSim::OpenSenseUtilities::rotateOrientationTable(quatTable, headingRotation);
     }
     else
         cout << "No heading correction is applied." << endl;
 
     // This is now plain conversion, no Rotation or magic underneath
-    TimeSeriesTable_<SimTK::Rotation>
+    OpenSim::TimeSeriesTable_<SimTK::Rotation>
         orientationsData =
-        OpenSenseUtilities::convertQuaternionsToRotations(quatTable);
+        OpenSim::OpenSenseUtilities::convertQuaternionsToRotations(quatTable);
 
     auto imuLabels = orientationsData.getColumnLabels();
     auto& times = orientationsData.getIndependentColumn();
@@ -134,7 +134,7 @@ bool IMUPlacerLive::run(bool visualizeResults) {
     _model->realizePosition(s0);
 
     size_t imuix = 0;
-    std::vector<PhysicalFrame*> bodies{ imuLabels.size(), nullptr };
+    std::vector<OpenSim::PhysicalFrame*> bodies{ imuLabels.size(), nullptr };
     std::map<std::string, SimTK::Rotation> imuBodiesInGround;
 
     // First compute the transform of each of the imu bodies in ground
@@ -142,9 +142,9 @@ bool IMUPlacerLive::run(bool visualizeResults) {
         auto ix = imuName.rfind("_imu");
         if (ix != std::string::npos) {
             auto bodyName = imuName.substr(0, ix);
-            auto body = _model->findComponent<PhysicalFrame>(bodyName);
+            auto body = _model->findComponent<OpenSim::PhysicalFrame>(bodyName);
             if (body) {
-                bodies[imuix] = const_cast<PhysicalFrame*>(body);
+                bodies[imuix] = const_cast<OpenSim::PhysicalFrame*>(body);
                 imuBodiesInGround[imuName] = body->getTransformInGround(s0).R();
             }
         }
@@ -162,10 +162,10 @@ bool IMUPlacerLive::run(bool visualizeResults) {
             SimTK::Rotation R_FB =
                 ~imuBodiesInGround[imuName] * rotations[int(imuix)];
             cout << "Offset is " << R_FB << endl;
-            PhysicalOffsetFrame* imuOffset = nullptr;
-            const PhysicalOffsetFrame* mo = nullptr;
-            if ((mo = _model->findComponent<PhysicalOffsetFrame>(imuName))) {
-                imuOffset = const_cast<PhysicalOffsetFrame*>(mo);
+            OpenSim::PhysicalOffsetFrame* imuOffset = nullptr;
+            const OpenSim::PhysicalOffsetFrame* mo = nullptr;
+            if ((mo = _model->findComponent<OpenSim::PhysicalOffsetFrame>(imuName))) {
+                imuOffset = const_cast<OpenSim::PhysicalOffsetFrame*>(mo);
                 auto X = imuOffset->getOffsetTransform();
                 X.updR() = R_FB;
                 imuOffset->setOffsetTransform(X);
@@ -177,9 +177,9 @@ bool IMUPlacerLive::run(bool visualizeResults) {
                 SimTK::Vec3 p_FB(0);
                 if (body) { p_FB = body->getMassCenter(); }
 
-                imuOffset = new PhysicalOffsetFrame(
+                imuOffset = new OpenSim::PhysicalOffsetFrame(
                     imuName, *bodies[imuix], SimTK::Transform(R_FB, p_FB));
-                auto* brick = new Brick(Vec3(0.02, 0.01, 0.005));
+                auto* brick = new OpenSim::Brick(Vec3(0.02, 0.01, 0.005));
                 brick->setColor(SimTK::Orange);
                 imuOffset->attachGeometry(brick);
                 bodies[imuix]->addComponent(imuOffset);
@@ -203,12 +203,12 @@ bool IMUPlacerLive::run(bool visualizeResults) {
         s.updTime() = times[0];
 
         // create the solver given the input data
-        MarkersReference mRefs{};
-        OrientationsReference oRefs(orientationsData);
-        SimTK::Array_<CoordinateReference> coordRefs{};
+        OpenSim::MarkersReference mRefs{};
+        OpenSim::OrientationsReference oRefs(orientationsData);
+        SimTK::Array_<OpenSim::CoordinateReference> coordRefs{};
 
         const double accuracy = 1e-4;
-        InverseKinematicsSolver ikSolver(*_model, mRefs, oRefs, coordRefs);
+        OpenSim::InverseKinematicsSolver ikSolver(*_model, mRefs, oRefs, coordRefs);
         ikSolver.setAccuracy(accuracy);
 
         SimTK::Visualizer& viz = _model->updVisualizer().updSimbodyVisualizer();
