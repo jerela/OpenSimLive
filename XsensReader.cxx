@@ -18,7 +18,6 @@
 #include <list>
 #include <utility>
 #include <vector>
-#include <filesystem>
 
 #include <xsensdeviceapi.h>
 #include "conio.h" // for non-ANSI _kbhit() and _getch()
@@ -573,7 +572,9 @@ std::string calibrateModelFromSetupFile(std::string IMUPlacerSetupFile, OpenSim:
 	OpenSim::IMUPlacerLive IMUPlacer(IMUPlacerSetupFile);
 
 	IMUPlacer.setQuaternion(quaternionTimeSeriesTable);
-	IMUPlacer.run();
+	IMUPlacer.run(true);
+
+	return IMUPlacer.get_output_model_file();
 }
 
 /*std::vector<double> InverseKinematicsFromIMUs(std::vector<XsQuaternion> quaternionData, std::vector<MtwCallback*> mtwCallbacks, std::string modelFileName, SimTK::Vec3 sensorToOpenSimRotations)
@@ -608,7 +609,7 @@ std::vector<double> InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, 
 		xsMatrix = matrixData[k];
 		if (xsMatrix.empty()) {
 			std::cout << "Matrix at k=" << k << " is empty. Returning." << std::endl;
-			return;
+			return { 0 };
 		}
 
 		// transform IMU orientation data to OpenSim coordinate system and set it to OrientationDataMatrix

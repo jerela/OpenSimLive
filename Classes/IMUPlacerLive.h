@@ -1,5 +1,6 @@
 #pragma once
 
+#include <OpenSim.h>
 #include <OpenSim/Common/Object.h>
 #include <OpenSim/Simulation/osimSimulationDLL.h>
 #include <Simbody.h>

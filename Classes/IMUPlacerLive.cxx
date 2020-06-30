@@ -15,7 +15,9 @@ IMUPlacerLive::IMUPlacerLive() {
 }
 
 IMUPlacerLive::IMUPlacerLive(const std::string& setupFile) : IMUPlacer(setupFile) {
-    constructProperties();
+    std::cout << "Preparing to construct properties..." << std::endl;
+    //constructProperties();
+    std::cout << "Preparing to update from XML document..." << std::endl;
     updateFromXMLDocument();
 }
 
@@ -51,6 +53,7 @@ OpenSim::TimeSeriesTable_<SimTK::Quaternion> IMUPlacerLive::getQuaternion() {
  */
 bool IMUPlacerLive::run(bool visualizeResults) {
 
+    std::cout << "IMUPlacerLive run intiated" << std::endl;
     _calibrated = false;
     // Check there's a model file specified before trying to open it
     if (get_model_file().size() == 0) {
@@ -59,6 +62,8 @@ bool IMUPlacerLive::run(bool visualizeResults) {
     if (_model.empty()) { _model.reset(new Model(get_model_file())); }
     TimeSeriesTable_<SimTK::Quaternion> quatTable(
         getQuaternion());
+
+    std::cout << "Checkpoint 1" << std::endl;
 
     const SimTK::Vec3& sensor_to_opensim_rotations =
         get_sensor_to_opensim_rotations();
