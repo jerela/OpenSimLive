@@ -247,7 +247,7 @@ std::string sensorIdToLabel(std::string id, std::string mappingsFileName) {
 }*/
 
 // this function creates a rotation matrix out of Euler angles
-SimTK::Matrix_<double> eulerToRotationMatrix(SimTK::Vec3 euler) {
+/*SimTK::Matrix_<double> eulerToRotationMatrix(SimTK::Vec3 euler) {
 	// define the elements of the rotation matrix
 	double c1 = cos(euler[0]);
 	double c2 = cos(euler[1]);
@@ -269,9 +269,9 @@ SimTK::Matrix_<double> eulerToRotationMatrix(SimTK::Vec3 euler) {
 	rotationMatrix.set(2, 2, c1 * c2);
 
 	return rotationMatrix;
-}
+}*/
 
-SimTK::Vec3 rotationMatrixToEuler(SimTK::Matrix_<double> matrix) {
+/*SimTK::Vec3 rotationMatrixToEuler(SimTK::Matrix_<double> matrix) {
 	double m11 = matrix.get(0, 0);
 	double m12 = matrix.get(0, 1);
 	double m13 = matrix.get(0, 2);
@@ -288,10 +288,10 @@ SimTK::Vec3 rotationMatrixToEuler(SimTK::Matrix_<double> matrix) {
 	double roll = acos(m33 / cos(pitch));
 	SimTK::Vec3 euler(roll, pitch, yaw);
 	return euler;
-}
+}*/
 
 // performs matrix multiplication on 3x3 matrices and returns the product
-SimTK::Matrix_<double> matrixMultiplication(SimTK::Matrix_<double> firstMatrix, SimTK::Matrix_<double> secondMatrix) {
+/*SimTK::Matrix_<double> matrixMultiplication(SimTK::Matrix_<double> firstMatrix, SimTK::Matrix_<double> secondMatrix) {
 
 	int numberOfFirstRows = firstMatrix.nrow();
 	int numberOfFirstCols = firstMatrix.ncol();
@@ -320,29 +320,8 @@ SimTK::Matrix_<double> matrixMultiplication(SimTK::Matrix_<double> firstMatrix, 
 		}
 	}
 
-	/*value = firstMatrix.get(0, 0) * secondMatrix.get(0, 0) + firstMatrix.get(0, 1) * secondMatrix.get(1, 0) + firstMatrix.get(0, 2) * secondMatrix.get(2, 0);
-	productMatrix.set(0, 0, value);
-	value = firstMatrix.get(0, 0) * secondMatrix.get(0, 1) + firstMatrix.get(0, 1) * secondMatrix.get(1, 1) + firstMatrix.get(0, 2) * secondMatrix.get(2, 1);
-	productMatrix.set(0, 1, value);
-	value = firstMatrix.get(0, 0) * secondMatrix.get(0, 2) + firstMatrix.get(0, 1) * secondMatrix.get(1, 2) + firstMatrix.get(0, 2) * secondMatrix.get(2, 2);
-	productMatrix.set(0, 2, value);
-
-	value = firstMatrix.get(1, 0) * secondMatrix.get(0, 0) + firstMatrix.get(1, 1) * secondMatrix.get(1, 0) + firstMatrix.get(1, 2) * secondMatrix.get(2, 0);
-	productMatrix.set(1, 0, value);
-	value = firstMatrix.get(1, 0) * secondMatrix.get(0, 1) + firstMatrix.get(1, 1) * secondMatrix.get(1, 1) + firstMatrix.get(1, 2) * secondMatrix.get(2, 1);
-	productMatrix.set(1, 1, value);
-	value = firstMatrix.get(1, 0) * secondMatrix.get(0, 2) + firstMatrix.get(1, 1) * secondMatrix.get(1, 2) + firstMatrix.get(1, 2) * secondMatrix.get(2, 2);
-	productMatrix.set(1, 2, value);
-
-	value = firstMatrix.get(2, 0) * secondMatrix.get(0, 0) + firstMatrix.get(2, 1) * secondMatrix.get(1, 0) + firstMatrix.get(2, 2) * secondMatrix.get(2, 0);
-	productMatrix.set(2, 0, value);
-	value = firstMatrix.get(2, 0) * secondMatrix.get(0, 1) + firstMatrix.get(2, 1) * secondMatrix.get(1, 1) + firstMatrix.get(2, 2) * secondMatrix.get(2, 1);
-	productMatrix.set(2, 1, value);
-	value = firstMatrix.get(2, 0) * secondMatrix.get(0, 2) + firstMatrix.get(2, 1) * secondMatrix.get(1, 2) + firstMatrix.get(2, 2) * secondMatrix.get(2, 2);
-	productMatrix.set(2, 2, value);*/
-
 	return productMatrix;
-}
+}*/
 
 /*
 // this function takes as input two euler angle sets, converts them to rotation matrices, rotates the other set and returns it as Euler angles
@@ -373,7 +352,7 @@ SimTK::Vec3 transformEuler(SimTK::Vec3 sensorToOpenSim, SimTK::Vec3 sensorEuler)
 }
 */
 
-SimTK::Vec3 transformOrientationToEuler(SimTK::Vec3 sensorToOpenSim, XsMatrix sensorMatrix) {
+/*SimTK::Vec3 transformOrientationToEuler(SimTK::Vec3 sensorToOpenSim, XsMatrix sensorMatrix) {
 
 	std::cout << "Euler for sensor to OpenSim: [" << sensorToOpenSim[0] << ", " << sensorToOpenSim[1] << ", " << sensorToOpenSim[2] << "]" << std::endl;
 
@@ -409,9 +388,9 @@ SimTK::Vec3 transformOrientationToEuler(SimTK::Vec3 sensorToOpenSim, XsMatrix se
 	std::cout << "Rotation matrix converted into Euler angles:" << std::endl;
 	std::cout << "[" << finalEuler[0] << ", " << finalEuler[1] << ", " << finalEuler[2] << "]" << std::endl;
 	return finalEuler;
-}
+}*/
 
-SimTK::Rotation_<double> transformOrientationToRotation(SimTK::Vec3 sensorToOpenSim, XsMatrix sensorMatrix) {
+/*SimTK::Rotation_<double> transformOrientationToRotation(SimTK::Vec3 sensorToOpenSim, XsMatrix sensorMatrix) {
 
 	std::cout << "Euler for sensor to OpenSim: [" << sensorToOpenSim[0] << ", " << sensorToOpenSim[1] << ", " << sensorToOpenSim[2] << "]" << std::endl;
 
@@ -451,7 +430,7 @@ SimTK::Rotation_<double> transformOrientationToRotation(SimTK::Vec3 sensorToOpen
 	}
 
 	return returnMatrix;
-}
+}*/
 
 
 // this function creates a calibrated .osim model from live data (as opposed to data exported after recording from MT manager)
@@ -597,10 +576,10 @@ std::string calibrateModelFromSetupFile(std::string IMUPlacerSetupFile, OpenSim:
 	IMUPlacer.run();
 }
 
-std::vector<double> InverseKinematicsFromIMUs(std::vector<XsQuaternion> quaternionData, std::vector<MtwCallback*> mtwCallbacks, std::string modelFileName, SimTK::Vec3 sensorToOpenSimRotations)
+/*std::vector<double> InverseKinematicsFromIMUs(std::vector<XsQuaternion> quaternionData, std::vector<MtwCallback*> mtwCallbacks, std::string modelFileName, SimTK::Vec3 sensorToOpenSimRotations)
 {
 	// QUATERNION IK GOES HERE
-}
+}*/
 
 std::vector<double> InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, std::vector<MtwCallback*> mtwCallbacks, SimTK::Real timeInteger, std::string modelFileName, SimTK::Vec3 sensorToOpenSimRotations)
 {
@@ -617,8 +596,8 @@ std::vector<double> InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, 
 	SimTK::Matrix_<SimTK::Rotation_<double>> orientationDataMatrix(1, numberOfSensors); // marker positions go here
 
 	// declare variables to be used in the loop
-	//double m11, m12, m13, m21, m22, m23, m31, m32, m33;
-	//SimTK::Rotation_<double> tempMatrix;
+	double m11, m12, m13, m21, m22, m23, m31, m32, m33;
+	SimTK::Rotation_<double> tempMatrix;
 	XsMatrix xsMatrix;
 	std::string currentSensorId; std::string sensorNameInModel;
 
@@ -633,10 +612,10 @@ std::vector<double> InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, 
 		}
 
 		// transform IMU orientation data to OpenSim coordinate system and set it to OrientationDataMatrix
-		orientationDataMatrix.set(0, k, transformOrientationToRotation(sensorToOpenSimRotations, xsMatrix));
+		//orientationDataMatrix.set(0, k, transformOrientationToRotation(sensorToOpenSimRotations, xsMatrix));
 
 		// give values to variables representing individual elements of a 3x3 rotation matrix
-		/*m11 = xsMatrix.value(0, 0);
+		m11 = xsMatrix.value(0, 0);
 		m12 = xsMatrix.value(0, 1);
 		m13 = xsMatrix.value(0, 2);
 		m21 = xsMatrix.value(1, 0);
@@ -659,9 +638,9 @@ std::vector<double> InverseKinematicsFromIMUs(std::vector<XsMatrix> matrixData, 
 		tempMatrix.set(2, 0, m31);
 		tempMatrix.set(2, 1, m32);
 		tempMatrix.set(2, 2, m33);
-		*/
+		
 		// fill orientationDataMatrix with orientation matrices for each sensor
-		//orientationDataMatrix.set(0, k, tempMatrix);
+		orientationDataMatrix.set(0, k, tempMatrix);
 
 		// populate sensorNameVector with names of the IMUs on the model
 
@@ -999,7 +978,7 @@ void ConnectToDataStream() {
 
 				//size_t numberOfSensors = mtwCallbacks.size();
 				//jointAngles.push_back(InverseKinematicsFromIMUs(matrixData, mtwCallbacks, timeInteger, calibratedModelFile, sensorToOpenSimRotations));
-				jointAngles.push_back(InverseKinematicsFromIMUs(quaternionData, mtwCallbacks, calibratedModelFile, sensorToOpenSimRotations));
+				jointAngles.push_back(InverseKinematicsFromIMUs(matrixData, mtwCallbacks, timeInteger, calibratedModelFile, sensorToOpenSimRotations));
 				timeInteger++;
 				
 				for (size_t i = 0; i < mtwCallbacks.size(); ++i)
