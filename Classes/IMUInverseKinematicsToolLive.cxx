@@ -40,7 +40,7 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
 
     // Ideally if we add a Reporter, we also remove it at the end for good hygiene but 
     // at the moment there's no interface to remove Reporter so we'll reuse one if exists
-    const auto reporterExists = model.findComponent<OpenSim::TableReporter>("ik_reporter");
+    /*const auto reporterExists = model.findComponent<OpenSim::TableReporter>("ik_reporter");
 
     bool reuse_reporter = true;
     OpenSim::TableReporter* ikReporter = nullptr;
@@ -51,28 +51,31 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
         reuse_reporter = false;
     }
     else
-        ikReporter = &model.updComponent<OpenSim::TableReporter>("ik_reporter");
+        ikReporter = &model.updComponent<OpenSim::TableReporter>("ik_reporter");*/
 
+    // define the model's internal data members and structure according to its properties, so we can use updComponentList to find all of its <Coordinate> elements
+    model.finalizeFromProperties();
     auto coordinates = model.updComponentList<OpenSim::Coordinate>();
 
     // Hookup reporter inputs to the individual coordinate outputs
     // and lock coordinates that are translational since they cannot be
     for (auto& coord : coordinates) {
-        ikReporter->updInput("inputs").connect(
-            coord.getOutput("value"), coord.getName());
+        /*ikReporter->updInput("inputs").connect(
+            coord.getOutput("value"), coord.getName());*/
         if (coord.getMotionType() == OpenSim::Coordinate::Translational) {
             coord.setDefaultLocked(true);
         }
     }
 
-    if (!reuse_reporter) {
+/*    if (!reuse_reporter) {
         model.addComponent(ikReporter);
-    }
+    }*/
     //TimeSeriesTable_<SimTK::Quaternion> quatTable(orientationsFileName);
     //std::cout <<"Loading orientations as quaternions" << std::endl;
     // Will maintain only data in time range specified by the tool
     // If unspecified {-inf, inf} no trimming is done
 //    quatTable.trim(getStartTime(), getEndTime());
+
     // Convert to OpenSim Frame
     const SimTK::Vec3& rotations = get_sensor_to_opensim_rotations();
     SimTK::Rotation sensorToOpenSim = SimTK::Rotation(
@@ -85,6 +88,8 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
     //Trim to time window required by Tool
     //quatTable.trim(getStartTime(), getEndTime());
 
+
+
     OpenSim::TimeSeriesTable_<SimTK::Rotation> orientationsData =
         OpenSim::OpenSenseUtilities::convertQuaternionsToRotations(quatTable);
 
@@ -93,9 +98,11 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
 
     SimTK::Array_<OpenSim::CoordinateReference> coordinateReferences;
 
+
     // visualize for debugging
     if (visualizeResults)
         model.setUseVisualizer(true);
+
     SimTK::State& s0 = model.initSystem();
 
     double t0 = s0.getTime();
@@ -164,7 +171,7 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
 
 
 
-    auto report = ikReporter->getTable();
+/*    auto report = ikReporter->getTable();
     
     std::string modelFileName("C:/Users/wksadmin/source/repos/OpenSimLive/Config/gait2392_full_calibrated.osim");
     
@@ -191,7 +198,7 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
     //        getName() + "_orientationErrors.sto");
     //}
     // Results written to file, clear in case we run again
-    ikReporter->clearTable();
+    ikReporter->clearTable();*/
 }
 
 bool IMUInverseKinematicsToolLive::run(bool visualizeResults)
