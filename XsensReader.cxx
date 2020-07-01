@@ -25,6 +25,8 @@
 #include <xsens/xsmutex.h>
 
 
+const std::string OPENSIMLIVE_ROOT = SimTK::Pathname::getAbsoluteDirectoryPathname("OpenSimLive");
+
 
 /*! \brief Stream insertion operator overload for XsPortInfo */
 std::ostream& operator << (std::ostream& out, XsPortInfo const& p)
@@ -188,6 +190,17 @@ private:
 	int m_mtwIndex;
 	XsDevice* m_device;
 };
+
+// This function reads some "main" variables such as model file to be used from an XML file.
+std::string mainConfigReader(std::string elementName) {
+	// get the file XML file
+	SimTK::Xml::Document mainConfigXML(OPENSIMLIVE_ROOT + "Config/MainConfiguration.XML");
+	// get the root element of the XML file
+	SimTK::Xml::Element rootElement = mainConfigXML.getRootElement();
+	// get the child element of the root element
+	SimTK::Xml::Element soughtElement = rootElement.getRequiredElement(elementName);
+	return soughtElement.getValue();
+}
 
 // this function takes a serial/ID of a sensor and the filename of an XML file mapping serials to IMU labels, and returns the label
 std::string sensorIdToLabel(std::string id, std::string mappingsFileName) {
@@ -985,7 +998,8 @@ void ConnectToDataStream() {
 			if (newDataAvailable && calibrateModelKeyHit) {
 				//calibratedModelFile = calibrateOpenSimModel(mtwCallbacks,matrixData,sensorToOpenSimRotations);
 				OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable(fillQuaternionTable(mtwCallbacks, quaternionData));
-				calibratedModelFile = calibrateModelFromSetupFile("C:/Users/wksadmin/source/repos/OpenSimLive/Config/IMUPlacerSetup.xml", quaternionTimeSeriesTable);
+				//calibratedModelFile = calibrateModelFromSetupFile("C:/Users/wksadmin/source/repos/OpenSimLive/Config/IMUPlacerSetup.xml", quaternionTimeSeriesTable);
+				calibratedModelFile = calibrateModelFromSetupFile(OPENSIMLIVE_ROOT+"Config/"+mainConfigReader("imu_placer_setup_file"), quaternionTimeSeriesTable);
 				calibrateModelKeyHit = false;
 				std::cout << "Model has been calibrated." << std::endl;
 			}

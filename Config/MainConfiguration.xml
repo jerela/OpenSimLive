@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<MainConfiguration>
+	<!--File containing IMU labels on the model corresponding to IMU IDs.-->
+	<mappings_file>SensorMappings.xml</mappings_file>
+	<!--Uncalibrated OpenSim model to be used.-->
+	<opensim_model_file>gait2392_full.osim</opensim_model_file>
+	<!--File that configures IMUPlacer.-->
+	<imu_placer_setup_file>IMUPlacerSetup.xml</imu_placer_setup_file>
+</MainConfiguration>
