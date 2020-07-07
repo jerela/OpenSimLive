@@ -27,6 +27,7 @@ namespace OpenSimLive {
 		void setModelFile(std::string newModelFile) { model_ = OpenSim::Model(newModelFile); }
 
 	private:
+		SimTK::State s;
 		double time_ = 0;
 		//void constructProperties();
 		SimTK::Vec3 sensor_to_opensim_rotations = { -1.5707963267948966, 0, 0 };
