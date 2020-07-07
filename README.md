@@ -35,7 +35,7 @@ Step by step instructions on how to install this project.
    - VICONSDK_PATH:             C:/Program Files/Vicon/DataStream SDK/Win64/CPP
 - The two last entries are not required for IMU IK calculations.
 - Finally, select **Generate**.
-3. Open Visual Studio. Open the solution you just generated in the build directory. Run BUILD ALL. Visual Studio should now create the required executable(s) in a subdirectory in the build directory.
+3. Open Visual Studio. Open the solution you just generated in the build directory. Build **ALL_BUILD**. Visual Studio should now create the required executable(s) in a subdirectory in the build directory.
 4. Move **xsensdeviceapi64.dll** and **xstypes64.dll** from .../Xsens/MT Software Suite 4.6/MT SDK/x64/lib to the directory where the executable XsensReader is.
 5. Go to .../OpenSimLive/Config and make sure the .xml files are pointing to the right files.
 6. Run **XsensReader.exe**.
