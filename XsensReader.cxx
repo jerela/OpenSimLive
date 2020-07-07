@@ -311,17 +311,19 @@ std::string calibrateModelFromSetupFile(std::string IMUPlacerSetupFile, OpenSim:
 
 	// give the TimeSeriesTable of quaternions to IMUPlacer and run IMUPlacer to calibrate the model
 	IMUPlacer.setQuaternion(quaternionTimeSeriesTable);
-	IMUPlacer.run(true);
+	IMUPlacer.run(false); // do not visualize
 
 	return IMUPlacer.get_output_model_file();
 }
 
 // This function calculates the values for all joint angles of the model based on live IMU data.
-std::vector<double> OpenSimInverseKinematicsFromIMUs(std::string modelFileName, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable, double duration) {
+std::vector<double> OpenSimInverseKinematicsFromIMUs(std::string modelFileName, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable, double duration, bool initialCall) {
 
 	OpenSimLive::IMUInverseKinematicsToolLive IKTool(modelFileName, quatTable);
 	IKTool.setTime(duration);
 	IKTool.run(true);
+	
+
 
 	return IKTool.getQ();
 }
@@ -539,6 +541,8 @@ void ConnectToDataStream() {
 
 		auto clockStart = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> clockDuration;
+
+		OpenSimLive::IMUInverseKinematicsToolLive IKTool;
 		
 		std::cout << "Entering data streaming and IK loop. Press C to calibrate model, V to calculate IK and X to quit." << std::endl;
 
@@ -570,6 +574,10 @@ void ConnectToDataStream() {
 				//calibratedModelFile = calibrateModelFromSetupFile("C:/Users/wksadmin/source/repos/OpenSimLive/Config/IMUPlacerSetup.xml", quaternionTimeSeriesTable);
 				calibratedModelFile = calibrateModelFromSetupFile(OPENSIMLIVE_ROOT+"/Config/"+mainConfigReader("imu_placer_setup_file"), quaternionTimeSeriesTable);
 				calibrateModelKeyHit = false;
+				IKTool.setModelFile(calibratedModelFile);
+				IKTool.setQuaternion(quaternionTimeSeriesTable);
+				IKTool.setTime(0);
+				IKTool.run(true);
 				std::cout << "Model has been calibrated." << std::endl;
 			}
 
@@ -580,7 +588,11 @@ void ConnectToDataStream() {
 				//size_t numberOfSensors = mtwCallbacks.size();
 				//jointAngles.push_back(InverseKinematicsFromIMUs(matrixData, mtwCallbacks, timeInteger, calibratedModelFile, sensorToOpenSimRotations));
 				OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(fillQuaternionTable(mtwCallbacks, quaternionData));
-				jointAngles.push_back(OpenSimInverseKinematicsFromIMUs(calibratedModelFile, quatTable, clockDuration.count()));
+				//jointAngles.push_back(OpenSimInverseKinematicsFromIMUs(calibratedModelFile, quatTable, clockDuration.count()));
+				IKTool.setQuaternion(quatTable);
+				IKTool.setTime(clockDuration.count());
+				IKTool.update(true);
+				jointAngles.push_back(IKTool.getQ());
 				timeInteger++;
 				
 				for (size_t i = 0; i < mtwCallbacks.size(); ++i)

@@ -61,7 +61,8 @@ add_definitions(-DOPENSIMLIVE_ROOT_PATH="${CMAKE_CURRENT_SOURCE_DIR}")
 configure_file(OpenSimLiveConfig.h.in OpenSimLiveConfig.h)
 
 # another path variable for OpenSim includes according to OpenSim 4.1 hierarchy
-set(OPENSIM_INCLUDE_PATH_TWO "$ENV{OPENSIM_HOME}/sdk/include")
+#set(OPENSIM_INCLUDE_PATH_TWO "$ENV{OPENSIM_HOME}/sdk/include")
+find_path(OPENSIM_INCLUDE_PATH_TWO OpenSim.h PATHS "$ENV{OPENSIM_HOME}/sdk/include/OpenSim")
 
 # add and link the executables, libraries and directories for ViconMarkerReader only if VICONSDK_LIB was found
 if(VICONSDK_LIB)
@@ -135,5 +136,5 @@ target_include_directories(XsensReader PUBLIC
 						   "${OPENSIM_INCLUDE_PATH_TWO}"
 						   "${SIMBODY_INCLUDE_PATH}"
 						   "${MTSDK_PATH}"
-						   "${MTSDK_XSENS_PATH}"
+						   "${MT_LIB_PATH}"
 						   )

@@ -13,12 +13,18 @@ namespace OpenSimLive {
 
 	public:
 		IMUInverseKinematicsToolLive();
+		IMUInverseKinematicsToolLive(const std::string& modelFile);
 		IMUInverseKinematicsToolLive(const std::string& modelFile, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable);
 		~IMUInverseKinematicsToolLive();
 		void runInverseKinematicsWithLiveOrientations(OpenSim::Model& model, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable, bool visualizeResults = false);
+		void updateInverseKinematics(OpenSim::Model& model, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable, bool visualizeResults = false);
 		bool IMUInverseKinematicsToolLive::run(bool visualizeResults);
+		bool IMUInverseKinematicsToolLive::update(bool visualizeResults);
 		std::vector<double> getQ() { return q_; }
 		void setTime(double time) { time_ = time; }
+		void setQuaternion(OpenSim::TimeSeriesTable_<SimTK::Quaternion> newQuat) { quat_ = newQuat; }
+		void setModel(OpenSim::Model newModel) { model_ = newModel; }
+		void setModelFile(std::string newModelFile) { model_ = OpenSim::Model(newModelFile); }
 
 	private:
 		double time_ = 0;
