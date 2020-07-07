@@ -7,27 +7,29 @@ project(OpenSimLive VERSION 0.2)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-# find path to Vicon SDK
+# YOU MAY HAVE TO SET THIS MANUALLY IF YOU HAVE VICON SDK IN A DIFFERENT DIRECTORY
+# find path to CPP folder of the Vicon SDK installation directory
 find_path(VICONSDK_PATH DataStreamClient.h PATHS C:/Program Files/Vicon/DataStream SDK/Win64/CPP)
 
 # find Vicon SDK library
 find_library(VICONSDK_LIB ViconDataStreamSDK_CPP.lib PATHS "${VICONSDK_PATH}")
 
-# find path to OpenSim include and lib folders
+# find path to OpenSim include and lib folders (according to OpenSim 4.1 directory hierarchy)
 find_path(OPENSIM_INCLUDE_PATH OpenSim.h PATHS "$ENV{OPENSIM_HOME}/sdk/include/OpenSim")
 find_path(SIMBODY_INCLUDE_PATH Simbody.h PATHS "$ENV{OPENSIM_HOME}/sdk/Simbody/include")
 find_path(OPENSIM_LIB_PATH osimCommon.lib PATHS "$ENV{OPENSIM_HOME}/sdk/lib")
 find_path(SIMBODY_LIB_PATH SimTKcommon.lib PATHS "$ENV{OPENSIM_HOME}/sdk/Simbody/lib")
 
-# set variables for OpenSim and Simbody library name lists
+# set variables for OpenSim and Simbody library name lists (according to OpenSim 4.1)
 set(OPENSIM_LIBRARY_LIST
     osimCommon osimSimulation osimAnalyses osimActuators osimTools)
 set(SIMBODY_LIBRARY_LIST SimTKcommon SimTKmath SimTKsimbody
         OpenSim_SimTKcommon OpenSim_SimTKmath OpenSim_SimTKsimbody)
 
+# declare variable
 set(OPENSIM_LIBRARY)
 
-# iterate through all elements in the OpenSim library list
+# iterate through all elements in the OpenSim library list and append file to OPENSIM_LIBRARY if found
 foreach(LIB_NAME IN LISTS OPENSIM_LIBRARY_LIST)
     find_library(FOUND_LIB NAMES ${LIB_NAME}
         PATHS "${OPENSIM_LIB_PATH}"
@@ -38,9 +40,10 @@ foreach(LIB_NAME IN LISTS OPENSIM_LIBRARY_LIST)
     unset(FOUND_LIB CACHE)
 endforeach()
 
+# set the found OpenSim libraries into SIMBODY_LIBRARY
 set(SIMBODY_LIBRARY ${OPENSIM_LIBRARY})
 
-# iterate through all elements in the Simbody library list
+# iterate through all elements in the Simbody library list and append to SIMBODY_LIBRARY if found
 foreach(LIB_NAME IN LISTS SIMBODY_LIBRARY_LIST)
     find_library(FOUND_LIB NAMES ${LIB_NAME}
 		PATHS "${OPENSIM_LIB_PATH}" "${SIMBODY_LIB_PATH}"
@@ -53,6 +56,7 @@ endforeach()
 
 configure_file(OpenSimLiveConfig.h.in OpenSimLiveConfig.h)
 
+# another path variable for OpenSim includes according to OpenSim 4.1 hierarchy
 set(OPENSIM_INCLUDE_PATH_TWO "$ENV{OPENSIM_HOME}/sdk/include")
 
 # add and link the executables, libraries and directories for ViconMarkerReader only if VICONSDK_LIB was found
@@ -72,6 +76,7 @@ if(VICONSDK_LIB)
 						   "${SIMBODY_INCLUDE_PATH}"
 						   )
 else()
+	# if Vicon SDK is not found, inform the user but continue CMake
 	message([STATUS] "Cannot find Vicon SDK.")	
 endif()
 
@@ -85,10 +90,11 @@ set(MT_LIBRARY_LIST
 
 set(MT_LIBRARY)
 
+# YOU MAY HAVE TO SET THIS MANUALLY IF YOU HAVE MT SDK IN A DIFFERENT DIRECTORY
 # find path to MT SDK libraries
 find_path(MT_LIB_PATH xsensdeviceapi64.lib PATHS "C:/Program Files/Xsens/MT Software Suite 4.6/MT SDK/x64/lib")
 
-# iterate through all elements in the MT library list
+# iterate through all elements in the MT library list, append to MT_LIBRARY if found
 foreach(LIB_NAME IN LISTS MT_LIBRARY_LIST)
     find_library(FOUND_LIB NAMES ${LIB_NAME}
         PATHS "${MT_LIB_PATH}"
@@ -99,12 +105,14 @@ foreach(LIB_NAME IN LISTS MT_LIBRARY_LIST)
     unset(FOUND_LIB CACHE)
 endforeach()
 
+# YOU MAY HAVE TO SET THIS MANUALLY IF YOU HAVE MT SDK IN A DIFFERENT DIRECTORY
 # find path to MT SDK
 find_path(MTSDK_PATH xsensdeviceapi.h PATHS "C:/Program Files/Xsens/MT Software Suite 4.6/MT SDK/x64/include")
 
 
 # find path to classes folder
 find_path(INCLUDE_CLASSES_PATH IMUPlacerLive.h PATHS "${CMAKE_CURRENT_SOURCE_DIR}/Classes")
+# set all C++ files that XsensReader uses into XSENS_SOURCES
 set(XSENS_SOURCES XsensReader.cxx "${INCLUDE_CLASSES_PATH}/IMUPlacerLive.h"
 	"${INCLUDE_CLASSES_PATH}/IMUPlacerLive.cxx"
 	"${INCLUDE_CLASSES_PATH}/IMUInverseKinematicsToolLive.h"
@@ -114,9 +122,9 @@ set(XSENS_SOURCES XsensReader.cxx "${INCLUDE_CLASSES_PATH}/IMUPlacerLive.h"
 add_executable(XsensReader "${XSENS_SOURCES}")
 
 # link MT SDK libraries
-target_link_libraries(XsensReader PRIVATE "${MT_LIBRARY}")
-target_link_libraries(XsensReader PRIVATE "${OPENSIM_LIBRARY}")
-target_link_libraries(XsensReader PRIVATE "${SIMBODY_LIBRARY}")
+target_link_libraries(XsensReader PRIVATE "${MT_LIBRARY}"
+						PRIVATE "${OPENSIM_LIBRARY}"
+						PRIVATE "${SIMBODY_LIBRARY}")
 
 target_include_directories(XsensReader PRIVATE "${INCLUDE_CLASSES_PATH}")
 target_include_directories(XsensReader PUBLIC
