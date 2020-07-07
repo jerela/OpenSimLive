@@ -54,6 +54,10 @@ foreach(LIB_NAME IN LISTS SIMBODY_LIBRARY_LIST)
     unset(FOUND_LIB CACHE)
 endforeach()
 
+
+# add a definition that can be called as a variable in C++
+add_definitions(-DOPENSIMLIVE_ROOT_PATH="${CMAKE_CURRENT_SOURCE_DIR}")
+
 configure_file(OpenSimLiveConfig.h.in OpenSimLiveConfig.h)
 
 # another path variable for OpenSim includes according to OpenSim 4.1 hierarchy
@@ -79,8 +83,6 @@ else()
 	# if Vicon SDK is not found, inform the user but continue CMake
 	message([STATUS] "Cannot find Vicon SDK.")	
 endif()
-
-
 
 
 

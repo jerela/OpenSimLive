@@ -25,8 +25,7 @@
 #include <xsens/xsmutex.h>
 
 
-const std::string OPENSIMLIVE_ROOT = SimTK::Pathname::getAbsoluteDirectoryPathname("OpenSimLive");
-
+const std::string OPENSIMLIVE_ROOT = OPENSIMLIVE_ROOT_PATH;
 
 /*! \brief Stream insertion operator overload for XsPortInfo */
 std::ostream& operator << (std::ostream& out, XsPortInfo const& p)
@@ -193,8 +192,9 @@ private:
 
 // This function reads some "main" variables such as model file to be used from an XML file.
 std::string mainConfigReader(std::string elementName) {
+	std::cout << "Checking in " << OPENSIMLIVE_ROOT << "..." << std::endl;
 	// get the file XML file
-	SimTK::Xml::Document mainConfigXML(OPENSIMLIVE_ROOT + "Config/MainConfiguration.xml");
+	SimTK::Xml::Document mainConfigXML(OPENSIMLIVE_ROOT + "/Config/MainConfiguration.xml");
 	// get the root element of the XML file
 	SimTK::Xml::Element rootElement = mainConfigXML.getRootElement();
 	// get the child element of the root element
@@ -285,7 +285,7 @@ OpenSim::TimeSeriesTable_<SimTK::Quaternion> fillQuaternionTable(std::vector<Mtw
 
 		// match the ID of the sensor to the name of the sensor on the model
 		//sensorNameInModel = sensorIdToLabel(currentSensorId, "C:/Users/wksadmin/source/repos/OpenSimLive/Config/SensorMappings.xml");
-		sensorNameInModel = sensorIdToLabel(currentSensorId, OPENSIMLIVE_ROOT+"Config/"+mainConfigReader("mappings_file"));
+		sensorNameInModel = sensorIdToLabel(currentSensorId, OPENSIMLIVE_ROOT+"/Config/"+mainConfigReader("mappings_file"));
 		
 		// populate the vector of sensor names
 		sensorNameVector.push_back(sensorNameInModel);
@@ -565,7 +565,7 @@ void ConnectToDataStream() {
 				//calibratedModelFile = calibrateOpenSimModel(mtwCallbacks,matrixData,sensorToOpenSimRotations);
 				OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable(fillQuaternionTable(mtwCallbacks, quaternionData));
 				//calibratedModelFile = calibrateModelFromSetupFile("C:/Users/wksadmin/source/repos/OpenSimLive/Config/IMUPlacerSetup.xml", quaternionTimeSeriesTable);
-				calibratedModelFile = calibrateModelFromSetupFile(OPENSIMLIVE_ROOT+"Config/"+mainConfigReader("imu_placer_setup_file"), quaternionTimeSeriesTable);
+				calibratedModelFile = calibrateModelFromSetupFile(OPENSIMLIVE_ROOT+"/Config/"+mainConfigReader("imu_placer_setup_file"), quaternionTimeSeriesTable);
 				calibrateModelKeyHit = false;
 				std::cout << "Model has been calibrated." << std::endl;
 			}
