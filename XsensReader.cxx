@@ -317,9 +317,10 @@ std::string calibrateModelFromSetupFile(std::string IMUPlacerSetupFile, OpenSim:
 }
 
 // This function calculates the values for all joint angles of the model based on live IMU data.
-std::vector<double> OpenSimInverseKinematicsFromIMUs(std::string modelFileName, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable) {
+std::vector<double> OpenSimInverseKinematicsFromIMUs(std::string modelFileName, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable, double duration) {
 
 	OpenSimLive::IMUInverseKinematicsToolLive IKTool(modelFileName, quatTable);
+	IKTool.setTime(duration);
 	IKTool.run(true);
 
 	return IKTool.getQ();
@@ -531,11 +532,13 @@ void ConnectToDataStream() {
 		
 		std::string calibratedModelFile;
 
-		SimTK::Vec3 sensorToOpenSimRotations(-1.570796, 0, 0);
 		bool mainDataLoop = true;
 		bool getDataKeyHit = false;
 		bool calibrateModelKeyHit = false;
 		std::vector<std::vector<double>> jointAngles;
+
+		auto clockStart = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<double> clockDuration;
 		
 		std::cout << "Entering data streaming and IK loop. Press C to calibrate model, V to calculate IK and X to quit." << std::endl;
 
@@ -572,11 +575,12 @@ void ConnectToDataStream() {
 
 			if (newDataAvailable && getDataKeyHit)
 			{
-
+				auto clockNow = std::chrono::high_resolution_clock::now();
+				clockDuration = clockNow - clockStart;
 				//size_t numberOfSensors = mtwCallbacks.size();
 				//jointAngles.push_back(InverseKinematicsFromIMUs(matrixData, mtwCallbacks, timeInteger, calibratedModelFile, sensorToOpenSimRotations));
 				OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(fillQuaternionTable(mtwCallbacks, quaternionData));
-				jointAngles.push_back(OpenSimInverseKinematicsFromIMUs(calibratedModelFile, quatTable));
+				jointAngles.push_back(OpenSimInverseKinematicsFromIMUs(calibratedModelFile, quatTable, clockDuration.count()));
 				timeInteger++;
 				
 				for (size_t i = 0; i < mtwCallbacks.size(); ++i)

@@ -105,6 +105,7 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
 
     SimTK::State& s0 = model.initSystem();
 
+    std::cout << "Checkpoint 1" << std::endl;
     double t0 = s0.getTime();
 
     // create the solver given the input data
@@ -113,16 +114,21 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
         coordinateReferences);
     ikSolver.setAccuracy(accuracy);
 
+    std::cout << "Checkpoint 2" << std::endl;
     auto& times = oRefs.getTimes();
     std::shared_ptr<OpenSim::TimeSeriesTable> modelOrientationErrors(
         get_report_errors() ? new OpenSim::TimeSeriesTable()
         : nullptr);
     s0.updTime() = times[0];
+    std::cout << "Checkpoint 3" << std::endl;
     ikSolver.assemble(s0);
+    std::cout << "Checkpoint 3.5" << std::endl;
     // Create place holder for orientation errors, populate based on user pref.
     // according to report_errors property
     int nos = ikSolver.getNumOrientationSensorsInUse();
     SimTK::Array_<double> orientationErrors(nos, 0.0);
+
+    std::cout << "Checkpoint 4" << std::endl;
 
     if (get_report_errors()) {
         SimTK::Array_<string> labels;
@@ -134,11 +140,13 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
             "name", "OrientationErrors");
         ikSolver.computeCurrentOrientationErrors(orientationErrors);
     }
+    std::cout << "Checkpoint 5" << std::endl;
     if (visualizeResults) {
         model.getVisualizer().show(s0);
         model.getVisualizer().getSimbodyVisualizer().setShowSimTime(true);
     }
-    for (auto time : times) {
+    std::cout << "Checkpoint 6" << std::endl;
+    /*for (auto time : times) {
         s0.updTime() = time;
         ikSolver.track(s0);
         if (get_report_errors()) {
@@ -152,7 +160,19 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
             std::cout << "Solved at time: " << time << " s" << std::endl;;
         // realize to report to get reporter to pull values from model
         model.realizeReport(s0);
+    }*/
+    ikSolver.track(s0);
+    std::cout << "Checkpoint 7" << std::endl;
+    s0.updTime() = time_;
+    if (get_report_errors()) {
+        ikSolver.computeCurrentOrientationErrors(orientationErrors);
+        std::cout << "About to append row..." << std::endl;
+        modelOrientationErrors->appendRow(s0.getTime(), orientationErrors);
     }
+    if (visualizeResults) {
+        model.getVisualizer().show(s0);
+    }
+    model.realizeReport(s0);
 
 
     // get coordinates from state s0

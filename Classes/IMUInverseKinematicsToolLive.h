@@ -18,8 +18,10 @@ namespace OpenSimLive {
 		void runInverseKinematicsWithLiveOrientations(OpenSim::Model& model, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable, bool visualizeResults = false);
 		bool IMUInverseKinematicsToolLive::run(bool visualizeResults);
 		std::vector<double> getQ() { return q_; }
+		void setTime(double time) { time_ = time; }
 
 	private:
+		double time_ = 0;
 		//void constructProperties();
 		SimTK::Vec3 sensor_to_opensim_rotations = { -1.5707963267948966, 0, 0 };
 		OpenSim::TimeSeriesTable_<SimTK::Quaternion> quat_;
