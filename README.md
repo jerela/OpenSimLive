@@ -16,6 +16,31 @@ Example
 
 Step by step instructions on how to install this project.
 
+#### Windows (64-bit)
+
+1. Download and unzip the package to a directory on your hard drive.
+2. Open CMake and select that directory as the source code directory.
+- Put YourFilePath/YourSourceCodeFolder-build or whatever else you want as the build folder and allow CMake to create a new folder when prompted.
+- Select x64 as the generator when prompted.
+- Select **Configure**. CMake variables and their values should now be displayed. If any of them are not found, you can manually type in folders. An example file path of each is as follows:
+   - INCLUDE_CLASSES_PATH:      C:/Users/YourUserHere/Documents/OpenSimLive/Classes
+   - MTSDK_PATH:                C:/Program Files/Xsens/MT Software Suite 4.6/MT SDK/x64/include
+   - MT_LIB_PATH:               C:/Program Files/Xsens/MT Software Suite 4.6/MT SDK/x64/lib
+   - OPENSIM_INCLUDE_PATH:      C:/OpenSim 4.1/sdk/include/OpenSim
+   - OPENSIM_INCLUDE_PATH_TWO:  C:/OpenSim 4.1/sdk/include
+   - OPENSIM_LIB_PATH:          C:/OpenSim 4.1/sdk/lib
+   - SIMBODY_INCLUDE_PATH:      C:/OpenSim 4.1/sdk/Simbody/include
+   - SIMBODY_LIB_PATH:          C:/OpenSim 4.1/sdk/Simbody/lib
+   - VICONSDK_LIB:              C:/Program Files/Vicon/DataStream SDK/Win64/CPP/ViconDataStreamSDK_CPP.lib
+   - VICONSDK_PATH:             C:/Program Files/Vicon/DataStream SDK/Win64/CPP
+- The two last entries are not required for IMU IK calculations.
+- Finally, select **Generate**.
+3. Open Visual Studio. Open the solution you just generated in the build directory. Run BUILD ALL. Visual Studio should now create the required executable(s) in a subdirectory in the build directory.
+4. Move **xsensdeviceapi64.dll** and **xstypes64.dll** from .../Xsens/MT Software Suite 4.6/MT SDK/x64/lib to the directory where the executable XsensReader is.
+5. Go to .../OpenSimLive/Config and make sure the .xml files are pointing to the right files.
+6. Run **XsensReader.exe**.
+
+
 ### Running the tests
 
 Instructions on how to run the automated tests for this project.
