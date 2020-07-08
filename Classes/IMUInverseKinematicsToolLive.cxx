@@ -96,8 +96,7 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
 
 
 
-    OpenSim::TimeSeriesTable_<SimTK::Rotation> orientationsData =
-        OpenSim::OpenSenseUtilities::convertQuaternionsToRotations(quatTable);
+    OpenSim::TimeSeriesTable_<SimTK::Rotation> orientationsData = OpenSim::OpenSenseUtilities::convertQuaternionsToRotations(quatTable);
 
     OpenSim::OrientationsReference oRefs(orientationsData, &get_orientation_weights());
     OpenSim::MarkersReference mRefs{};
@@ -117,9 +116,9 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
 
     // create the solver given the input data
     const double accuracy = 1e-4;
-    OpenSim::InverseKinematicsSolver ikSolver(model, mRefs, oRefs,
-        coordinateReferences);
-    ikSolver.setAccuracy(accuracy);
+    //OpenSim::InverseKinematicsSolver ikSolver(model, mRefs, oRefs, coordinateReferences);
+    ikSolver = new OpenSim::InverseKinematicsSolver(model, mRefs, oRefs, coordinateReferences);
+    ikSolver->setAccuracy(accuracy);
 
     std::cout << "Checkpoint 2" << std::endl;
     auto& times = oRefs.getTimes();
@@ -128,11 +127,11 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
         : nullptr);
     s0.updTime() = times[0];
     std::cout << "Checkpoint 3" << std::endl;
-    ikSolver.assemble(s0);
+    ikSolver->assemble(s0);
     std::cout << "Checkpoint 3.5" << std::endl;
     // Create place holder for orientation errors, populate based on user pref.
     // according to report_errors property
-    int nos = ikSolver.getNumOrientationSensorsInUse();
+    int nos = ikSolver->getNumOrientationSensorsInUse();
     SimTK::Array_<double> orientationErrors(nos, 0.0);
 
     std::cout << "Checkpoint 4" << std::endl;
@@ -140,12 +139,12 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
     if (get_report_errors()) {
         SimTK::Array_<string> labels;
         for (int i = 0; i < nos; ++i) {
-            labels.push_back(ikSolver.getOrientationSensorNameForIndex(i));
+            labels.push_back(ikSolver->getOrientationSensorNameForIndex(i));
         }
         modelOrientationErrors->setColumnLabels(labels);
         modelOrientationErrors->updTableMetaData().setValueForKey<string>(
             "name", "OrientationErrors");
-        ikSolver.computeCurrentOrientationErrors(orientationErrors);
+        ikSolver->computeCurrentOrientationErrors(orientationErrors);
     }
     std::cout << "Checkpoint 5" << std::endl;
     if (visualizeResults) {
@@ -168,11 +167,11 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
         // realize to report to get reporter to pull values from model
         model.realizeReport(s0);
     }*/
-    ikSolver.track(s0);
+    ikSolver->track(s0);
     std::cout << "Checkpoint 7" << std::endl;
     s0.updTime() = time_;
     if (get_report_errors()) {
-        ikSolver.computeCurrentOrientationErrors(orientationErrors);
+        ikSolver->computeCurrentOrientationErrors(orientationErrors);
         std::cout << "About to append row..." << std::endl;
         modelOrientationErrors->appendRow(s0.getTime(), orientationErrors);
     }
@@ -271,9 +270,9 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(
 
     // create the solver given the input data
     const double accuracy = 1e-4;
-    OpenSim::InverseKinematicsSolver ikSolver(model, mRefs, oRefs,
-        coordinateReferences);
-    ikSolver.setAccuracy(accuracy);
+    //OpenSim::InverseKinematicsSolver ikSolver(model, mRefs, oRefs, coordinateReferences);
+    ikSolver = new OpenSim::InverseKinematicsSolver(model, mRefs, oRefs, coordinateReferences);
+    ikSolver->setAccuracy(accuracy);
 
     std::cout << "Checkpoint 2" << std::endl;
     auto& times = oRefs.getTimes();
@@ -282,11 +281,11 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(
         : nullptr);
     s0.updTime() = times[0];
     std::cout << "Checkpoint 3" << std::endl;
-    ikSolver.assemble(s0);
+    //ikSolver.assemble(s0);
     std::cout << "Checkpoint 3.5" << std::endl;
     // Create place holder for orientation errors, populate based on user pref.
     // according to report_errors property
-    int nos = ikSolver.getNumOrientationSensorsInUse();
+    int nos = ikSolver->getNumOrientationSensorsInUse();
     SimTK::Array_<double> orientationErrors(nos, 0.0);
 
     std::cout << "Checkpoint 4" << std::endl;
@@ -294,12 +293,12 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(
     if (get_report_errors()) {
         SimTK::Array_<string> labels;
         for (int i = 0; i < nos; ++i) {
-            labels.push_back(ikSolver.getOrientationSensorNameForIndex(i));
+            labels.push_back(ikSolver->getOrientationSensorNameForIndex(i));
         }
         modelOrientationErrors->setColumnLabels(labels);
         modelOrientationErrors->updTableMetaData().setValueForKey<string>(
             "name", "OrientationErrors");
-        ikSolver.computeCurrentOrientationErrors(orientationErrors);
+        ikSolver->computeCurrentOrientationErrors(orientationErrors);
     }
     std::cout << "Checkpoint 5" << std::endl;
     //if (visualizeResults) {
@@ -308,11 +307,11 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(
     //}
     std::cout << "Checkpoint 6" << std::endl;
 
-    ikSolver.track(s0);
+    ikSolver->track(s0);
     std::cout << "Checkpoint 7" << std::endl;
     s0.updTime() = time_;
     if (get_report_errors()) {
-        ikSolver.computeCurrentOrientationErrors(orientationErrors);
+        ikSolver->computeCurrentOrientationErrors(orientationErrors);
         modelOrientationErrors->appendRow(s0.getTime(), orientationErrors);
     }
     if (visualizeResults) {
