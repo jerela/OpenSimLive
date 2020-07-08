@@ -28,8 +28,6 @@ namespace OpenSimLive {
 
 	private:
 		SimTK::State s;
-		//OpenSim::InverseKinematicsSolver IKSolver_(OpenSim::Model, OpenSim::MarkersReference, OpenSim::OrientationsReference, SimTK::Array_<OpenSim::CoordinateReference>);
-		OpenSim::InverseKinematicsSolver* ikSolver;
 		double time_ = 0;
 		//void constructProperties();
 		SimTK::Vec3 sensor_to_opensim_rotations = { -1.5707963267948966, 0, 0 };
