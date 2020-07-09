@@ -18,7 +18,7 @@ using namespace std;
 // CONSTRUCTORS
 
 IMUInverseKinematicsToolLive::IMUInverseKinematicsToolLive() {
-    //constructProperties();
+    
 }
 
 IMUInverseKinematicsToolLive::IMUInverseKinematicsToolLive(const std::string& modelFile) {
@@ -30,7 +30,7 @@ IMUInverseKinematicsToolLive::IMUInverseKinematicsToolLive(const std::string& mo
             coord.setDefaultLocked(true);
         }
     }
-    s = model_.initSystem();
+    s_ = model_.initSystem();
 }
 
 IMUInverseKinematicsToolLive::IMUInverseKinematicsToolLive(const std::string& modelFile, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable) {
@@ -42,7 +42,7 @@ IMUInverseKinematicsToolLive::IMUInverseKinematicsToolLive(const std::string& mo
             coord.setDefaultLocked(true);
         }
     }
-    s = model_.initSystem();
+    s_ = model_.initSystem();
     quat_ = quatTable;
 }
 
@@ -110,28 +110,19 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
 
 
 
-    OpenSim::TimeSeriesTable_<SimTK::Rotation> orientationsData =
-        OpenSim::OpenSenseUtilities::convertQuaternionsToRotations(quatTable);
+    OpenSim::TimeSeriesTable_<SimTK::Rotation> orientationsData = OpenSim::OpenSenseUtilities::convertQuaternionsToRotations(quatTable);
 
     OpenSim::OrientationsReference oRefs(orientationsData, &get_orientation_weights());
     OpenSim::MarkersReference mRefs{};
 
     SimTK::Array_<OpenSim::CoordinateReference> coordinateReferences;
 
-
-    // visualize for debugging
     if (visualizeResults)
         model_.setUseVisualizer(true);
 
-    //SimTK::State& s0 = model.initSystem();
-    //SimTK::State& s0 = s;
-    s = model_.initSystem(); // this creates the visualizer window; consists of buildSystem() and initializeState()
-    //model_.buildSystem();
-    //s = model_.initializeState();
+    s_ = model_.initSystem(); // this creates the visualizer window; consists of buildSystem() and initializeState()
 
-    std::cout << "Checkpoint 0" << std::endl;
-
-    // if we want to visualize results, set visualizer into sampling mode
+    // if we want to visualize results, set visualizer into sampling mode so we can update the joint angle values later
     if (visualizeResults) {
         //*viz = model_.updVisualizer().updSimbodyVisualizer();
         SimTK::Visualizer& viz = model_.updVisualizer().updSimbodyVisualizer();
@@ -139,33 +130,23 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
         viz.setMode(SimTK::Visualizer::Mode::Sampling);
     }
     
-
-    std::cout << "Checkpoint 1" << std::endl;
-    //double t0 = s0.getTime();
-    double t0 = s.getTime();
-
     // create the solver given the input data
     const double accuracy = 1e-4;
     OpenSim::InverseKinematicsSolver ikSolver(model_, mRefs, oRefs, coordinateReferences);
     ikSolver.setAccuracy(accuracy);
 
-    std::cout << "Checkpoint 2" << std::endl;
     auto& times = oRefs.getTimes();
     std::shared_ptr<OpenSim::TimeSeriesTable> modelOrientationErrors(
         get_report_errors() ? new OpenSim::TimeSeriesTable()
         : nullptr);
-    //s0.updTime() = times[0];
-    s.updTime() = times[0];
-    std::cout << "Checkpoint 3" << std::endl;
-    //ikSolver.assemble(s0);
-    ikSolver.assemble(s);
-    std::cout << "Checkpoint 3.5" << std::endl;
+    // set the initial time for state s_
+    s_.updTime() = times[0];
+    // assemble the state
+    ikSolver.assemble(s_);
     // Create place holder for orientation errors, populate based on user pref.
     // according to report_errors property
     int nos = ikSolver.getNumOrientationSensorsInUse();
     SimTK::Array_<double> orientationErrors(nos, 0.0);
-
-    std::cout << "Checkpoint 4" << std::endl;
 
     if (get_report_errors()) {
         SimTK::Array_<string> labels;
@@ -177,13 +158,13 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
             "name", "OrientationErrors");
         ikSolver.computeCurrentOrientationErrors(orientationErrors);
     }
-    std::cout << "Checkpoint 5" << std::endl;
+
+    // draw the image in the visualizer window if desired
     if (visualizeResults) {
-        //model.getVisualizer().show(s0);
-        model_.getVisualizer().show(s);
+        model_.getVisualizer().show(s_);
         model_.getVisualizer().getSimbodyVisualizer().setShowSimTime(true);
     }
-    std::cout << "Checkpoint 6" << std::endl;
+
     /*for (auto time : times) {
         s0.updTime() = time;
         ikSolver.track(s0);
@@ -199,31 +180,26 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
         // realize to report to get reporter to pull values from model
         model.realizeReport(s0);
     }*/
-    //ikSolver.track(s0);
-    ikSolver.track(s);
-    std::cout << "Checkpoint 7" << std::endl;
-    //s0.updTime() = time_;
-    s.updTime() = time_;
+
+    // track the state at time defined for it
+    ikSolver.track(s_);
+    // set state time as time after calibration
+    s_.updTime() = time_;
     if (get_report_errors()) {
         ikSolver.computeCurrentOrientationErrors(orientationErrors);
-        std::cout << "About to append row..." << std::endl;
-        //modelOrientationErrors->appendRow(s0.getTime(), orientationErrors);
-        modelOrientationErrors->appendRow(s.getTime(), orientationErrors);
+        modelOrientationErrors->appendRow(s_.getTime(), orientationErrors);
     }
     if (visualizeResults) {
-        //model.getVisualizer().show(s0);
-        model_.getVisualizer().show(s);
+        model_.getVisualizer().show(s_);
     }
-    //model.realizeReport(s0);
-    model_.realizeReport(s);
+    model_.realizeReport(s_);
 
 
-    // get coordinates from state s0
-    //SimTK::Vector stateQ(s0.getQ());
-    SimTK::Vector stateQ(s.getQ());
+    // get coordinates from state s_
+    SimTK::Vector stateQ(s_.getQ());
     // get number of coordinates (joint angles) in the model
     int numCoordinates = model_.getNumCoordinates();
-    // initialize vector
+    // initialize vector that holds the joint angles
     std::vector<double> q(numCoordinates);
     for (int j = 0; j < numCoordinates; j++) {
         // fill q with angle values for different joint angles
@@ -272,131 +248,8 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
 
 
 
-/*void IMUInverseKinematicsToolLive::updateInverseKinematics(
-    OpenSim::Model& model, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable,
-    bool visualizeResults) {
-
-
-    // Convert to OpenSim Frame
-    const SimTK::Vec3& rotations = get_sensor_to_opensim_rotations();
-    SimTK::Rotation sensorToOpenSim = SimTK::Rotation(SimTK::BodyOrSpaceType::SpaceRotationSequence, rotations[0], SimTK::XAxis, rotations[1], SimTK::YAxis, rotations[2], SimTK::ZAxis);
-
-    // Rotate data so Y-Axis is up
-    OpenSim::OpenSenseUtilities::rotateOrientationTable(quatTable, sensorToOpenSim);
-    //Trim to time window required by Tool
-    //quatTable.trim(getStartTime(), getEndTime());
-
-
-
-    OpenSim::TimeSeriesTable_<SimTK::Rotation> orientationsData = OpenSim::OpenSenseUtilities::convertQuaternionsToRotations(quatTable);
-
-    OpenSim::OrientationsReference oRefs(orientationsData, &get_orientation_weights());
-    OpenSim::MarkersReference mRefs{};
-
-    SimTK::Array_<OpenSim::CoordinateReference> coordinateReferences;
-
-
-    // visualize for debugging
-    //if (visualizeResults)
-    //    model.setUseVisualizer(true); // checked during initSystem
-
-    //SimTK::State& s0 = model.initSystem(); // probably creates the new window -> state should be constructed beforehand?
-    //SimTK::State& s0 = s;
-    //model.initSystem();
-    
-    model.setUseVisualizer(false);
-    model.buildSystem();
-    model.setUseVisualizer(true);
-
-    s = model.initializeState();
-
-    std::cout << "Checkpoint 1" << std::endl;
-    //double t0 = s0.getTime();
-    double t0 = s.getTime();
-
-    // create the solver given the input data
-    const double accuracy = 1e-4;
-    OpenSim::InverseKinematicsSolver ikSolver(model, mRefs, oRefs,
-        coordinateReferences);
-    ikSolver.setAccuracy(accuracy);
-
-    std::cout << "Checkpoint 2" << std::endl;
-    auto& times = oRefs.getTimes();
-    std::shared_ptr<OpenSim::TimeSeriesTable> modelOrientationErrors(
-        get_report_errors() ? new OpenSim::TimeSeriesTable()
-        : nullptr);
-    //s0.updTime() = times[0];
-    s.updTime() = times[0];
-    std::cout << "Checkpoint 3" << std::endl;
-    //ikSolver.assemble(s0);
-    ikSolver.assemble(s);
-    std::cout << "Checkpoint 3.5" << std::endl;
-    // Create place holder for orientation errors, populate based on user pref.
-    // according to report_errors property
-    int nos = ikSolver.getNumOrientationSensorsInUse();
-    SimTK::Array_<double> orientationErrors(nos, 0.0);
-
-    std::cout << "Checkpoint 4" << std::endl;
-
-    if (get_report_errors()) {
-        SimTK::Array_<string> labels;
-        for (int i = 0; i < nos; ++i) {
-            labels.push_back(ikSolver.getOrientationSensorNameForIndex(i));
-        }
-        modelOrientationErrors->setColumnLabels(labels);
-        modelOrientationErrors->updTableMetaData().setValueForKey<string>(
-            "name", "OrientationErrors");
-        ikSolver.computeCurrentOrientationErrors(orientationErrors);
-    }
-    std::cout << "Checkpoint 5" << std::endl;
-    //if (visualizeResults) {
-    //    model.getVisualizer().show(s0);
-    //    model.getVisualizer().getSimbodyVisualizer().setShowSimTime(true);
-    //}
-    std::cout << "Checkpoint 6" << std::endl;
-
-    //ikSolver.track(s0);
-    ikSolver.track(s);
-    std::cout << "Checkpoint 7" << std::endl;
-    //s0.updTime() = time_;
-    s.updTime() = time_;
-    if (get_report_errors()) {
-        ikSolver.computeCurrentOrientationErrors(orientationErrors);
-        //modelOrientationErrors->appendRow(s0.getTime(), orientationErrors);
-        modelOrientationErrors->appendRow(s.getTime(), orientationErrors);
-    }
-    if (visualizeResults) {
-        //model.getVisualizer().show(s0); // creates a new image in the pre-existing visualizer window
-        model.getVisualizer().show(s);
-    }
-    //model.realizeReport(s0);
-    model.realizeReport(s);
-
-
-    // get coordinates from state s0
-    //SimTK::Vector stateQ(s0.getQ());
-    SimTK::Vector stateQ(s.getQ());
-    // get number of coordinates (joint angles) in the model
-    int numCoordinates = model.getNumCoordinates();
-    // initialize vector
-    std::vector<double> q(numCoordinates);
-    for (int j = 0; j < numCoordinates; j++) {
-        // fill q with angle values for different joint angles
-        q[j] = stateQ[j];
-        //    std::cout << "Q" << j << ": " << q[j] << std::endl;
-    }
-    // set private variable q_ to equal q
-    setQ(q);
-
-
-
-}*/
-
-
-void IMUInverseKinematicsToolLive::updateInverseKinematics(
-    OpenSim::Model& model, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable,
-    bool visualizeResults) {
-
+// This function calculates the joint angle values for a new state s0, then updates state s with those values and redraws the visualization.
+void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable, bool visualizeResults) {
 
     // Convert to OpenSim Frame
     const SimTK::Vec3& rotations = get_sensor_to_opensim_rotations();
@@ -412,36 +265,27 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(
 
     SimTK::Array_<OpenSim::CoordinateReference> coordinateReferences;
 
+    // make sure that we don't create an additional visualization window when we initialize system
     model.setUseVisualizer(false);
     SimTK::State& s0 = model.initSystem();
-
-    std::cout << "Checkpoint 1" << std::endl;
-    double t0 = s0.getTime();
-    //double t0 = s.getTime();
-
+    
     // create the solver given the input data
     const double accuracy = 1e-4;
-    OpenSim::InverseKinematicsSolver ikSolver(model, mRefs, oRefs,
-        coordinateReferences);
+    OpenSim::InverseKinematicsSolver ikSolver(model, mRefs, oRefs, coordinateReferences);
     ikSolver.setAccuracy(accuracy);
 
-    std::cout << "Checkpoint 2" << std::endl;
     auto& times = oRefs.getTimes();
     std::shared_ptr<OpenSim::TimeSeriesTable> modelOrientationErrors(
         get_report_errors() ? new OpenSim::TimeSeriesTable()
         : nullptr);
+    // set the time of state s0
     s0.updTime() = times[0];
-    //s.updTime() = times[0];
-    std::cout << "Checkpoint 3" << std::endl;
+    // assemble state s0, solving the initial joint angles in the least squares sense
     ikSolver.assemble(s0);
-    //ikSolver.assemble(s);
-    std::cout << "Checkpoint 3.5" << std::endl;
     // Create place holder for orientation errors, populate based on user pref.
     // according to report_errors property
     int nos = ikSolver.getNumOrientationSensorsInUse();
     SimTK::Array_<double> orientationErrors(nos, 0.0);
-
-    std::cout << "Checkpoint 4" << std::endl;
 
     if (get_report_errors()) {
         SimTK::Array_<string> labels;
@@ -449,56 +293,42 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(
             labels.push_back(ikSolver.getOrientationSensorNameForIndex(i));
         }
         modelOrientationErrors->setColumnLabels(labels);
-        modelOrientationErrors->updTableMetaData().setValueForKey<string>(
-            "name", "OrientationErrors");
+        modelOrientationErrors->updTableMetaData().setValueForKey<string>("name", "OrientationErrors");
         ikSolver.computeCurrentOrientationErrors(orientationErrors);
     }
-    std::cout << "Checkpoint 5" << std::endl;
-    //if (visualizeResults) {
-    //    model.getVisualizer().show(s0);
-    //    model.getVisualizer().getSimbodyVisualizer().setShowSimTime(true);
-    //}
-    std::cout << "Checkpoint 6" << std::endl;
 
+    // solve IK at time specified for state s0
     ikSolver.track(s0);
-    //ikSolver.track(s);
-    std::cout << "Checkpoint 7" << std::endl;
+    // set time for state s0
     s0.updTime() = time_;
-    //s.updTime() = time_;
     if (get_report_errors()) {
         ikSolver.computeCurrentOrientationErrors(orientationErrors);
         modelOrientationErrors->appendRow(s0.getTime(), orientationErrors);
-        //modelOrientationErrors->appendRow(s.getTime(), orientationErrors);
     }
-    //if (visualizeResults) {
-        //model.getVisualizer().show(s0); // creates a new image in the pre-existing visualizer window
-        //model.getVisualizer().show(s);
-    //}
     model.realizeReport(s0);
-    //model.realizeReport(s);
 
 
     // get coordinates from state s0
     SimTK::Vector stateQ(s0.getQ());
-    //SimTK::Vector stateQ(s.getQ());
     // get number of coordinates (joint angles) in the model
     int numCoordinates = model.getNumCoordinates();
-    // initialize vector
+    // initialize vector that holds the joint angle values
     std::vector<double> q(numCoordinates);
     for (int j = 0; j < numCoordinates; j++) {
         // fill q with angle values for different joint angles
         q[j] = stateQ[j];
         //    std::cout << "Q" << j << ": " << q[j] << std::endl;
-
-
-        s.updQ()[j] = q[j];
+        // insert the joint angle values calculated from state s0 into state s, which we use for visualization
+        s_.updQ()[j] = q[j];
     }
-    // set private variable q_ to equal q
+
+    // set private variable q_ to equal q so that we can get the latest joint angle values with getQ
     setQ(q);
 
-    // now insert q into the original visualized state
-    model_.getVisualizer().show(s);
-
+    // update the time to be shown in the visualization
+    s_.updTime() = time_;
+    // now insert q into the original visualized state and show them
+    model_.getVisualizer().show(s_);
 
 }
 
@@ -511,28 +341,16 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(
 
 
 
-
+// This function initially runs the IK and should only be called once per calibration.
 bool IMUInverseKinematicsToolLive::run(bool visualizeResults)
 {
- /*   if (_model.empty()) {
-        _model.reset(new Model(get_model_file()));
-    }
-
-    runInverseKinematicsWithLiveOrientations(*_model,
-        get_quat,
-        visualizeResults);
-
-    return true;*/
-
     runInverseKinematicsWithLiveOrientations(get_model(), get_quat(), visualizeResults);
     return true;
 }
 
-
+// This function updates the IK after it's been initially run
 bool IMUInverseKinematicsToolLive::update(bool visualizeResults)
 {
-
     updateInverseKinematics(get_model(), get_quat(), visualizeResults);
     return true;
 }
-

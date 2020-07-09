@@ -192,7 +192,6 @@ private:
 
 // This function reads some "main" variables such as model file to be used from an XML file.
 std::string mainConfigReader(std::string elementName) {
-	std::cout << "Checking in " << OPENSIMLIVE_ROOT << "..." << std::endl;
 	// get the file XML file
 	SimTK::Xml::Document mainConfigXML(OPENSIMLIVE_ROOT + "/Config/MainConfiguration.xml");
 	// get the root element of the XML file
@@ -526,11 +525,9 @@ void ConnectToDataStream() {
 
 		// 1. HANDLE INCOMING DATA
 
-		SimTK::Real timeInteger = 1;
 		std::vector<XsEuler> eulerData(mtwCallbacks.size()); // Room to store euler data for each mtw
 		std::vector<XsMatrix> matrixData(mtwCallbacks.size()); // for data in orientation matrix form that OpenSim requires
 		std::vector<XsQuaternion> quaternionData(mtwCallbacks.size()); // for data in quaternion form
-		//unsigned int printCounter = 0;
 		
 		std::string calibratedModelFile;
 
@@ -569,32 +566,35 @@ void ConnectToDataStream() {
 			}
 
 			if (newDataAvailable && calibrateModelKeyHit) {
-				//calibratedModelFile = calibrateOpenSimModel(mtwCallbacks,matrixData,sensorToOpenSimRotations);
+				// fill a timeseriestable with quaternion orientations of IMUs
 				OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable(fillQuaternionTable(mtwCallbacks, quaternionData));
-				//calibratedModelFile = calibrateModelFromSetupFile("C:/Users/wksadmin/source/repos/OpenSimLive/Config/IMUPlacerSetup.xml", quaternionTimeSeriesTable);
+				// calibrate the model and return its file name
 				calibratedModelFile = calibrateModelFromSetupFile(OPENSIMLIVE_ROOT+"/Config/"+mainConfigReader("imu_placer_setup_file"), quaternionTimeSeriesTable);
 				calibrateModelKeyHit = false;
+				// give IKTool the necessary inputs and run it
 				IKTool.setModelFile(calibratedModelFile);
 				IKTool.setQuaternion(quaternionTimeSeriesTable);
 				IKTool.setTime(0);
-				IKTool.run(true);
+				IKTool.run(true); // true for visualization
 				std::cout << "Model has been calibrated." << std::endl;
 			}
 
 			if (newDataAvailable && getDataKeyHit)
 			{
+				// use high resolution clock to count time since the IMU measurement began
 				auto clockNow = std::chrono::high_resolution_clock::now();
 				clockDuration = clockNow - clockStart;
-				//size_t numberOfSensors = mtwCallbacks.size();
-				//jointAngles.push_back(InverseKinematicsFromIMUs(matrixData, mtwCallbacks, timeInteger, calibratedModelFile, sensorToOpenSimRotations));
+				// fill a time series table with quaternion orientations of the IMUs
 				OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(fillQuaternionTable(mtwCallbacks, quaternionData));
-				//jointAngles.push_back(OpenSimInverseKinematicsFromIMUs(calibratedModelFile, quatTable, clockDuration.count()));
+				// give the necessary inputs to IKTool
 				IKTool.setQuaternion(quatTable);
 				IKTool.setTime(clockDuration.count());
+				// calculate the IK and update the visualization
 				IKTool.update(true);
+				// push joint angles to vector
 				jointAngles.push_back(IKTool.getQ());
-				timeInteger++;
 				
+				// print the roll, pitch and yaw angles for all IMUs
 				for (size_t i = 0; i < mtwCallbacks.size(); ++i)
 				{
 					std::cout << "[" << i << "]: ID: " << mtwCallbacks[i]->device().deviceId().toString().toStdString()
