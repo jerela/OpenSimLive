@@ -553,7 +553,9 @@ void ConnectToDataStream() {
 		std::vector<std::vector<double>> jointAngles; // vector that will hold the joint angles
 
 		auto clockStart = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double> clockDuration;
+		auto clockNow = std::chrono::high_resolution_clock::now();
+		auto clockPrev = clockStart;
+		std::chrono::duration<double> clockDuration; std::chrono::duration<double> prevDuration;
 
 		OpenSimLive::IMUInverseKinematicsToolLive IKTool;
 		
@@ -581,6 +583,8 @@ void ConnectToDataStream() {
 			}
 
 			if (newDataAvailable && calibrateModelKeyHit) {
+				// set clock to start from calibration
+				clockStart = std::chrono::high_resolution_clock::now();
 				// fill a timeseriestable with quaternion orientations of IMUs
 				OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable(fillQuaternionTable(mtwCallbacks, quaternionData));
 				// calibrate the model and return its file name
@@ -597,7 +601,7 @@ void ConnectToDataStream() {
 			if (newDataAvailable && getDataKeyHit)
 			{
 				// use high resolution clock to count time since the IMU measurement began
-				auto clockNow = std::chrono::high_resolution_clock::now();
+				clockNow = std::chrono::high_resolution_clock::now();
 				clockDuration = clockNow - clockStart;
 				// fill a time series table with quaternion orientations of the IMUs
 				OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(fillQuaternionTable(mtwCallbacks, quaternionData));
@@ -618,20 +622,28 @@ void ConnectToDataStream() {
 
 			if (newDataAvailable && continuousMode) {
 				// use high resolution clock to count time since the IMU measurement began
-				auto clockNow = std::chrono::high_resolution_clock::now();
+				clockNow = std::chrono::high_resolution_clock::now();
+				// calculate the duration since the beginning of counting
 				clockDuration = clockNow - clockStart;
-				// fill a time series table with quaternion orientations of the IMUs
-				OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(fillQuaternionTable(mtwCallbacks, quaternionData));
-				// give the necessary inputs to IKTool
-				IKTool.setQuaternion(quatTable);
-				IKTool.setTime(clockDuration.count());
-				// calculate the IK and update the visualization
-				IKTool.update(true);
-				// push joint angles to vector
-				jointAngles.push_back(IKTool.getQ());
-				if (print_roll_pitch_yaw)
-					printRollPitchYaw(mtwCallbacks,eulerData);
-				XsTime::msleep(continuousModeMsDelay);
+				// calculate the duration since the previous time IK was continuously calculated
+				prevDuration = clockNow - clockPrev;
+				// if more than the set time delay has passed since the last time IK was calculated
+				if (prevDuration.count()*1000 > continuousModeMsDelay) {
+					// set current time as the time IK was previously calculated for the following iterations of the while-loop
+					clockPrev = clockNow;
+
+					// fill a time series table with quaternion orientations of the IMUs
+					OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(fillQuaternionTable(mtwCallbacks, quaternionData));
+					// give the necessary inputs to IKTool
+					IKTool.setQuaternion(quatTable);
+					IKTool.setTime(clockDuration.count());
+					// calculate the IK and update the visualization
+					IKTool.update(true);
+					// push joint angles to vector
+					jointAngles.push_back(IKTool.getQ());
+					if (print_roll_pitch_yaw)
+						printRollPitchYaw(mtwCallbacks, eulerData);
+				}
 			}
 
 			if (!continuousMode && startContinuousModeKeyHit) {

@@ -126,8 +126,7 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
     if (visualizeResults) {
         //*viz = model_.updVisualizer().updSimbodyVisualizer();
         SimTK::Visualizer& viz = model_.updVisualizer().updSimbodyVisualizer();
-        std::cout << "checkpoint 0.5" << std::endl;
-        viz.setMode(SimTK::Visualizer::Mode::Sampling);
+        viz.setMode(SimTK::Visualizer::Mode::Sampling); // try RealTime mode instead for better FPS?
     }
     
     // create the solver given the input data
@@ -163,7 +162,9 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
     if (visualizeResults) {
         model_.getVisualizer().show(s_);
         model_.getVisualizer().getSimbodyVisualizer().setShowSimTime(true);
+        model_.getVisualizer().getSimbodyVisualizer().setShowFrameRate(true);
     }
+    std::cout << "Desired visualizer frame rate is " << model_.getVisualizer().getSimbodyVisualizer().getDesiredFrameRate() << std::endl;
 
     /*for (auto time : times) {
         s0.updTime() = time;
@@ -296,16 +297,13 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model
         modelOrientationErrors->updTableMetaData().setValueForKey<string>("name", "OrientationErrors");
         ikSolver.computeCurrentOrientationErrors(orientationErrors);
     }
-
-    // solve IK at time specified for state s0
-    ikSolver.track(s0);
     // set time for state s0
-    s0.updTime() = time_;
-    if (get_report_errors()) {
-        ikSolver.computeCurrentOrientationErrors(orientationErrors);
-        modelOrientationErrors->appendRow(s0.getTime(), orientationErrors);
-    }
-    model.realizeReport(s0);
+    //s0.updTime() = time_;
+    //if (get_report_errors()) {
+    //    ikSolver.computeCurrentOrientationErrors(orientationErrors);
+    //    modelOrientationErrors->appendRow(s0.getTime(), orientationErrors);
+    //}
+    //model.realizeReport(s0);
 
 
     // get coordinates from state s0
@@ -328,7 +326,9 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model
     // update the time to be shown in the visualization
     s_.updTime() = time_;
     // now insert q into the original visualized state and show them
+    //model_.getVisualizer().getSimbodyVisualizer().flushFrames();
     model_.getVisualizer().show(s_);
+    //model_.getVisualizer().getSimbodyVisualizer().drawFrameNow(s_);
 
 }
 
