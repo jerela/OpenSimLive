@@ -27,6 +27,7 @@ namespace OpenSimLive {
 		void setModelFile(std::string newModelFile) { model_ = OpenSim::Model(newModelFile); }
 
 	private:
+		//SimTK::Visualizer* viz; // = model_.updVisualizer().updSimbodyVisualizer();
 		SimTK::State s;
 		double time_ = 0;
 		//void constructProperties();
