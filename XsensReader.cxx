@@ -190,6 +190,17 @@ private:
 	XsDevice* m_device;
 };
 
+void printRollPitchYaw(std::vector<MtwCallback*> mtwCallbacks, std::vector<XsEuler> eulerData) {
+	for (size_t i = 0; i < mtwCallbacks.size(); ++i)
+	{
+		std::cout << "[" << i << "]: ID: " << mtwCallbacks[i]->device().deviceId().toString().toStdString()
+			<< ", Roll: " << std::setw(7) << std::fixed << std::setprecision(2) << eulerData[i].roll()
+			<< ", Pitch: " << std::setw(7) << std::fixed << std::setprecision(2) << eulerData[i].pitch()
+			<< ", Yaw: " << std::setw(7) << std::fixed << std::setprecision(2) << eulerData[i].yaw()
+			<< std::endl;
+	}
+}
+
 // This function reads some "main" variables such as model file to be used from an XML file.
 std::string mainConfigReader(std::string elementName) {
 	// get the file XML file
@@ -531,17 +542,22 @@ void ConnectToDataStream() {
 		
 		std::string calibratedModelFile;
 
-		bool mainDataLoop = true;
-		bool getDataKeyHit = false;
-		bool calibrateModelKeyHit = false;
-		std::vector<std::vector<double>> jointAngles;
+		bool mainDataLoop = true; // IMU data is being measured while this is true
+		bool continuousMode = false; // IK is calculated continuously while this is true
+		bool getDataKeyHit = false; // tells if the key that initiates a single IK calculation is hit
+		bool calibrateModelKeyHit = false; // tells if the key that initiates model calibration is hit
+		bool startContinuousModeKeyHit = false; // tells if the key that starts continuous mode is hit
+		bool stopContinuousModeKeyHit = false; // tells if the key that ends continuous mode is hit
+		int continuousModeMsDelay = std::stoi(mainConfigReader("continuous_mode_ms_delay")); // delay between consequent IK calculations in consequent mode, in milliseconds
+		bool print_roll_pitch_yaw = ("true" == mainConfigReader("print_roll_pitch_yaw")); // boolean that tells whether to print roll, pitch and yaw of IMUs while calculating IK
+		std::vector<std::vector<double>> jointAngles; // vector that will hold the joint angles
 
 		auto clockStart = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> clockDuration;
 
 		OpenSimLive::IMUInverseKinematicsToolLive IKTool;
 		
-		std::cout << "Entering data streaming and IK loop. Press C to calibrate model, V to calculate IK and X to quit." << std::endl;
+		std::cout << "Entering data streaming and IK loop. Press C to calibrate model, V to calculate IK, N to enter continuous mode, M to exit continuous mode and X to quit." << std::endl;
 
 		//while (!_kbhit()) {
 		do
@@ -558,8 +574,7 @@ void ConnectToDataStream() {
 					newDataAvailable = true;
 					XsDataPacket const* packet = mtwCallbacks[i]->getOldestPacket();
 					eulerData[i] = packet->orientationEuler();
-					// also get data as orientation matrices for OpenSim
-					matrixData[i] = packet->orientationMatrix();
+					//matrixData[i] = packet->orientationMatrix();
 					quaternionData[i] = packet->orientationQuaternion();
 					mtwCallbacks[i]->deleteOldestPacket();
 				}
@@ -595,16 +610,40 @@ void ConnectToDataStream() {
 				jointAngles.push_back(IKTool.getQ());
 				
 				// print the roll, pitch and yaw angles for all IMUs
-				for (size_t i = 0; i < mtwCallbacks.size(); ++i)
-				{
-					std::cout << "[" << i << "]: ID: " << mtwCallbacks[i]->device().deviceId().toString().toStdString()
-						<< ", Roll: " << std::setw(7) << std::fixed << std::setprecision(2) << eulerData[i].roll()
-						<< ", Pitch: " << std::setw(7) << std::fixed << std::setprecision(2) << eulerData[i].pitch()
-						<< ", Yaw: " << std::setw(7) << std::fixed << std::setprecision(2) << eulerData[i].yaw()
-						<< std::endl;
-				}
+				if (print_roll_pitch_yaw)
+					printRollPitchYaw(mtwCallbacks, eulerData);
 
 				getDataKeyHit = false;
+			}
+
+			if (newDataAvailable && continuousMode) {
+				// use high resolution clock to count time since the IMU measurement began
+				auto clockNow = std::chrono::high_resolution_clock::now();
+				clockDuration = clockNow - clockStart;
+				// fill a time series table with quaternion orientations of the IMUs
+				OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(fillQuaternionTable(mtwCallbacks, quaternionData));
+				// give the necessary inputs to IKTool
+				IKTool.setQuaternion(quatTable);
+				IKTool.setTime(clockDuration.count());
+				// calculate the IK and update the visualization
+				IKTool.update(true);
+				// push joint angles to vector
+				jointAngles.push_back(IKTool.getQ());
+				if (print_roll_pitch_yaw)
+					printRollPitchYaw(mtwCallbacks,eulerData);
+				XsTime::msleep(continuousModeMsDelay);
+			}
+
+			if (!continuousMode && startContinuousModeKeyHit) {
+				std::cout << "Entering continuous mode." << std::endl;
+				continuousMode = true;
+				startContinuousModeKeyHit = false;
+			}
+
+			if (continuousMode && stopContinuousModeKeyHit) {
+				std::cout << "Exiting continuous mode." << std::endl;
+				continuousMode = false;
+				stopContinuousModeKeyHit = false;
 			}
 
 			char hitKey = ' ';
@@ -614,6 +653,8 @@ void ConnectToDataStream() {
 				mainDataLoop = (hitKey != 'X');
 				getDataKeyHit = (hitKey == 'V');
 				calibrateModelKeyHit = (hitKey == 'C');
+				startContinuousModeKeyHit = (hitKey == 'N');
+				stopContinuousModeKeyHit = (hitKey == 'M');
 			}
 			
 		} while (mainDataLoop);
