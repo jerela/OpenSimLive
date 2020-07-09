@@ -672,6 +672,9 @@ void ConnectToDataStream() {
 		} while (mainDataLoop);
 		(void)_getch();
 
+		// when exiting, save acquired data to file
+		IKTool.reportToFile();
+
 		std::cout << "Setting config mode..." << std::endl;
 		if (!wirelessMasterDevice->gotoConfig())
 		{

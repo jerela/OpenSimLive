@@ -23,26 +23,34 @@ IMUInverseKinematicsToolLive::IMUInverseKinematicsToolLive() {
 
 IMUInverseKinematicsToolLive::IMUInverseKinematicsToolLive(const std::string& modelFile) {
     model_ = OpenSim::Model(modelFile);
-    model_.finalizeFromProperties();
-    auto coordinates = model_.updComponentList<OpenSim::Coordinate>();
-    for (auto& coord : coordinates) {
-        if (coord.getMotionType() == OpenSim::Coordinate::Translational) {
-            coord.setDefaultLocked(true);
-        }
-    }
-    s_ = model_.initSystem();
+    //model_.finalizeFromProperties();
+
+    //ikReporter_->setName("ik_reporter");
+
+    //auto coordinates = model_.updComponentList<OpenSim::Coordinate>();
+    //for (auto& coord : coordinates) {
+    //    ikReporter_->updInput("inputs").connect( coord.getOutput("value"), coord.getName() );
+    //    if (coord.getMotionType() == OpenSim::Coordinate::Translational) {
+    //        coord.setDefaultLocked(true);
+    //    }
+    //}
+    //s_ = model_.initSystem();
 }
 
 IMUInverseKinematicsToolLive::IMUInverseKinematicsToolLive(const std::string& modelFile, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable) {
     model_ = OpenSim::Model(modelFile);
-    model_.finalizeFromProperties();
-    auto coordinates = model_.updComponentList<OpenSim::Coordinate>();
-    for (auto& coord : coordinates) {
-        if (coord.getMotionType() == OpenSim::Coordinate::Translational) {
-            coord.setDefaultLocked(true);
-        }
-    }
-    s_ = model_.initSystem();
+    //model_.finalizeFromProperties();
+
+    //ikReporter_->setName("ik_reporter");
+
+    //auto coordinates = model_.updComponentList<OpenSim::Coordinate>();
+    //for (auto& coord : coordinates) {
+    //    ikReporter_->updInput("inputs").connect(coord.getOutput("value"), coord.getName());
+    //    if (coord.getMotionType() == OpenSim::Coordinate::Translational) {
+    //        coord.setDefaultLocked(true);
+    //    }
+    //}
+    //s_ = model_.initSystem();
     quat_ = quatTable;
 }
 
@@ -60,36 +68,36 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
 
     // Ideally if we add a Reporter, we also remove it at the end for good hygiene but 
     // at the moment there's no interface to remove Reporter so we'll reuse one if exists
-    /*const auto reporterExists = model.findComponent<OpenSim::TableReporter>("ik_reporter");
+    //const auto reporterExists = model.findComponent<OpenSim::TableReporter>("ik_reporter");
 
-    bool reuse_reporter = true;
-    OpenSim::TableReporter* ikReporter = nullptr;
-    if (reporterExists == nullptr) {
+    //bool reuse_reporter = true;
+    //OpenSim::TableReporter* ikReporter = nullptr;
+    //if (reporterExists == nullptr) {
         // Add a reporter to get IK computed coordinate values out
-        ikReporter = new OpenSim::TableReporter();
-        ikReporter->setName("ik_reporter");
-        reuse_reporter = false;
-    }
-    else
-        ikReporter = &model.updComponent<OpenSim::TableReporter>("ik_reporter");*/
+        ikReporter_ = new OpenSim::TableReporter();
+        ikReporter_->setName("ik_reporter");
+        //reuse_reporter = false;
+    //}
+    //else
+     //   ikReporter = &model.updComponent<OpenSim::TableReporter>("ik_reporter");
 
     // define the model's internal data members and structure according to its properties, so we can use updComponentList to find all of its <Coordinate> elements
-//    model.finalizeFromProperties();
-//    auto coordinates = model.updComponentList<OpenSim::Coordinate>();
+    model_.finalizeFromProperties();
+    auto coordinates = model_.updComponentList<OpenSim::Coordinate>();
 
     // Hookup reporter inputs to the individual coordinate outputs
     // and lock coordinates that are translational since they cannot be
- //   for (auto& coord : coordinates) {
- //       /*ikReporter->updInput("inputs").connect(
- //           coord.getOutput("value"), coord.getName());*/
- //       if (coord.getMotionType() == OpenSim::Coordinate::Translational) {
- //           coord.setDefaultLocked(true);
- //       }
- //   }
+    for (auto& coord : coordinates) {
+        ikReporter_->updInput("inputs").connect(
+            coord.getOutput("value"), coord.getName());
+        if (coord.getMotionType() == OpenSim::Coordinate::Translational) {
+            coord.setDefaultLocked(true);
+        }
+    }
 
-/*    if (!reuse_reporter) {
-        model.addComponent(ikReporter);
-    }*/
+    //if (!reuse_reporter) {
+        model_.addComponent(ikReporter_);
+    //}
     //TimeSeriesTable_<SimTK::Quaternion> quatTable(orientationsFileName);
     //std::cout <<"Loading orientations as quaternions" << std::endl;
     // Will maintain only data in time range specified by the tool
@@ -334,7 +342,31 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model
 
 
 
+void IMUInverseKinematicsToolLive::reportToFile() {
 
+    //OpenSim::TableReporter ikReporter;
+    //ikReporter.setName("ik_reporter");
+
+    /*for (auto& coord : coordinates) {
+        ikReporter.updInput("inputs").connect( coord.getOutput("value"), coord.getName() );
+        if (coord.GetMotionType() == OpenSim::Coordinate::Translational) {
+            coord.setDefaultLocked(true);
+        }
+    }*/
+
+    //std::cout << "CHK1" << std::endl;
+    //model_.addComponent(ikReporter_);
+    std::cout << "CHK2" << std::endl;
+    auto report = ikReporter_->getTable();
+    OpenSim::IO::makeDir("OpenSimLive-results");
+    std::cout << "CHK3" << std::endl;
+    model_.getSimbodyEngine().convertRadiansToDegrees(report);
+    std::cout << "CHK4" << std::endl;
+    report.updTableMetaData().setValueForKey<string>("name", "IK-live");
+    std::cout << "CHK5" << std::endl;
+    OpenSim::STOFileAdapter_<double>::write(report, "IK-live.mot");
+    std::cout << "CHK6" << std::endl;
+}
 
 
 

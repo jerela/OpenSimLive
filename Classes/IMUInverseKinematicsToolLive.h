@@ -23,6 +23,7 @@ namespace OpenSimLive {
 		void updateInverseKinematics(OpenSim::Model& model, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable, bool visualizeResults = false);
 		bool IMUInverseKinematicsToolLive::run(bool visualizeResults);
 		bool IMUInverseKinematicsToolLive::update(bool visualizeResults);
+		void reportToFile();
 
 		// PUBLIC METHODS DEFINED HERE
 		std::vector<double> getQ() { return q_; }
@@ -33,6 +34,7 @@ namespace OpenSimLive {
 
 	private:
 		// PRIVATE VARIABLES
+		OpenSim::TableReporter* ikReporter_;
 		SimTK::State s_; // the state we use for visualization
 		double time_ = 0; // time since calibration
 		SimTK::Vec3 sensor_to_opensim_rotations = { -1.5707963267948966, 0, 0 }; // the rotations applied to IMU coordinate systems to match its axes to OpenSim coordinate system
