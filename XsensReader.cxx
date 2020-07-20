@@ -562,6 +562,7 @@ void ConnectToDataStream() {
 		bool stopContinuousModeKeyHit = false; // tells if the key that ends continuous mode is hit
 		int continuousModeMsDelay = std::stoi(mainConfigReader("continuous_mode_ms_delay")); // delay between consequent IK calculations in consequent mode, in milliseconds
 		bool print_roll_pitch_yaw = ("true" == mainConfigReader("print_roll_pitch_yaw")); // boolean that tells whether to print roll, pitch and yaw of IMUs while calculating IK
+		bool resetClockOnContinuousMode = ("true" == mainConfigReader("reset_clock_on_continuous_mode")); // if true, clock will be reset to zero when entering continuous mode; if false, the clock will be set to zero at calibration
 		std::vector<std::vector<double>> jointAngles; // vector that will hold the joint angles
 
 		auto clockStart = std::chrono::high_resolution_clock::now(); // get the starting time of IMU measurement loop
@@ -613,7 +614,7 @@ void ConnectToDataStream() {
 				std::cout << "Model has been calibrated." << std::endl;
 			}
 
-			if (newDataAvailable && getDataKeyHit)
+			if (newDataAvailable && getDataKeyHit && !calibratedModelFile.empty())
 			{
 				// use high resolution clock to count time since the IMU measurement began
 				clockNow = std::chrono::high_resolution_clock::now();
@@ -661,10 +662,12 @@ void ConnectToDataStream() {
 				}
 			}
 
-			if (!continuousMode && startContinuousModeKeyHit) {
+			if (!continuousMode && startContinuousModeKeyHit && !calibratedModelFile.empty()) {
 				std::cout << "Entering continuous mode." << std::endl;
 				continuousMode = true;
 				startContinuousModeKeyHit = false;
+				if (resetClockOnContinuousMode)
+					clockStart = std::chrono::high_resolution_clock::now();
 			}
 
 			if (continuousMode && stopContinuousModeKeyHit) {
