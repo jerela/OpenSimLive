@@ -550,7 +550,7 @@ void ConnectToDataStream() {
 				// calculate the IK and update the visualization
 				IKTool.update(true);
 				// push joint angles to vector
-				jointAngles.push_back(IKTool.getQ());
+				//jointAngles.push_back(IKTool.getQ());
 				
 				// print the roll, pitch and yaw angles for all IMUs
 				if (print_roll_pitch_yaw)
@@ -589,7 +589,7 @@ void ConnectToDataStream() {
 				std::cout << "Entering continuous mode." << std::endl;
 				continuousMode = true;
 				startContinuousModeKeyHit = false;
-				if (resetClockOnContinuousMode)
+				if (resetClockOnContinuousMode && !(clockDuration.count() > 0) ) // ensure that the config setting is set to true and that this is the first time continuous mode is entered
 					clockStart = std::chrono::high_resolution_clock::now();
 			}
 
