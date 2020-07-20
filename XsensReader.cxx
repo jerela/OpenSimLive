@@ -472,7 +472,6 @@ void ConnectToDataStream() {
 		// 1. HANDLE INCOMING DATA
 
 		std::vector<XsEuler> eulerData(mtwCallbacks.size()); // Room to store euler data for each mtw
-		std::vector<XsMatrix> matrixData(mtwCallbacks.size()); // for data in orientation matrix form that OpenSim requires
 		std::vector<XsQuaternion> quaternionData(mtwCallbacks.size()); // for data in quaternion form
 		
 		std::string calibratedModelFile;
@@ -495,11 +494,11 @@ void ConnectToDataStream() {
 
 		OpenSimLive::IMUInverseKinematicsToolLive IKTool; // object that calculates IK
 
+		// get the sensor to opensim rotations for IMUInverseKinematicsToolLive
 		SimTK::Vec3 sensorToOpenSimRotations = get_sensor_to_opensim_rotations();
 		
 		std::cout << "Entering data streaming and IK loop. Press C to calibrate model, V to calculate IK, N to enter continuous mode, M to exit continuous mode and X to quit." << std::endl;
 
-		//while (!_kbhit()) {
 		do
 		{
 			
@@ -676,7 +675,7 @@ int main(int argc, char *argv[])
 
 
 		std::cout << "Connecting to MTw Awinda data stream..." << std::endl;
-		// connect to XSens IMUs
+		// connect to XSens IMUs, perform IK etc
 		ConnectToDataStream();
 
 		
