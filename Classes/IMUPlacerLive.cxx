@@ -63,8 +63,6 @@ bool IMUPlacerLive::run(bool visualizeResults) {
     OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(
         getQuaternion());
 
-    std::cout << "Checkpoint 1" << std::endl;
-
     const SimTK::Vec3& sensor_to_opensim_rotations =
         get_sensor_to_opensim_rotations();
     SimTK::Rotation sensorToOpenSim =

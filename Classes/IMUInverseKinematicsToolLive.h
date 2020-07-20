@@ -31,9 +31,12 @@ namespace OpenSimLive {
 		void setQuaternion(OpenSim::TimeSeriesTable_<SimTK::Quaternion> newQuat) { quat_ = newQuat; }
 		void setModel(OpenSim::Model newModel) { model_ = newModel; }
 		void setModelFile(std::string newModelFile) { model_ = OpenSim::Model(newModelFile); }
+		void setOpenSimLiveRootDirectory(std::string directoryPath) { OpenSimLiveRootDirectory_ = directoryPath; }
+		void setSensorToOpenSimRotations(SimTK::Vec3 newRotations) { sensor_to_opensim_rotations = newRotations; }
 
 	private:
 		// PRIVATE VARIABLES
+		OpenSim::TimeSeriesTable* modelOrientationErrors_;
 		OpenSim::TableReporter* ikReporter_;
 		SimTK::State s_; // the state we use for visualization
 		double time_ = 0; // time since calibration
@@ -45,6 +48,7 @@ namespace OpenSimLive {
 		std::vector<double> q_; // joint angles calculated from IK are stored here
 
 		// PRIVATE METHODS
+		std::string OpenSimLiveRootDirectory_ = "";
 		SimTK::Vec3 get_sensor_to_opensim_rotations() { return sensor_to_opensim_rotations; }
 		OpenSim::Set<OpenSim::OrientationWeight> get_orientation_weights() { return orientationWeightSet; }
 		bool get_report_errors() { return report_errors; }

@@ -212,6 +212,18 @@ std::string mainConfigReader(std::string elementName) {
 	return soughtElement.getValue();
 }
 
+// This function returns the sensor to OpenSim rotations as defined in the IMU placer setup file.
+SimTK::Vec3 get_sensor_to_opensim_rotations() {
+	std::string IMUPlacerSetupFileName = mainConfigReader("imu_placer_setup_file");
+	SimTK::Xml::Document IMUPlacerXML(OPENSIMLIVE_ROOT + "/Config/" + IMUPlacerSetupFileName);
+	SimTK::Xml::Element rootElement = IMUPlacerXML.getRootElement();
+	SimTK::Xml::Element placerElement = rootElement.getRequiredElement("IMUPlacer");
+	SimTK::Xml::Element soughtElement = placerElement.getRequiredElement("sensor_to_opensim_rotations");
+	SimTK::Vec3 rotations;
+	soughtElement.getValueAs(rotations);
+	return rotations;
+}
+
 // this function takes a serial/ID of a sensor and the filename of an XML file mapping serials to IMU labels, and returns the label
 std::string sensorIdToLabel(std::string id, std::string mappingsFileName) {
 
@@ -321,7 +333,7 @@ std::string calibrateModelFromSetupFile(std::string IMUPlacerSetupFile, OpenSim:
 
 	// give the TimeSeriesTable of quaternions to IMUPlacer and run IMUPlacer to calibrate the model
 	IMUPlacer.setQuaternion(quaternionTimeSeriesTable);
-	IMUPlacer.run(false); // do not visualize
+	IMUPlacer.run(false); // false as argument = do not visualize
 
 	return IMUPlacer.get_output_model_file();
 }
@@ -552,22 +564,21 @@ void ConnectToDataStream() {
 		bool print_roll_pitch_yaw = ("true" == mainConfigReader("print_roll_pitch_yaw")); // boolean that tells whether to print roll, pitch and yaw of IMUs while calculating IK
 		std::vector<std::vector<double>> jointAngles; // vector that will hold the joint angles
 
-		auto clockStart = std::chrono::high_resolution_clock::now();
-		auto clockNow = std::chrono::high_resolution_clock::now();
-		auto clockPrev = clockStart;
+		auto clockStart = std::chrono::high_resolution_clock::now(); // get the starting time of IMU measurement loop
+		auto clockNow = std::chrono::high_resolution_clock::now(); // this value will be updated in the loop
+		auto clockPrev = clockStart; // this value will be updated in the loop to present the time point of the previous IK calculation
 		std::chrono::duration<double> clockDuration; std::chrono::duration<double> prevDuration;
 
-		OpenSimLive::IMUInverseKinematicsToolLive IKTool;
+		OpenSimLive::IMUInverseKinematicsToolLive IKTool; // object that calculates IK
+
+		SimTK::Vec3 sensorToOpenSimRotations = get_sensor_to_opensim_rotations();
 		
 		std::cout << "Entering data streaming and IK loop. Press C to calibrate model, V to calculate IK, N to enter continuous mode, M to exit continuous mode and X to quit." << std::endl;
 
 		//while (!_kbhit()) {
 		do
 		{
-			//XsTime::msleep(0);
-
-		
-
+			
 			bool newDataAvailable = false;
 			for (size_t i = 0; i < mtwCallbacks.size(); ++i)
 			{
@@ -575,8 +586,9 @@ void ConnectToDataStream() {
 				{
 					newDataAvailable = true;
 					XsDataPacket const* packet = mtwCallbacks[i]->getOldestPacket();
-					eulerData[i] = packet->orientationEuler();
-					//matrixData[i] = packet->orientationMatrix();
+					// only get Euler orientation data if we want to print it to console
+					if (print_roll_pitch_yaw)
+						eulerData[i] = packet->orientationEuler();
 					quaternionData[i] = packet->orientationQuaternion();
 					mtwCallbacks[i]->deleteOldestPacket();
 				}
@@ -589,11 +601,14 @@ void ConnectToDataStream() {
 				OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable(fillQuaternionTable(mtwCallbacks, quaternionData));
 				// calibrate the model and return its file name
 				calibratedModelFile = calibrateModelFromSetupFile(OPENSIMLIVE_ROOT+"/Config/"+mainConfigReader("imu_placer_setup_file"), quaternionTimeSeriesTable);
+				// reset the keyhit so that we won't re-enter this if-statement before hitting the key again
 				calibrateModelKeyHit = false;
 				// give IKTool the necessary inputs and run it
-				IKTool.setModelFile(calibratedModelFile);
-				IKTool.setQuaternion(quaternionTimeSeriesTable);
-				IKTool.setTime(0);
+				IKTool.setModelFile(calibratedModelFile); // the model to perform IK on
+				IKTool.setQuaternion(quaternionTimeSeriesTable); // the orientations of IMUs
+				IKTool.setSensorToOpenSimRotations(sensorToOpenSimRotations);
+				IKTool.setTime(0); // set the time of the first state as 0 at calibration
+				IKTool.setOpenSimLiveRootDirectory(OPENSIMLIVE_ROOT); // this is needed for saving the IK report to file
 				IKTool.run(true); // true for visualization
 				std::cout << "Model has been calibrated." << std::endl;
 			}
@@ -602,12 +617,12 @@ void ConnectToDataStream() {
 			{
 				// use high resolution clock to count time since the IMU measurement began
 				clockNow = std::chrono::high_resolution_clock::now();
-				clockDuration = clockNow - clockStart;
+				clockDuration = clockNow - clockStart; // time since calibration
 				// fill a time series table with quaternion orientations of the IMUs
 				OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(fillQuaternionTable(mtwCallbacks, quaternionData));
 				// give the necessary inputs to IKTool
-				IKTool.setQuaternion(quatTable);
-				IKTool.setTime(clockDuration.count());
+				IKTool.setQuaternion(quatTable); // update the IMU orientations
+				IKTool.setTime(clockDuration.count()); // time since calibration given as the time of the state to perform IK on
 				// calculate the IK and update the visualization
 				IKTool.update(true);
 				// push joint angles to vector
@@ -662,7 +677,7 @@ void ConnectToDataStream() {
 			if (_kbhit())
 			{
 				hitKey = toupper((char)_getch());
-				mainDataLoop = (hitKey != 'X');
+				mainDataLoop = (hitKey != 'X'); // stay in main data loop as long as we don't hit X
 				getDataKeyHit = (hitKey == 'V');
 				calibrateModelKeyHit = (hitKey == 'C');
 				startContinuousModeKeyHit = (hitKey == 'N');
@@ -670,7 +685,6 @@ void ConnectToDataStream() {
 			}
 			
 		} while (mainDataLoop);
-		(void)_getch();
 
 		// when exiting, save acquired data to file
 		IKTool.reportToFile();
