@@ -115,11 +115,17 @@ find_path(MTSDK_PATH xsensdeviceapi.h PATHS "C:/Program Files/Xsens/MT Software 
 
 # find path to classes folder
 find_path(INCLUDE_CLASSES_PATH IMUPlacerLive.h PATHS "${CMAKE_CURRENT_SOURCE_DIR}/Classes")
+# same for functions folder
+find_path(INCLUDE_FUNCTIONS_PATH XMLFunctions.h PATHS "${CMAKE_CURRENT_SOURCE_DIR}/Functions")
 # set all C++ files that XsensReader uses into XSENS_SOURCES
 set(XSENS_SOURCES XsensReader.cxx "${INCLUDE_CLASSES_PATH}/IMUPlacerLive.h"
 	"${INCLUDE_CLASSES_PATH}/IMUPlacerLive.cxx"
 	"${INCLUDE_CLASSES_PATH}/IMUInverseKinematicsToolLive.h"
-	"${INCLUDE_CLASSES_PATH}/IMUInverseKinematicsToolLive.cxx")
+	"${INCLUDE_CLASSES_PATH}/IMUInverseKinematicsToolLive.cxx"
+	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctions.h"
+	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctions.cxx")
+
+
 
 # add executable for C++ files in XSENS_SOURCES
 add_executable(XsensReader "${XSENS_SOURCES}")
@@ -129,7 +135,9 @@ target_link_libraries(XsensReader PRIVATE "${MT_LIBRARY}"
 						PRIVATE "${OPENSIM_LIBRARY}"
 						PRIVATE "${SIMBODY_LIBRARY}")
 
-target_include_directories(XsensReader PRIVATE "${INCLUDE_CLASSES_PATH}")
+target_include_directories(XsensReader PRIVATE
+						"${INCLUDE_CLASSES_PATH}"
+						"${INCLUDE_FUNCTIONS_PATH}")
 target_include_directories(XsensReader PUBLIC
 						   "${PROJECT_BINARY_DIR}"
 						   "${OPENSIM_INCLUDE_PATH}"
