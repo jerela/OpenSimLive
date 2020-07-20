@@ -47,8 +47,10 @@ Instructions on how to run the automated tests for this project.
 
 ## Authors
 
+Jere Lavikainen, jere.lavikainen (at) uef.fi
+
 ## License
 
 ## Acknowledgments
 
-Thanks to GitHub user PurpleBooth for providing an excellent readme template (https://gist.github.com/PurpleBooth/109311bb0361f32d87a2).
+Thanks to GitHub user PurpleBooth for providing an excellent [readme template](https://gist.github.com/PurpleBooth/109311bb0361f32d87a2).
