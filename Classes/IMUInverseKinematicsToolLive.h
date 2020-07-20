@@ -33,6 +33,30 @@ namespace OpenSimLive {
 		void setModelFile(std::string newModelFile) { model_ = OpenSim::Model(newModelFile); }
 		void setOpenSimLiveRootDirectory(std::string directoryPath) { OpenSimLiveRootDirectory_ = directoryPath; }
 		void setSensorToOpenSimRotations(SimTK::Vec3 newRotations) { sensor_to_opensim_rotations = newRotations; }
+		
+		SimTK::State getState() { return s_; }
+		SimTK::Vec3 pointTracker(SimTK::State state, OpenSim::Frame referenceFrame = OpenSim::Ground, std::string bodyName = "hand_r"){
+			std::string bodyName = "hand_r"; // read from XML file?
+			OpenSim::Model model(modelFileName);
+			OpenSim::BodySet bodySet = model.getBodySet();
+			OpenSim::Body mirroringBody = bodySet.get(bodyName);
+			const SimTK::Vec3 pointLocalCoordinates(0,0,0); // read from XML file or leave as is, if it doesn't matter
+			OpenSim::Station mirroringPoint(mirroringBody, pointLocalCoordinates);
+			OpenSim::Frame referenceFrame = OpenSim::Ground; // read from XML file, by default pelvis or ground?
+			SimTK::Vec3 pointLocation = mirroringPoint.findLocationInFrame(state, referenceFrame);
+			return pointLocation;
+			// use this as a private method that is called at the end of update method
+			// this way you can directly use s_ and model_
+			// use setter functions to define bodyName, referenceFrame and pointLocalCoordinates
+			// create a public getter function to extract the point
+			// mirror the point by multiplying its y-coordinate by -1
+			// transform the point to coordinates used by KUKA and pass it on to KUKA API
+			
+			// ALTERNATIVELY to avoid bloating of IMUInverseKinematicsToolLive
+			// create a public getter function to get state s_ at each update
+			// use that as an input to a separate PointTracker object to call pointTracker()
+			// use that class to mirror(std::char axis) and transform the point (and possibly to pass it on to KUKA API)
+		}
 
 	private:
 		// PRIVATE VARIABLES
