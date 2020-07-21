@@ -245,6 +245,20 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
 // This function calculates the joint angle values for a new state s0, then updates state s with those values and redraws the visualization.
 void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable, bool visualizeResults) {
 
+    //OpenSim::Station station = addStationToModel(model, "femur_r", { 0,0,0 });
+
+    OpenSim::BodySet bodySet = model.getBodySet();
+    OpenSim::Body mirroringBody = bodySet.get("femur_r");
+    int bodyIndex = bodySet.getIndex("femur_r");
+    OpenSim::Station station(mirroringBody, { 0,0,0 });
+    //OpenSim::Station* station;
+    //station->set_location({ 0,0,0 });
+    //station->setParentFrame(mirroringBody);
+    station.connectSocket_parent_frame(mirroringBody);
+    bodySet.set(bodyIndex, mirroringBody);
+    //mirroringBody.addComponent(station);
+    model.finalizeConnections();
+
     // Convert to OpenSim Frame
     const SimTK::Vec3& rotations = get_sensor_to_opensim_rotations();
     SimTK::Rotation sensorToOpenSim = SimTK::Rotation(SimTK::BodyOrSpaceType::SpaceRotationSequence, rotations[0], SimTK::XAxis, rotations[1], SimTK::YAxis, rotations[2], SimTK::ZAxis);
@@ -282,6 +296,10 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model
     SimTK::Array_<double> orientationErrors(nos, 0.0);
     // compute the orientation errors and save them into orientationErrors
     ikSolver.computeCurrentOrientationErrors(orientationErrors);
+    
+    // calculate point location and orientation of its base body segment for mirror therapy
+    std::vector<double> trackerResults = runTracker(station, s0, model, "femur_r", { 0, 0, 0 });
+    setPointTrackerPositionsAndOrientations(trackerResults);
 
     // get coordinates from state s0
     SimTK::Vector stateQ(s0.getQ());

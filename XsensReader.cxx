@@ -555,6 +555,10 @@ void ConnectToDataStream() {
 				if (print_roll_pitch_yaw)
 					printRollPitchYaw(mtwCallbacks, eulerData);
 
+				std::vector<double> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
+				std::cout << "Positions: " << "[" << trackerResults[0] << ", " << trackerResults[1] << ", " << trackerResults[2] << "]" << std::endl;
+				std::cout << "Rotations: " << "[" << trackerResults[3] << ", " << trackerResults[4] << ", " << trackerResults[5] << "]" << std::endl;
+
 				getDataKeyHit = false;
 			}
 
@@ -581,6 +585,9 @@ void ConnectToDataStream() {
 					jointAngles.push_back(IKTool.getQ());
 					if (print_roll_pitch_yaw)
 						printRollPitchYaw(mtwCallbacks, eulerData);
+					std::vector<double> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
+					std::cout << "Positions: " << "[" << trackerResults[0] << ", " << trackerResults[1] << ", " << trackerResults[2] << "]" << std::endl;
+					std::cout << "Rotations: " << "[" << trackerResults[3] << ", " << trackerResults[4] << ", " << trackerResults[5] << "]" << std::endl;
 				}
 			}
 
