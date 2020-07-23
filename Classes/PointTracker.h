@@ -15,7 +15,8 @@ namespace OpenSimLive {
 		~PointTracker();
 
 		// PUBLIC METHODS
-		std::vector<double> runTracker(OpenSim::Station station, SimTK::State s, OpenSim::Model model, std::string bodyName, SimTK::Vec3 pointLocalCoordinates);
+		void addStationToBody(std::string bodyName, SimTK::Vec3 pointLocation, std::string modelFile);
+		std::vector<double> runTracker(SimTK::State* s, OpenSim::Model* model, std::string bodyName, std::string referenceBodyName, SimTK::Vec3 pointLocalCoordinates);
 		//void setModel(OpenSim::Model model) { model_ = model; }
 		//void setModelByFileName(std::string modelFileName) { model_ = OpenSim::Model(modelFileName); }
 		//void setState(SimTK::State state) { s_ = state; }
@@ -24,16 +25,20 @@ namespace OpenSimLive {
 		//void setPointLocalCoordinates(SimTK::Vec3 pointLocalCoordinates) { pointLocalCoordinates_ = pointLocalCoordinates; }
 
 	protected:
-		OpenSim::Station addStationToModel(OpenSim::Model model, std::string bodyName, SimTK::Vec3 pointLocalCoordinates);
+		//OpenSim::Station addStationToModel(OpenSim::Model model, std::string bodyName, SimTK::Vec3 pointLocalCoordinates);
+		void setStation(OpenSim::Station station) { station_ = station; }
+		OpenSim::Station getStation() { return station_; }
 
 	private:
 		// PRIVATE METHODS
-		SimTK::Vec3 calculatePointLocation(OpenSim::Station station, SimTK::State s);
-		SimTK::Vec3 calculatePointRotation(SimTK::State s, OpenSim::Model model, int axisIndex, std::string bodyName);
+		SimTK::Vec3 findStationLocationInLocalFrame(OpenSim::Model* model, std::string bodyName);
+		SimTK::Vec3 calculatePointLocation(SimTK::Vec3 localLocation, SimTK::State* s, OpenSim::Body* body, OpenSim::Body* referenceBody);
+		SimTK::Vec3 calculatePointRotation(SimTK::State* s, OpenSim::Model* model, int axisIndex, OpenSim::Body* body, OpenSim::Body* referenceBody);
 		SimTK::Vec3 reflectWithRespectToAxis(SimTK::Vec3 pointLocation, int axisIndex);
 		//SimTK::Vec3 getPointLocation() { return pointLocation_; };
 
 		//PRIVATE VARIABLES
+		OpenSim::Station station_;
 		//OpenSim::Model model_; // calibrated IMU model
 		//SimTK::State s_; // the state of the system when the location of the point is calculated
 		//SimTK::Vec3 pointLocalCoordinates_ = { 0,0,0 };

@@ -258,6 +258,9 @@ std::string calibrateModelFromSetupFile(std::string IMUPlacerSetupFile, OpenSim:
 	IMUPlacer.setQuaternion(quaternionTimeSeriesTable);
 	IMUPlacer.run(false); // false as argument = do not visualize
 
+	// add a station to a desired body in the calibrated .osim file
+	IMUPlacer.addStationToBody("femur_r", { 0, 0, 0 }, IMUPlacer.get_output_model_file());
+
 	return IMUPlacer.get_output_model_file();
 }
 

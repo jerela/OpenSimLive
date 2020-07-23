@@ -5,6 +5,7 @@
 #include <OpenSim/Simulation/osimSimulationDLL.h>
 #include <Simbody.h>
 #include <OpenSim/Simulation/OpenSense/IMUPlacer.h>
+#include <PointTracker.h>
 
 namespace OpenSim {
 	class Model;
@@ -12,7 +13,7 @@ namespace OpenSim {
 
 namespace OpenSimLive {
 
-	class IMUPlacerLive : public OpenSim::IMUPlacer {
+	class IMUPlacerLive : public OpenSim::IMUPlacer, public OpenSimLive::PointTracker {
 	public:
 		virtual ~IMUPlacerLive();
 		IMUPlacerLive();
