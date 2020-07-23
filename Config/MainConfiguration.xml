@@ -8,8 +8,10 @@
 	<imu_placer_setup_file>IMUPlacerSetup.xml</imu_placer_setup_file>
 	<!--Delay that occurs between consequent IK calculations in continuous measurement mode. Given in milliseconds.-->
 	<continuous_mode_ms_delay>150</continuous_mode_ms_delay>
-	<!--Whether to print roll, pitch and yaw to command prompt or not.-->
+	<!--Whether to print roll, pitch and yaw to command prompt whenever IK is calculated, or not.-->
 	<print_roll_pitch_yaw>false</print_roll_pitch_yaw>
 	<!--Whether to reset clock to zero when continuous mode begins instead of using the calibration moment as the zero time point.-->
 	<reset_clock_on_continuous_mode>false</reset_clock_on_continuous_mode>
+	<!--The body of the OpenSim model that we use as the parent frame for the station. This station is used as the point to track for mirror therapy. Use 'none' to skip mirror therapy functions.-->
+	<station_parent_body>none</station_parent_body>
 </MainConfiguration>

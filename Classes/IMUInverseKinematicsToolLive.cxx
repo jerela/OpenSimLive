@@ -269,9 +269,9 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model
     // make sure that we don't create an additional visualization window when we initialize system
     model.setUseVisualizer(false);
     SimTK::State& s0 = model.initSystem();
-    std::cout << model.updBodySet().get("femur_r").findStationLocationInAnotherFrame(s0, { 0,0,0 }, model.getGround()) << std::endl;
-    std::cout << "s0 after initSystem: " << s0.getSystemStage() << std::endl;
-    std::cout << "s_ :" << s_.getSystemStage() << std::endl;
+    //std::cout << model.updBodySet().get("femur_r").findStationLocationInAnotherFrame(s0, { 0,0,0 }, model.getGround()) << std::endl;
+    //std::cout << "s0 after initSystem: " << s0.getSystemStage() << std::endl;
+    //std::cout << "s_ :" << s_.getSystemStage() << std::endl;
     // create the solver given the input data
     const double accuracy = 1e-4;
     OpenSim::InverseKinematicsSolver ikSolver(model, mRefs, oRefs, coordinateReferences);
@@ -284,12 +284,12 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model
 
     // set the time of state s0
     s0.updTime() = times[0];
-    std::cout << "s0 after updTime: " << s0.getSystemStage() << std::endl;
-    std::cout << "s_ :" << s_.getSystemStage() << std::endl;
+    //std::cout << "s0 after updTime: " << s0.getSystemStage() << std::endl;
+    //std::cout << "s_ :" << s_.getSystemStage() << std::endl;
     // assemble state s0, solving the initial joint angles in the least squares sense
     ikSolver.assemble(s0);
-    std::cout << "s0 after assemble: " << s0.getSystemStage() << std::endl;
-    std::cout << "s_ :" << s_.getSystemStage() << std::endl;
+    //std::cout << "s0 after assemble: " << s0.getSystemStage() << std::endl;
+    //std::cout << "s_ :" << s_.getSystemStage() << std::endl;
     
     // Create place holder for orientation errors, populate based on user pref.
     // according to report_errors property
@@ -316,11 +316,11 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model
     setQ(q);
 
     // calculate point location and orientation of its base body segment for mirror therapy
-    std::cout << "CHK1" << std::endl;
+    //std::cout << "CHK1" << std::endl;
     ikSolver.track(s0);
     model.realizePosition(s0);
-    std::cout << "s0: " << s0.getSystemStage() << std::endl;
-    std::cout << "s_: " << s_.getSystemStage() << std::endl;
+    //std::cout << "s0: " << s0.getSystemStage() << std::endl;
+    //std::cout << "s_: " << s_.getSystemStage() << std::endl;
     try {
         std::vector<double> trackerResults = runTracker(&s0, &model, "femur_r", "pelvis", { 0, 0, 0 });
         setPointTrackerPositionsAndOrientations(trackerResults);
@@ -331,7 +331,7 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model
     catch (...) {
         std::cout << "bloop" << std::endl;
     }
-    std::cout << "CHK3" << std::endl;
+    //std::cout << "CHK3" << std::endl;
 
 
 

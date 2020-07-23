@@ -259,7 +259,7 @@ std::string calibrateModelFromSetupFile(std::string IMUPlacerSetupFile, OpenSim:
 	IMUPlacer.run(false); // false as argument = do not visualize
 
 	// add a station to a desired body in the calibrated .osim file
-	IMUPlacer.addStationToBody("femur_r", { 0, 0, 0 }, IMUPlacer.get_output_model_file());
+	IMUPlacer.addStationToBody(mainConfigReader("station_parent_body"), { 0, 0, 0 }, IMUPlacer.get_output_model_file());
 
 	return IMUPlacer.get_output_model_file();
 }
@@ -488,6 +488,7 @@ void ConnectToDataStream() {
 		int continuousModeMsDelay = std::stoi(mainConfigReader("continuous_mode_ms_delay")); // delay between consequent IK calculations in consequent mode, in milliseconds
 		bool print_roll_pitch_yaw = ("true" == mainConfigReader("print_roll_pitch_yaw")); // boolean that tells whether to print roll, pitch and yaw of IMUs while calculating IK
 		bool resetClockOnContinuousMode = ("true" == mainConfigReader("reset_clock_on_continuous_mode")); // if true, clock will be reset to zero when entering continuous mode; if false, the clock will be set to zero at calibration
+		bool enableMirrorTherapy = (mainConfigReader("station_parent_body") != "none"); // if "none", then set to false
 		std::vector<std::vector<double>> jointAngles; // vector that will hold the joint angles
 
 		auto clockStart = std::chrono::high_resolution_clock::now(); // get the starting time of IMU measurement loop
@@ -557,10 +558,10 @@ void ConnectToDataStream() {
 				// print the roll, pitch and yaw angles for all IMUs
 				if (print_roll_pitch_yaw)
 					printRollPitchYaw(mtwCallbacks, eulerData);
-
-				std::vector<double> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
-				std::cout << "Positions: " << "[" << trackerResults[0] << ", " << trackerResults[1] << ", " << trackerResults[2] << "]" << std::endl;
-				std::cout << "Rotations: " << "[" << trackerResults[3] << ", " << trackerResults[4] << ", " << trackerResults[5] << "]" << std::endl;
+				if (enableMirrorTherapy)
+					std::vector<double> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
+				//std::cout << "Positions: " << "[" << trackerResults[0] << ", " << trackerResults[1] << ", " << trackerResults[2] << "]" << std::endl;
+				//std::cout << "Rotations: " << "[" << trackerResults[3] << ", " << trackerResults[4] << ", " << trackerResults[5] << "]" << std::endl;
 
 				getDataKeyHit = false;
 			}
@@ -588,9 +589,11 @@ void ConnectToDataStream() {
 					jointAngles.push_back(IKTool.getQ());
 					if (print_roll_pitch_yaw)
 						printRollPitchYaw(mtwCallbacks, eulerData);
-					std::vector<double> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
-					std::cout << "Positions: " << "[" << trackerResults[0] << ", " << trackerResults[1] << ", " << trackerResults[2] << "]" << std::endl;
-					std::cout << "Rotations: " << "[" << trackerResults[3] << ", " << trackerResults[4] << ", " << trackerResults[5] << "]" << std::endl;
+					
+					if (enableMirrorTherapy)
+						std::vector<double> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
+					//std::cout << "Positions: " << "[" << trackerResults[0] << ", " << trackerResults[1] << ", " << trackerResults[2] << "]" << std::endl;
+					//std::cout << "Rotations: " << "[" << trackerResults[3] << ", " << trackerResults[4] << ", " << trackerResults[5] << "]" << std::endl;
 				}
 			}
 

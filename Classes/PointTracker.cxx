@@ -19,45 +19,56 @@ PointTracker::PointTracker(SimTK::State state, std::string modelFileName, std::s
 
 PointTracker::~PointTracker() {}
 
+// This function performs all the necessary calculations to fetch the local position of the station, calculate it in another reference frame (body), mirror the position in that new reference frame, get the original body's orientation, mirror the orientation with respect to an axis and finally return a 6-element vector with mirrored positions and orientations.
 std::vector<double> PointTracker::runTracker(SimTK::State* s, OpenSim::Model* model, std::string bodyName, std::string referenceBodyName, SimTK::Vec3 pointLocalCoordinates) {
-	std::cout << "runTracker started" << std::endl;
+	// Get a pointer to the body the station is located on
 	OpenSim::Body* body = &(model->updBodySet().get(bodyName));
+	// Get a pointer to the body we want to use as the new reference frame for the station's location
 	OpenSim::Body* referenceBody = &(model->updBodySet().get(referenceBodyName));
-	std::cout << "runTracker 2" << std::endl;
+	// Get the location of the station in its parent body's reference frame
 	SimTK::Vec3 stationLocationLocal(findStationLocationInLocalFrame(model, bodyName));
-	std::cout << "runTracker 3" << std::endl;
+	// Calculate the location of the station in another body's reference frame
 	SimTK::Vec3 pointLocation = calculatePointLocation(stationLocationLocal, s, body, referenceBody);
-	std::cout << "runTracker 4" << std::endl;
+	// Calculate the rotation of the station's original parent frame (body) and mirror those orientations with respect to an axis.
 	SimTK::Vec3 mirroredEuler = calculatePointRotation(s, model, 2, body, referenceBody);
-	std::cout << "runTracker 5" << std::endl;
+	// Reflect the location of the station in another body's reference frame with respect to an axis
 	SimTK::Vec3 reflectedPointLocation = reflectWithRespectToAxis(pointLocation, 1); // 0 for x, 1 for y, 2 for z
-	std::cout << "runTracker 6" << std::endl;
+	// Save the calculated results in a vector and return it
 	std::vector<double> positionsAndRotations = { pointLocation[0], pointLocation[1], pointLocation[2], mirroredEuler[0], mirroredEuler[1], mirroredEuler[2] };
-	std::cout << "runTracker 7" << std::endl;
 	return positionsAndRotations;
 }
 
+// This function finds the value of station's XML attribute location and returns it as a SimTK::Vec3 vector
 SimTK::Vec3 PointTracker::findStationLocationInLocalFrame(OpenSim::Model* model, std::string bodyName) {
+	// Load the calibrated model file as an XML document
 	SimTK::Xml::Document modelXML(model->getInputFileName());
+	// Get all XML elements that represent bodies in the model
 	SimTK::Array_<SimTK::Xml::Element> bodyElements = modelXML.getRootElement().getRequiredElement("Model").getRequiredElement("BodySet").getRequiredElement("objects").getAllElements("Body");
+	// String to read the location of the station into
 	std::string locationString;
+	// Iterate through all body XML elements
 	for (unsigned int i = 0; i < bodyElements.size(); ++i) {
+		// If we find the right element
 		if (bodyElements[i].getRequiredAttributeValue("name") == bodyName)
 		{
+			// Save the location value into locationString
 			locationString = bodyElements[i].getRequiredElement("Station").getRequiredElementValue("location");
-			break;
+			break; // Stop iterating any further
 		}
 	}
+	// If we didn't find the right element
 	if (locationString.empty()) {
 		std::cerr << "Error! Location string was empty!";
 	}
+	// Parse individual words (location coordinates as strings) from locationString and convert them to double with std::stod
 	std::stringstream ss(locationString);
 	std::string word;
 	SimTK::Vec3 locationVector = { 0,0,0 };
 	for (int j = 0; j < 3; ++j) {
 		ss >> word;
-		locationVector[j] = std::stoi(word);
+		locationVector[j] = std::stod(word);
 	}
+	// Return the location as a SimTK::Vec3 vector
 	return locationVector;
 }
 
@@ -71,14 +82,14 @@ SimTK::Vec3 PointTracker::findStationLocationInLocalFrame(OpenSim::Model* model,
 	return mirroringPoint;
 }*/
 
+// This function calculates the location of the point in another body's reference frame
 SimTK::Vec3 PointTracker::calculatePointLocation(SimTK::Vec3 localLocation, SimTK::State* s, OpenSim::Body* body, OpenSim::Body* referenceBody) {
 	return body->findStationLocationInAnotherFrame(*s, localLocation, *referenceBody);
 }
 
+// This function calculates the rotation of the station by getting the rotation of its parent frame (body) and mirroring it with respect to the sagittal plane
 SimTK::Vec3 PointTracker::calculatePointRotation(SimTK::State* s, OpenSim::Model* model, int axisIndex, OpenSim::Body* body, OpenSim::Body* referenceBody) {
-	//std::cout << "CalcPointRot" << std::endl;
-	//OpenSim::BodySet bodySet = model->getBodySet();
-	//OpenSim::Body mirroringBody = bodySet.get(bodyName);
+	// Get the rotation of the parent body in ground reference frame
 	SimTK::Rotation mirroringBodyRotation = body->getRotationInGround(*s);
 	// rotate the rotation by pi radians around a suitable axis and transposing/inverting it
 	SimTK::Rotation mirroredRotation = mirroringBodyRotation.setRotationFromAngleAboutAxis(3.14159265258979323, SimTK::CoordinateAxis(axisIndex)).transpose();
@@ -86,12 +97,13 @@ SimTK::Vec3 PointTracker::calculatePointRotation(SimTK::State* s, OpenSim::Model
 	return mirroredRotation.convertRotationToBodyFixedXYZ();
 }
 
+// This function reflects a point with respect to an axis by multiplying the element corresponding to that axis by -1
 SimTK::Vec3 PointTracker::reflectWithRespectToAxis(SimTK::Vec3 pointLocation, int axisIndex) {
-	std::cout << "Reflect" << std::endl;
 	pointLocation[axisIndex] = -1 * pointLocation[axisIndex];
 	return pointLocation;
 }
 
+// This function takes a calibrated model file, creates a station element in under the desired body and then overwrites the .osim file
 void PointTracker::addStationToBody(std::string bodyName, SimTK::Vec3 pointLocation, std::string modelFile) {
 	SimTK::Xml::Element stationElement("Station");
 	stationElement.setAttributeValue("name", "mirror_station");
@@ -111,11 +123,13 @@ void PointTracker::addStationToBody(std::string bodyName, SimTK::Vec3 pointLocat
 	// get the number of bodies
 	int numberOfBodies = bodyElements.size();
 
+	// Iterate through all bodies
 	for (int i = 0; i < numberOfBodies; ++i) {
+		// If we find the desired body, append stationElement to it
 		if (bodyElements.at(i).getRequiredAttributeValue("name") == bodyName)
 			bodyElements[i].appendNode(stationElement);
 	}
 
-	// write the modified file into .osim
+	// Write the modified file into .osim
 	calibratedModelFile.writeToFile(modelFile);
 }
