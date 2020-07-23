@@ -212,34 +212,6 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
     // set private variable q_ to equal q
     setQ(q);
 
-/*    auto report = ikReporter->getTable();
-    
-    std::string modelFileName("C:/Users/wksadmin/source/repos/OpenSimLive/Config/gait2392_full_calibrated.osim");
-    
-    auto eix = modelFileName.rfind(".");
-    auto stix = modelFileName.rfind("/") + 1;
-
-    std::string resultsDirectory("C:/Users/wksadmin/source/repos/OpenSimLive/Results");
-
-    OpenSim::IO::makeDir(resultsDirectory);
-    std::string outName = "ik_" + modelFileName.substr(stix, eix - stix);
-    std::string outputFile = resultsDirectory + "/" + outName;
-
-    // Convert to degrees to compare with marker-based IK
-    // but only for rotational coordinates
-    model.getSimbodyEngine().convertRadiansToDegrees(report);
-    report.updTableMetaData().setValueForKey<string>("name", outName);
-
-    OpenSim::STOFileAdapter_<double>::write(report, outputFile + ".mot");
-
-    //log_info("Wrote IK with IMU tracking results to: '{}'.", outputFile);
-    //if (get_report_errors()) {
-    //    STOFileAdapter_<double>::write(*modelOrientationErrors,
-    //        resultsDirectory + "/" +
-    //        getName() + "_orientationErrors.sto");
-    //}
-    // Results written to file, clear in case we run again
-    ikReporter->clearTable();*/
 }
 
 
@@ -269,9 +241,6 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model
     // make sure that we don't create an additional visualization window when we initialize system
     model.setUseVisualizer(false);
     SimTK::State& s0 = model.initSystem();
-    //std::cout << model.updBodySet().get("femur_r").findStationLocationInAnotherFrame(s0, { 0,0,0 }, model.getGround()) << std::endl;
-    //std::cout << "s0 after initSystem: " << s0.getSystemStage() << std::endl;
-    //std::cout << "s_ :" << s_.getSystemStage() << std::endl;
     // create the solver given the input data
     const double accuracy = 1e-4;
     OpenSim::InverseKinematicsSolver ikSolver(model, mRefs, oRefs, coordinateReferences);
@@ -284,12 +253,8 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model
 
     // set the time of state s0
     s0.updTime() = times[0];
-    //std::cout << "s0 after updTime: " << s0.getSystemStage() << std::endl;
-    //std::cout << "s_ :" << s_.getSystemStage() << std::endl;
     // assemble state s0, solving the initial joint angles in the least squares sense
     ikSolver.assemble(s0);
-    //std::cout << "s0 after assemble: " << s0.getSystemStage() << std::endl;
-    //std::cout << "s_ :" << s_.getSystemStage() << std::endl;
     
     // Create place holder for orientation errors, populate based on user pref.
     // according to report_errors property
@@ -316,24 +281,12 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model
     setQ(q);
 
     // calculate point location and orientation of its base body segment for mirror therapy
-    //std::cout << "CHK1" << std::endl;
-    ikSolver.track(s0);
-    model.realizePosition(s0);
-    //std::cout << "s0: " << s0.getSystemStage() << std::endl;
-    //std::cout << "s_: " << s_.getSystemStage() << std::endl;
-    try {
-        std::vector<double> trackerResults = runTracker(&s0, &model, "femur_r", "pelvis", { 0, 0, 0 });
-        setPointTrackerPositionsAndOrientations(trackerResults);
-    }
-    catch (std::exception& e) {
-        std::cout << e.what() << std::endl;
-    }
-    catch (...) {
-        std::cout << "bloop" << std::endl;
-    }
-    //std::cout << "CHK3" << std::endl;
-
-
+    ikSolver.track(s0); // CHECK IF THIS IS EVEN NECESSARY
+    model.realizePosition(s0); // Required to advance system to a stage where we can use pointTracker
+    // Run PointTracker functions
+    std::vector<double> trackerResults = runTracker(&s0, &model, "femur_r", "pelvis", { 0, 0, 0 });
+    // Save the results to a private variable
+    setPointTrackerPositionsAndOrientations(trackerResults);
 
     // update the time to be shown in the visualization
     s_.updTime() = time_;

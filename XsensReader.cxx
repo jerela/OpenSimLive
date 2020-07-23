@@ -259,7 +259,8 @@ std::string calibrateModelFromSetupFile(std::string IMUPlacerSetupFile, OpenSim:
 	IMUPlacer.run(false); // false as argument = do not visualize
 
 	// add a station to a desired body in the calibrated .osim file
-	IMUPlacer.addStationToBody(mainConfigReader("station_parent_body"), { 0, 0, 0 }, IMUPlacer.get_output_model_file());
+	if (mainConfigReader("station_parent_body") != "none")
+		IMUPlacer.addStationToBody(mainConfigReader("station_parent_body"), { 0, 0, 0 }, IMUPlacer.get_output_model_file());
 
 	return IMUPlacer.get_output_model_file();
 }
