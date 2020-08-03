@@ -6,10 +6,11 @@
 #include <OpenSim/Common/TimeSeriesTable.h>
 #include <OpenSim/Simulation/Model/Point.h>
 #include <OpenSim/Simulation/OrientationsReference.h>
+#include <PointTracker.h>
 
 namespace OpenSimLive {
 
-	class IMUInverseKinematicsToolLive {
+	class IMUInverseKinematicsToolLive : public OpenSimLive::PointTracker {
 
 	public:
 		// CONSTRUCTORS AND DECONSTRUCTORS
@@ -27,12 +28,15 @@ namespace OpenSimLive {
 
 		// PUBLIC METHODS DEFINED HERE
 		std::vector<double> getQ() { return q_; }
+		std::vector<double> getPointTrackerPositionsAndOrientations() { return pointTrackerPositionsAndOrientations_; }
 		void setTime(double time) { time_ = time; }
 		void setQuaternion(OpenSim::TimeSeriesTable_<SimTK::Quaternion> newQuat) { quat_ = newQuat; }
 		void setModel(OpenSim::Model newModel) { model_ = newModel; }
 		void setModelFile(std::string newModelFile) { model_ = OpenSim::Model(newModelFile); }
 		void setOpenSimLiveRootDirectory(std::string directoryPath) { OpenSimLiveRootDirectory_ = directoryPath; }
 		void setSensorToOpenSimRotations(SimTK::Vec3 newRotations) { sensor_to_opensim_rotations = newRotations; }
+		void setPointTrackerReferenceBodyName(std::string referenceBodyName) { pointTrackerReferenceBodyName_ = referenceBodyName; }
+		void setPointTrackerBodyName(std::string bodyName) { pointTrackerBodyName_ = bodyName; }
 
 	private:
 		// PRIVATE VARIABLES
@@ -46,6 +50,9 @@ namespace OpenSimLive {
 		bool report_errors = true;
 		OpenSim::Model model_; // the OpenSim model that state s_ depicts
 		std::vector<double> q_; // joint angles calculated from IK are stored here
+		std::vector<double> pointTrackerPositionsAndOrientations_;
+		std::string pointTrackerBodyName_ = "";
+		std::string pointTrackerReferenceBodyName_ = "pelvis";
 
 		// PRIVATE METHODS
 		std::string OpenSimLiveRootDirectory_ = "";
@@ -55,6 +62,9 @@ namespace OpenSimLive {
 		OpenSim::TimeSeriesTable_<SimTK::Quaternion> get_quat() { return quat_; }
 		OpenSim::Model get_model() { return model_; }
 		void setQ(std::vector<double> q) { q_ = q; }
+		void setPointTrackerPositionsAndOrientations(std::vector<double> positionsAndOrientations) { pointTrackerPositionsAndOrientations_ = positionsAndOrientations; }
+		std::string getPointTrackerBodyName() { return pointTrackerBodyName_; }
+		std::string getPointTrackerReferenceBodyName() { return pointTrackerReferenceBodyName_; }
 
 	};  // end of class
 
