@@ -12,6 +12,10 @@
 	<print_roll_pitch_yaw>false</print_roll_pitch_yaw>
 	<!--Whether to reset clock to zero when continuous mode begins instead of using the calibration moment as the zero time point.-->
 	<reset_clock_on_continuous_mode>false</reset_clock_on_continuous_mode>
-	<!--The body of the OpenSim model that we use as the parent frame for the station. This station is used as the point to track for mirror therapy. Use 'none' to skip mirror therapy functions.-->
-	<station_parent_body>none</station_parent_body>
+	<!--Body in the OpenSim model that we use as the parent frame for the station. This station is used as the point to track for mirror therapy. Use 'none' to skip mirror therapy functions.-->
+	<station_parent_body>hand_r</station_parent_body>
+	<!--Location of the station in its parent body, given in the coordinate system of the body.-->
+	<station_location>0.05 0.02 0</station_location>
+	<!--Body in the OpenSim model that we use as the reference frame while mirroring the station.-->
+	<station_reference_body>pelvis</station_reference_body>
 </MainConfiguration>

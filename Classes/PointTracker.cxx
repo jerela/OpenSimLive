@@ -32,7 +32,11 @@ std::vector<double> PointTracker::runTracker(SimTK::State* s, OpenSim::Model* mo
 	// Calculate the rotation of the station's original parent frame (body) and mirror those orientations with respect to an axis.
 	SimTK::Vec3 mirroredEuler = calculatePointRotation(s, model, 2, body, referenceBody);
 	// Reflect the location of the station in another body's reference frame with respect to an axis
-	SimTK::Vec3 reflectedPointLocation = reflectWithRespectToAxis(pointLocation, 1); // 0 for x, 1 for y, 2 for z
+	SimTK::Vec3 reflectedPointLocation = reflectWithRespectToAxis(pointLocation, 2); // 0 for x, 1 for y, 2 for z
+
+	std::cout << "Original point location in reference frame: " << pointLocation << std::endl;
+	std::cout << "Mirrored point location in reference frame: " << reflectedPointLocation << std::endl;
+
 	// Save the calculated results in a vector and return it
 	std::vector<double> positionsAndRotations = { pointLocation[0], pointLocation[1], pointLocation[2], mirroredEuler[0], mirroredEuler[1], mirroredEuler[2] };
 	return positionsAndRotations;
@@ -105,12 +109,46 @@ SimTK::Vec3 PointTracker::reflectWithRespectToAxis(SimTK::Vec3 pointLocation, in
 
 // This function takes a calibrated model file, creates a station element in under the desired body and then overwrites the .osim file
 void PointTracker::addStationToBody(std::string bodyName, SimTK::Vec3 pointLocation, std::string modelFile) {
+	
+	// Create the station element
 	SimTK::Xml::Element stationElement("Station");
 	stationElement.setAttributeValue("name", "mirror_station");
 	SimTK::Xml::Element locationElement("location", std::to_string(pointLocation[0]) + " "+ std::to_string(pointLocation[1]) + " " + std::to_string(pointLocation[2]));
 	SimTK::Xml::Element parentFrameElement("parent_frame", bodyName);
 	stationElement.appendNode(locationElement);
 	stationElement.appendNode(parentFrameElement);
+
+	// Create a Sphere element
+	SimTK::Xml::Element sphereComponentsElement("components");
+	SimTK::Xml::Element spherePOFElement("PhysicalOffsetFrame");
+	spherePOFElement.setAttributeValue("name", "offset_station");
+	SimTK::Xml::Element sphereFGElement("FrameGeometry");
+	sphereFGElement.setAttributeValue("name", "frame_geometry");
+	SimTK::Xml::Element sphereFGSocketFrameElement("socket_frame", "..");
+	SimTK::Xml::Element sphereFGScaleFactorsElement("scale_factors", "1 1 1");
+	sphereFGElement.appendNode(sphereFGSocketFrameElement);
+	sphereFGElement.appendNode(sphereFGScaleFactorsElement);
+	SimTK::Xml::Element sphereAGElement("attached_geometry");
+	SimTK::Xml::Element sphereElement("Sphere");
+	sphereElement.setAttributeValue("name", "sphere_station");
+	SimTK::Xml::Element sphereSocketFrameElement("socket_frame", "..");
+	SimTK::Xml::Element sphereAppearanceElement("Appearance");
+	SimTK::Xml::Element sphereColorElement("color", "1 0 0");
+	sphereAppearanceElement.appendNode(sphereColorElement);
+	SimTK::Xml::Element sphereRadiusElement("radius", "0.02");
+	sphereElement.appendNode(sphereSocketFrameElement);
+	sphereElement.appendNode(sphereAppearanceElement);
+	sphereElement.appendNode(sphereRadiusElement);
+	sphereAGElement.appendNode(sphereElement);
+	SimTK::Xml::Element sphereSocketParentElement("socket_parent", "..");
+	SimTK::Xml::Element sphereTranslationElement("translation", std::to_string(pointLocation[0]) + " " + std::to_string(pointLocation[1]) + " " + std::to_string(pointLocation[2]));
+	SimTK::Xml::Element sphereOrientationElement("orientation", "0 0 0");
+	spherePOFElement.appendNode(sphereFGElement);
+	spherePOFElement.appendNode(sphereAGElement);
+	spherePOFElement.appendNode(sphereSocketParentElement);
+	spherePOFElement.appendNode(sphereTranslationElement);
+	spherePOFElement.appendNode(sphereOrientationElement);
+	sphereComponentsElement.appendNode(spherePOFElement);
 
 	SimTK::Xml::Document calibratedModelFile(modelFile);
 	// get the root element of the XML file
@@ -127,7 +165,10 @@ void PointTracker::addStationToBody(std::string bodyName, SimTK::Vec3 pointLocat
 	for (int i = 0; i < numberOfBodies; ++i) {
 		// If we find the desired body, append stationElement to it
 		if (bodyElements.at(i).getRequiredAttributeValue("name") == bodyName)
+		{
+			bodyElements[i].appendNode(sphereComponentsElement);
 			bodyElements[i].appendNode(stationElement);
+		}
 	}
 
 	// Write the modified file into .osim

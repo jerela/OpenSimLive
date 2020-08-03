@@ -284,7 +284,7 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model
     ikSolver.track(s0); // CHECK IF THIS IS EVEN NECESSARY
     model.realizePosition(s0); // Required to advance system to a stage where we can use pointTracker
     // Run PointTracker functions
-    std::vector<double> trackerResults = runTracker(&s0, &model, "femur_r", "pelvis", { 0, 0, 0 });
+    std::vector<double> trackerResults = runTracker(&s0, &model, getPointTrackerBodyName(), getPointTrackerReferenceBodyName(), { 0, 0, 0 });
     // Save the results to a private variable
     setPointTrackerPositionsAndOrientations(trackerResults);
 

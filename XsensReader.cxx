@@ -258,9 +258,20 @@ std::string calibrateModelFromSetupFile(std::string IMUPlacerSetupFile, OpenSim:
 	IMUPlacer.setQuaternion(quaternionTimeSeriesTable);
 	IMUPlacer.run(false); // false as argument = do not visualize
 
-	// add a station to a desired body in the calibrated .osim file
-	if (mainConfigReader("station_parent_body") != "none")
-		IMUPlacer.addStationToBody(mainConfigReader("station_parent_body"), { 0, 0, 0 }, IMUPlacer.get_output_model_file());
+	// add a station to a desired body in the calibrated .osim file if the parent body is named
+	std::string stationParentBody = mainConfigReader("station_parent_body");
+	if (stationParentBody != "none") {
+		// read the location of the station as a string
+		std::string stationLocationString = mainConfigReader("station_location");
+		// write the location into doubles station_x,y,z using stringstream
+		std::stringstream ss(stationLocationString);
+		double station_x; ss >> station_x;
+		double station_y; ss >> station_y;
+		double station_z; ss >> station_z;
+		// add the station under the parent body in the calibrated model file
+		IMUPlacer.addStationToBody(stationParentBody, { station_x, station_y, station_z }, IMUPlacer.get_output_model_file());
+	}
+		
 
 	return IMUPlacer.get_output_model_file();
 }
@@ -539,6 +550,10 @@ void ConnectToDataStream() {
 				IKTool.setOpenSimLiveRootDirectory(OPENSIMLIVE_ROOT); // this is needed for saving the IK report to file
 				IKTool.run(true); // true for visualization
 				std::cout << "Model has been calibrated." << std::endl;
+
+				// set private variables to be accessed in IK calculations
+				IKTool.setPointTrackerBodyName(mainConfigReader("station_parent_body"));
+				IKTool.setPointTrackerReferenceBodyName(mainConfigReader("station_reference_body"));
 			}
 
 			if (newDataAvailable && getDataKeyHit && !calibratedModelFile.empty())

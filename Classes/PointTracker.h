@@ -17,7 +17,7 @@ namespace OpenSimLive {
 		// PUBLIC METHODS
 		void addStationToBody(std::string bodyName, SimTK::Vec3 pointLocation, std::string modelFile);
 		std::vector<double> runTracker(SimTK::State* s, OpenSim::Model* model, std::string bodyName, std::string referenceBodyName, SimTK::Vec3 pointLocalCoordinates);
-		
+
 	protected:
 		
 	private:
@@ -28,6 +28,8 @@ namespace OpenSimLive {
 		SimTK::Vec3 reflectWithRespectToAxis(SimTK::Vec3 pointLocation, int axisIndex);
 		
 		//PRIVATE VARIABLES
+		std::string referenceBodyName_ = "pelvis";
+		std::string bodyName_ = "";
 
 	}; // end of class
 }
