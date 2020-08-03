@@ -281,7 +281,6 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model
     setQ(q);
 
     // calculate point location and orientation of its base body segment for mirror therapy
-    ikSolver.track(s0); // CHECK IF THIS IS EVEN NECESSARY
     model.realizePosition(s0); // Required to advance system to a stage where we can use pointTracker
     // Run PointTracker functions
     std::vector<double> trackerResults = runTracker(&s0, &model, getPointTrackerBodyName(), getPointTrackerReferenceBodyName(), { 0, 0, 0 });
