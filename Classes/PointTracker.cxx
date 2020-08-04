@@ -34,8 +34,8 @@ std::vector<double> PointTracker::runTracker(SimTK::State* s, OpenSim::Model* mo
 	// Reflect the location of the station in another body's reference frame with respect to an axis
 	SimTK::Vec3 reflectedPointLocation = reflectWithRespectToAxis(pointLocation, 2); // 0 for x, 1 for y, 2 for z
 
-	std::cout << "Original point location in reference frame: " << pointLocation << std::endl;
-	std::cout << "Mirrored point location in reference frame: " << reflectedPointLocation << std::endl;
+	//std::cout << "Original point location in reference frame: " << pointLocation << std::endl;
+	//std::cout << "Mirrored point location in reference frame: " << reflectedPointLocation << std::endl;
 
 	// Save the calculated results in a vector and return it
 	std::vector<double> positionsAndRotations = { pointLocation[0], pointLocation[1], pointLocation[2], mirroredEuler[0], mirroredEuler[1], mirroredEuler[2] };

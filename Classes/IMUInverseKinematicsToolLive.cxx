@@ -280,12 +280,14 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model
     // set private variable q_ to equal q so that we can get the latest joint angle values with getQ
     setQ(q);
 
-    // calculate point location and orientation of its base body segment for mirror therapy
-    model.realizePosition(s0); // Required to advance system to a stage where we can use pointTracker
-    // Run PointTracker functions
-    std::vector<double> trackerResults = runTracker(&s0, &model, getPointTrackerBodyName(), getPointTrackerReferenceBodyName(), { 0, 0, 0 });
-    // Save the results to a private variable
-    setPointTrackerPositionsAndOrientations(trackerResults);
+    if (getPointTrackerEnabled() == true) {
+        // calculate point location and orientation of its base body segment for mirror therapy
+        model.realizePosition(s0); // Required to advance system to a stage where we can use pointTracker
+        // Run PointTracker functions
+        std::vector<double> trackerResults = runTracker(&s0, &model, getPointTrackerBodyName(), getPointTrackerReferenceBodyName(), { 0, 0, 0 });
+        // Save the results to a private variable
+        setPointTrackerPositionsAndOrientations(trackerResults);
+    }
 
     // update the time to be shown in the visualization
     s_.updTime() = time_;

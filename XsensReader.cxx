@@ -539,7 +539,7 @@ void ConnectToDataStream() {
 				// fill a timeseriestable with quaternion orientations of IMUs
 				OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable(fillQuaternionTable(mtwCallbacks, quaternionData));
 				// calibrate the model and return its file name
-				calibratedModelFile = calibrateModelFromSetupFile(OPENSIMLIVE_ROOT+"/Config/"+mainConfigReader("imu_placer_setup_file"), quaternionTimeSeriesTable);
+				calibratedModelFile = calibrateModelFromSetupFile(OPENSIMLIVE_ROOT + "/Config/" + mainConfigReader("imu_placer_setup_file"), quaternionTimeSeriesTable);
 				// reset the keyhit so that we won't re-enter this if-statement before hitting the key again
 				calibrateModelKeyHit = false;
 				// give IKTool the necessary inputs and run it
@@ -552,8 +552,13 @@ void ConnectToDataStream() {
 				std::cout << "Model has been calibrated." << std::endl;
 
 				// set private variables to be accessed in IK calculations
-				IKTool.setPointTrackerBodyName(mainConfigReader("station_parent_body"));
-				IKTool.setPointTrackerReferenceBodyName(mainConfigReader("station_reference_body"));
+				if (enableMirrorTherapy == true) {
+					IKTool.setPointTrackerBodyName(mainConfigReader("station_parent_body"));
+					IKTool.setPointTrackerReferenceBodyName(mainConfigReader("station_reference_body"));
+				}
+				else {
+					IKTool.setPointTrackerEnabled(false);
+				}
 			}
 
 			if (newDataAvailable && getDataKeyHit && !calibratedModelFile.empty())
