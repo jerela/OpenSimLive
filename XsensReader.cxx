@@ -670,11 +670,20 @@ void ConnectToDataStream() {
 			
 		} while (mainDataLoop);
 
+		std::cout << "Exiting main data loop!" << std::cout;
+
 		// when exiting, close socket communication
-		if (enableMirrorTherapy)
+		if (enableMirrorTherapy) {
+			std::cout << "Socket server closing down, sending final packet..." << std::endl;
+			// send a packet that exceeds the limits of the rotation values, indicating this cannot be a legitimate packet and shutting client down on the Java side
+			double socketShutdownArray[6] = { 500, 500, 500, 500, 500, 500 };
+			myLink.SendDoubles(socketShutdownArray, 6);
+			// close socket conection
 			myLink.Close();
+		}
 
 		// when exiting, save acquired data to file
+		std::cout << "Reporting IK to file..." << std::endl;
 		IKTool.reportToFile();
 
 		std::cout << "Setting config mode..." << std::endl;

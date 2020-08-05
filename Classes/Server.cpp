@@ -747,7 +747,7 @@ bool Server::RecvAck()
 	}
 
 	if (VERBOSE)
-		printf("Ack recieved.\n");
+		printf("Ack received.\n");
 	return true;
 }	
 
