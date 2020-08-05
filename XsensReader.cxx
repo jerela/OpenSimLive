@@ -7,6 +7,7 @@
 
 #include <IMUPlacerLive.h>
 #include <IMUInverseKinematicsToolLive.h>
+#include <Server.h>
 
 #include <iostream>
 #include <chrono>
@@ -513,6 +514,23 @@ void ConnectToDataStream() {
 		// get the sensor to opensim rotations for IMUInverseKinematicsToolLive
 		SimTK::Vec3 sensorToOpenSimRotations = get_sensor_to_opensim_rotations();
 		
+		// SOCKET COMMUNICATION
+		bool bResult = false;
+		int port = std::stoi(mainConfigReader("socket_port"));
+		int dataport = -1;
+		Server myLink(port, dataport, &bResult);
+		if (!bResult)
+		{
+			printf("Failed to create Server object!\n");
+		}
+		if (enableMirrorTherapy) {	
+			std::cout << "Waiting for client program to connect..." << std::endl;
+			myLink.Connect();
+			std::cout << "Client program connected." << std::endl;
+		}
+		
+		
+
 		std::cout << "Entering data streaming and IK loop. Press C to calibrate model, V to calculate IK, N to enter continuous mode, M to exit continuous mode and X to quit." << std::endl;
 
 		do
@@ -612,7 +630,14 @@ void ConnectToDataStream() {
 						printRollPitchYaw(mtwCallbacks, eulerData);
 					
 					if (enableMirrorTherapy)
+					{
+						// get the data we want to send to Java program
 						std::vector<double> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
+						// get a double array from the double vector
+						double* mirrorTherapyPacket = &trackerResults[0];
+						// send the data
+						myLink.SendDoubles(mirrorTherapyPacket, 6);
+					}
 					//std::cout << "Positions: " << "[" << trackerResults[0] << ", " << trackerResults[1] << ", " << trackerResults[2] << "]" << std::endl;
 					//std::cout << "Rotations: " << "[" << trackerResults[3] << ", " << trackerResults[4] << ", " << trackerResults[5] << "]" << std::endl;
 				}
@@ -644,6 +669,10 @@ void ConnectToDataStream() {
 			}
 			
 		} while (mainDataLoop);
+
+		// when exiting, close socket communication
+		if (enableMirrorTherapy)
+			myLink.Close();
 
 		// when exiting, save acquired data to file
 		IKTool.reportToFile();
