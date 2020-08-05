@@ -54,3 +54,4 @@ Jere Lavikainen, jere.lavikainen (at) uef.fi
 ## Acknowledgments
 
 Thanks to GitHub user PurpleBooth for providing an excellent [readme template](https://gist.github.com/PurpleBooth/109311bb0361f32d87a2).
+Thanks to Keith Vertanen for his [Java and C++ socket class](https://www.keithv.com/software/socket/).
