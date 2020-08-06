@@ -1,16 +1,11 @@
 #pragma once
 
-#include <vector>
 #include <iostream>
-#include <chrono>
 #include <thread>
-#include <string>
-#include <stdexcept>
 #include <iomanip>
 #include <sstream>
 #include <set>
 #include <list>
-#include <utility>
 
 #include <xsensdeviceapi.h>
 #include "conio.h" // for non-ANSI _kbhit() and _getch()
@@ -151,7 +146,7 @@ private:
 
 
 
-
+// ACTUAL XSENSDATAREADER CLASS BEGINS HERE
 namespace OpenSimLive {
 
 	class XsensDataReader {
@@ -159,37 +154,34 @@ namespace OpenSimLive {
 	public:
 		// CONSTRUCTORS AND DECONSTRUCTORS
 		XsensDataReader();
-		//PointTracker(SimTK::State state, std::string modelFileName);
-		//PointTracker(SimTK::State state, std::string modelFileName, std::string bodyName);
 		~XsensDataReader();
 
 		// PUBLIC METHODS
-		void InitiateStartupPhase();
-		//void InitiateProcessingPhase();
-		std::vector<XsQuaternion> XsensDataReader::GetQuaternionData();
-		void CloseConnection();
-		std::vector<MtwCallback*> GetMtwCallbacks() { return mtwCallbacks_; }
-		void SetDesiredUpdateRate(int rate) { desiredUpdateRate_ = rate; }
-		void SetDesiredRadioChannel(int channel) { desiredRadioChannel_ = channel; }
-		bool GetNewDataAvailable() { return newDataAvailable_; }
+		void InitiateStartupPhase(); // starts the connection from scratch
+		std::vector<XsQuaternion> XsensDataReader::GetQuaternionData(); // returns IMU orientations as quaternions
+		std::vector<XsEuler> XsensDataReader::GetEulerData(); // returns IMU orientations as Euler angles
+		void CloseConnection(); // shuts down the connection
+		std::vector<MtwCallback*> GetMtwCallbacks() { return mtwCallbacks_; } // returns a pointer to mtwCallbacks (returns mtwCallbacks_, which is a pointer itself)
+		void SetDesiredUpdateRate(int rate) { desiredUpdateRate_ = rate; } // sets the desired orientation measurement frequency
+		void SetDesiredRadioChannel(int channel) { desiredRadioChannel_ = channel; } // sets the desired radio channel
+		bool GetNewDataAvailable() { return newDataAvailable_; } // returns true if new data is available since the last time we used a getter function for orientations
 
 	protected:
 			
 	private:
 		// PRIVATE METHODS
-		/*! \brief Given a list of update rates and a desired update rate, returns the closest update rate to the desired one */
-		int findClosestUpdateRate(const XsIntArray& supportedUpdateRates, const int desiredUpdateRate);
+		int findClosestUpdateRate(const XsIntArray& supportedUpdateRates, const int desiredUpdateRate); // Given a list of update rates and a desired update rate, returns the closest update rate to the desired one
 		
 
 		// PRIVATE VARIABLES
 		WirelessMasterCallback wirelessMasterCallback_; // Callback for wireless master		
 		std::vector<MtwCallback*> mtwCallbacks_; // Callbacks for MTw devices
-		int desiredUpdateRate_ = 75; // use 75 Hz update rate for MTWs
+		int desiredUpdateRate_ = 75; // orientation measurement frequency in hertz
 		int desiredRadioChannel_ = 19; // use radio channel 19 for wireless master
 		XsDevicePtrArray mtwDevices_;
 		XsDevicePtr wirelessMasterDevice_;
 		XsControl* control_;
-		bool newDataAvailable_;
+		bool newDataAvailable_; // boolean that indicates if new data is available since the last time we used a getter function to retrieve IMU orientations
 
 	}; // end of class
 }
