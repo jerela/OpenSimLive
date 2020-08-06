@@ -4,10 +4,10 @@
 
 const std::string OPENSIMLIVE_ROOT = OPENSIMLIVE_ROOT_PATH;
 
-// This function reads some "main" variables such as model file to be used from an XML file.
-std::string mainConfigReader(std::string elementName) {
+// This function reads variables such as model file to be used from an XML file.
+std::string ConfigReader(std::string fileName, std::string elementName) {
 	// get the file XML file
-	SimTK::Xml::Document mainConfigXML(OPENSIMLIVE_ROOT + "/Config/MainConfiguration.xml");
+	SimTK::Xml::Document mainConfigXML(OPENSIMLIVE_ROOT + "/Config/" + fileName);
 	// get the root element of the XML file
 	SimTK::Xml::Element rootElement = mainConfigXML.getRootElement();
 	// get the child element of the root element
@@ -17,7 +17,7 @@ std::string mainConfigReader(std::string elementName) {
 
 // This function returns the sensor to OpenSim rotations as defined in the IMU placer setup file.
 SimTK::Vec3 get_sensor_to_opensim_rotations() {
-	std::string IMUPlacerSetupFileName = mainConfigReader("imu_placer_setup_file");
+	std::string IMUPlacerSetupFileName = ConfigReader("MainConfiguration.xml", "imu_placer_setup_file");
 	SimTK::Xml::Document IMUPlacerXML(OPENSIMLIVE_ROOT + "/Config/" + IMUPlacerSetupFileName);
 	SimTK::Xml::Element rootElement = IMUPlacerXML.getRootElement();
 	SimTK::Xml::Element placerElement = rootElement.getRequiredElement("IMUPlacer");

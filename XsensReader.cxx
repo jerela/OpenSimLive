@@ -56,7 +56,7 @@ OpenSim::TimeSeriesTable_<SimTK::Quaternion> fillQuaternionTable(std::vector<Mtw
 
 		// match the ID of the sensor to the name of the sensor on the model
 		//sensorNameInModel = sensorIdToLabel(currentSensorId, "C:/Users/wksadmin/source/repos/OpenSimLive/Config/SensorMappings.xml");
-		sensorNameInModel = sensorIdToLabel(currentSensorId, OPENSIMLIVE_ROOT+"/Config/"+mainConfigReader("mappings_file"));
+		sensorNameInModel = sensorIdToLabel(currentSensorId, OPENSIMLIVE_ROOT+"/Config/"+ConfigReader("MainConfiguration.xml", "mappings_file"));
 		
 		// populate the vector of sensor names
 		sensorNameVector.push_back(sensorNameInModel);
@@ -85,10 +85,10 @@ std::string calibrateModelFromSetupFile(std::string IMUPlacerSetupFile, OpenSim:
 	IMUPlacer.run(false); // false as argument = do not visualize
 
 	// add a station to a desired body in the calibrated .osim file if the parent body is named
-	std::string stationParentBody = mainConfigReader("station_parent_body");
+	std::string stationParentBody = ConfigReader("MainConfiguration.xml", "station_parent_body");
 	if (stationParentBody != "none") {
 		// read the location of the station as a string
-		std::string stationLocationString = mainConfigReader("station_location");
+		std::string stationLocationString = ConfigReader("MainConfiguration.xml", "station_location");
 		// write the location into doubles station_x,y,z using stringstream
 		std::stringstream ss(stationLocationString);
 		double station_x; ss >> station_x;
@@ -137,10 +137,10 @@ void ConnectToDataStream() {
 	bool calibrateModelKeyHit = false; // tells if the key that initiates model calibration is hit
 	bool startContinuousModeKeyHit = false; // tells if the key that starts continuous mode is hit
 	bool stopContinuousModeKeyHit = false; // tells if the key that ends continuous mode is hit
-	int continuousModeMsDelay = std::stoi(mainConfigReader("continuous_mode_ms_delay")); // delay between consequent IK calculations in consequent mode, in milliseconds
-	bool print_roll_pitch_yaw = ("true" == mainConfigReader("print_roll_pitch_yaw")); // boolean that tells whether to print roll, pitch and yaw of IMUs while calculating IK
-	bool resetClockOnContinuousMode = ("true" == mainConfigReader("reset_clock_on_continuous_mode")); // if true, clock will be reset to zero when entering continuous mode; if false, the clock will be set to zero at calibration
-	bool enableMirrorTherapy = (mainConfigReader("station_parent_body") != "none"); // if "none", then set to false
+	int continuousModeMsDelay = std::stoi(ConfigReader("MainConfiguration.xml", "continuous_mode_ms_delay")); // delay between consequent IK calculations in consequent mode, in milliseconds
+	bool print_roll_pitch_yaw = ("true" == ConfigReader("MainConfiguration.xml", "print_roll_pitch_yaw")); // boolean that tells whether to print roll, pitch and yaw of IMUs while calculating IK
+	bool resetClockOnContinuousMode = ("true" == ConfigReader("MainConfiguration.xml", "reset_clock_on_continuous_mode")); // if true, clock will be reset to zero when entering continuous mode; if false, the clock will be set to zero at calibration
+	bool enableMirrorTherapy = (ConfigReader("MainConfiguration.xml", "station_parent_body") != "none"); // if "none", then set to false
 	std::vector<std::vector<double>> jointAngles; // vector that will hold the joint angles
 
 	auto clockStart = std::chrono::high_resolution_clock::now(); // get the starting time of IMU measurement loop
@@ -155,7 +155,7 @@ void ConnectToDataStream() {
 		
 	// SOCKET COMMUNICATION
 	bool bResult = false;
-	int port = std::stoi(mainConfigReader("socket_port"));
+	int port = std::stoi(ConfigReader("MainConfiguration.xml", "socket_port"));
 	int dataport = -1;
 	Server myLink(port, dataport, &bResult);
 	if (!bResult)
@@ -188,7 +188,7 @@ void ConnectToDataStream() {
 			// fill a timeseriestable with quaternion orientations of IMUs
 			OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
 			// calibrate the model and return its file name
-			calibratedModelFile = calibrateModelFromSetupFile(OPENSIMLIVE_ROOT + "/Config/" + mainConfigReader("imu_placer_setup_file"), quaternionTimeSeriesTable);
+			calibratedModelFile = calibrateModelFromSetupFile(OPENSIMLIVE_ROOT + "/Config/" + ConfigReader("MainConfiguration.xml", "imu_placer_setup_file"), quaternionTimeSeriesTable);
 			// reset the keyhit so that we won't re-enter this if-statement before hitting the key again
 			calibrateModelKeyHit = false;
 			// give IKTool the necessary inputs and run it
@@ -202,8 +202,8 @@ void ConnectToDataStream() {
 
 			// set private variables to be accessed in IK calculations
 			if (enableMirrorTherapy == true) {
-				IKTool.setPointTrackerBodyName(mainConfigReader("station_parent_body"));
-				IKTool.setPointTrackerReferenceBodyName(mainConfigReader("station_reference_body"));
+				IKTool.setPointTrackerBodyName(ConfigReader("MainConfiguration.xml", "station_parent_body"));
+				IKTool.setPointTrackerReferenceBodyName(ConfigReader("MainConfiguration.xml", "station_reference_body"));
 			}
 			else {
 				IKTool.setPointTrackerEnabled(false);
