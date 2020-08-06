@@ -18,4 +18,6 @@
 	<station_location>0.05 0.02 0</station_location>
 	<!--Body in the OpenSim model that we use as the reference frame while mirroring the station.-->
 	<station_reference_body>pelvis</station_reference_body>
+	<!--Port that is used to transfer data between programs.-->
+	<socket_port>5010</socket_port>
 </MainConfiguration>
