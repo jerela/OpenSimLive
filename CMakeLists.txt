@@ -126,6 +126,8 @@ set(XSENS_SOURCES XsensReader.cxx "${INCLUDE_CLASSES_PATH}/IMUPlacerLive.h"
 	"${INCLUDE_CLASSES_PATH}/PointTracker.cxx"
 	"${INCLUDE_CLASSES_PATH}/Server.h"
 	"${INCLUDE_CLASSES_PATH}/Server.cpp"
+	"${INCLUDE_CLASSES_PATH}/XsensDataReader.h"
+	"${INCLUDE_CLASSES_PATH}/XsensDataReader.cxx"
 	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctions.h"
 	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctions.cxx")
 
