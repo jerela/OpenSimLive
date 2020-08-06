@@ -39,7 +39,7 @@ IMUInverseKinematicsToolLive::IMUInverseKinematicsToolLive(const std::string& mo
     //s_ = model_.initSystem();
 }
 
-IMUInverseKinematicsToolLive::IMUInverseKinematicsToolLive(const std::string& modelFile, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable) {
+IMUInverseKinematicsToolLive::IMUInverseKinematicsToolLive(const std::string& modelFile, const OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable) {
     model_ = OpenSim::Model(modelFile);
     //model_.finalizeFromProperties();
 
@@ -65,8 +65,8 @@ IMUInverseKinematicsToolLive::~IMUInverseKinematicsToolLive()
 // PUBLIC MEMBER FUNCTIONS
 
 void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
-    OpenSim::Model& model, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable,
-    bool visualizeResults) {
+    OpenSim::Model& model, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable,
+    const bool visualizeResults) {
     
 
     // Ideally if we add a Reporter, we also remove it at the end for good hygiene but 
@@ -222,7 +222,7 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
 
 
 // This function calculates the joint angle values for a new state s0, then updates state s with those values and redraws the visualization.
-void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable, bool visualizeResults) {
+void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults) {
 
     // Convert to OpenSim Frame
     const SimTK::Vec3& rotations = get_sensor_to_opensim_rotations();
@@ -284,7 +284,7 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model
         // calculate point location and orientation of its base body segment for mirror therapy
         model.realizePosition(s0); // Required to advance system to a stage where we can use pointTracker
         // Run PointTracker functions
-        std::vector<double> trackerResults = runTracker(&s0, &model, getPointTrackerBodyName(), getPointTrackerReferenceBodyName(), { 0, 0, 0 });
+        std::vector<double> trackerResults = runTracker(&s0, &model, getPointTrackerBodyName(), getPointTrackerReferenceBodyName());
         // Save the results to a private variable
         setPointTrackerPositionsAndOrientations(trackerResults);
     }
@@ -350,14 +350,14 @@ void IMUInverseKinematicsToolLive::reportToFile() {
 
 
 // This function initially runs the IK and should only be called once per calibration.
-bool IMUInverseKinematicsToolLive::run(bool visualizeResults)
+bool IMUInverseKinematicsToolLive::run(const bool visualizeResults)
 {
     runInverseKinematicsWithLiveOrientations(get_model(), get_quat(), visualizeResults);
     return true;
 }
 
 // This function updates the IK after it's been initially run
-bool IMUInverseKinematicsToolLive::update(bool visualizeResults)
+bool IMUInverseKinematicsToolLive::update(const bool visualizeResults)
 {
     updateInverseKinematics(get_model(), get_quat(), visualizeResults);
     return true;

@@ -11,7 +11,7 @@
 
 const std::string OPENSIMLIVE_ROOT = OPENSIMLIVE_ROOT_PATH;
 
-void printRollPitchYaw(std::vector<MtwCallback*> mtwCallbacks, std::vector<XsEuler> eulerData) {
+void printRollPitchYaw(std::vector<MtwCallback*> mtwCallbacks, const std::vector<XsEuler>& eulerData) {
 	for (size_t i = 0; i < mtwCallbacks.size(); ++i)
 	{
 		std::cout << "[" << i << "]: ID: " << mtwCallbacks[i]->device().deviceId().toString().toStdString()
@@ -23,7 +23,7 @@ void printRollPitchYaw(std::vector<MtwCallback*> mtwCallbacks, std::vector<XsEul
 }
 
 // This function fills a TimeSeriesTable with quaternion values for a single time frame.
-OpenSim::TimeSeriesTable_<SimTK::Quaternion> fillQuaternionTable(std::vector<MtwCallback*> mtwCallbacks, std::vector<XsQuaternion> quaternionVector)
+OpenSim::TimeSeriesTable_<SimTK::Quaternion> fillQuaternionTable(std::vector<MtwCallback*>& mtwCallbacks, std::vector<XsQuaternion>& quaternionVector)
 {
 	// get the number of active sensors
 	int numberOfSensors = mtwCallbacks.size();
@@ -68,7 +68,7 @@ OpenSim::TimeSeriesTable_<SimTK::Quaternion> fillQuaternionTable(std::vector<Mtw
 }
 
 // This function calibrates an OpenSim model from setup file, similarly to how MATLAB scripting commands for OpenSense work.
-std::string calibrateModelFromSetupFile(std::string IMUPlacerSetupFile, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quaternionTimeSeriesTable)
+std::string calibrateModelFromSetupFile(const std::string& IMUPlacerSetupFile, const OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quaternionTimeSeriesTable)
 {
 	// construct IMUPlacer
 	OpenSimLive::IMUPlacerLive IMUPlacer(IMUPlacerSetupFile);
@@ -108,7 +108,7 @@ std::string calibrateModelFromSetupFile(std::string IMUPlacerSetupFile, OpenSim:
 
 
 
-void RunIKProcedure(OpenSimLive::XsensDataReader& xsensDataReader, const std::vector<XsQuaternion>& quaternionData, OpenSimLive::IMUInverseKinematicsToolLive& IKTool, std::chrono::duration<double>& clockDuration, const bool& print_roll_pitch_yaw, const bool& enableMirrorTherapy, const std::vector<XsEuler>& eulerData, Server& myLink) {
+void RunIKProcedure(OpenSimLive::XsensDataReader& xsensDataReader, std::vector<XsQuaternion>& quaternionData, OpenSimLive::IMUInverseKinematicsToolLive& IKTool, std::chrono::duration<double>& clockDuration, const bool print_roll_pitch_yaw, const bool enableMirrorTherapy, const std::vector<XsEuler>& eulerData, Server& myLink) {
 	// fill a time series table with quaternion orientations of the IMUs
 	OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
 	// give the necessary inputs to IKTool

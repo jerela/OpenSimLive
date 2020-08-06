@@ -20,7 +20,7 @@ PointTracker::PointTracker(SimTK::State state, std::string modelFileName, std::s
 PointTracker::~PointTracker() {}
 
 // This function performs all the necessary calculations to fetch the local position of the station, calculate it in another reference frame (body), mirror the position in that new reference frame, get the original body's orientation, mirror the orientation with respect to an axis and finally return a 6-element vector with mirrored positions and orientations.
-std::vector<double> PointTracker::runTracker(SimTK::State* s, OpenSim::Model* model, std::string bodyName, std::string referenceBodyName, SimTK::Vec3 pointLocalCoordinates) {
+std::vector<double> PointTracker::runTracker(SimTK::State* s, OpenSim::Model* model, const std::string& bodyName, const std::string& referenceBodyName) {
 	// Get a pointer to the body the station is located on
 	OpenSim::Body* body = &(model->updBodySet().get(bodyName));
 	// Get a pointer to the body we want to use as the new reference frame for the station's location
@@ -43,7 +43,7 @@ std::vector<double> PointTracker::runTracker(SimTK::State* s, OpenSim::Model* mo
 }
 
 // This function finds the value of station's XML attribute location and returns it as a SimTK::Vec3 vector
-SimTK::Vec3 PointTracker::findStationLocationInLocalFrame(OpenSim::Model* model, std::string bodyName) {
+SimTK::Vec3 PointTracker::findStationLocationInLocalFrame(OpenSim::Model* model, const std::string& bodyName) {
 	// Load the calibrated model file as an XML document
 	SimTK::Xml::Document modelXML(model->getInputFileName());
 	// Get all XML elements that represent bodies in the model
@@ -92,24 +92,25 @@ SimTK::Vec3 PointTracker::calculatePointLocation(SimTK::Vec3 localLocation, SimT
 }
 
 // This function calculates the rotation of the station by getting the rotation of its parent frame (body) and mirroring it with respect to the sagittal plane
-SimTK::Vec3 PointTracker::calculatePointRotation(SimTK::State* s, OpenSim::Model* model, int axisIndex, OpenSim::Body* body, OpenSim::Body* referenceBody) {
+SimTK::Vec3 PointTracker::calculatePointRotation(SimTK::State* s, OpenSim::Model* model, const int axisIndex, OpenSim::Body* body, OpenSim::Body* referenceBody) {
 	// Get the rotation of the parent body in ground reference frame
 	SimTK::Rotation mirroringBodyRotation = body->getRotationInGround(*s);
-	// rotate the rotation by pi radians around a suitable axis and transposing/inverting it
-	SimTK::Rotation mirroredRotation = mirroringBodyRotation.setRotationFromAngleAboutAxis(3.14159265258979323, SimTK::CoordinateAxis(axisIndex)).transpose();
+	//SimTK::Rotation referenceBodyRotation = referenceBody->getRotationInGround(*s);
+	// rotate the rotation by pi radians around a suitable axis and transpose/invert it
+	SimTK::Rotation mirroredRotation = mirroringBodyRotation.setRotationFromAngleAboutAxis(3.14159265358979323, SimTK::CoordinateAxis(axisIndex)).transpose();
 	// convert the 3x3 rotation matrix into body fixed XYZ euler angles
 	return mirroredRotation.convertRotationToBodyFixedXYZ();
 }
 
 // This function reflects a point with respect to an axis by multiplying the element corresponding to that axis by -1
-SimTK::Vec3 PointTracker::reflectWithRespectToAxis(SimTK::Vec3 pointLocation, int axisIndex) {
+SimTK::Vec3 PointTracker::reflectWithRespectToAxis(SimTK::Vec3 pointLocation, const int axisIndex) {
 	// Change the point's coordinates in its local coordinate system by multiplying one of the coordinates by -1
 	pointLocation[axisIndex] = -1 * pointLocation[axisIndex];
 	return pointLocation;
 }
 
 // This function takes a calibrated model file, creates a station element in under the desired body and then overwrites the .osim file
-void PointTracker::addStationToBody(std::string bodyName, SimTK::Vec3 pointLocation, std::string modelFile) {
+void PointTracker::addStationToBody(const std::string& bodyName, const SimTK::Vec3& pointLocation, const std::string& modelFile) {
 	
 	// Create the station element
 	SimTK::Xml::Element stationElement("Station");

@@ -21,9 +21,9 @@ namespace OpenSimLive {
 		bool run(bool visualizeResults = false);
 		void setModel(OpenSim::Model& aModel) { _model = &aModel; };
 		
-		OpenSim::Model& getCalibratedModel() const; // can be used directly from base class
+		//OpenSim::Model& getCalibratedModel() const; // can be used directly from base class
 
-		void setQuaternion(OpenSim::TimeSeriesTable_<SimTK::Quaternion> quat) { quat_ = quat; };
+		void setQuaternion(const OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quat) { quat_ = quat; };
 
 
 	private:
