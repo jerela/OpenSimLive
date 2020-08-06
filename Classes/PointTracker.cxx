@@ -103,6 +103,7 @@ SimTK::Vec3 PointTracker::calculatePointRotation(SimTK::State* s, OpenSim::Model
 
 // This function reflects a point with respect to an axis by multiplying the element corresponding to that axis by -1
 SimTK::Vec3 PointTracker::reflectWithRespectToAxis(SimTK::Vec3 pointLocation, int axisIndex) {
+	// Change the point's coordinates in its local coordinate system by multiplying one of the coordinates by -1
 	pointLocation[axisIndex] = -1 * pointLocation[axisIndex];
 	return pointLocation;
 }

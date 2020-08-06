@@ -1,22 +1,15 @@
 // OpenSimLive.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
-
 
 #include <OpenSimLiveConfig.h>
 #include <OpenSim.h>
-
 #include <IMUPlacerLive.h>
 #include <IMUInverseKinematicsToolLive.h>
 #include <Server.h>
 #include <XsensDataReader.h>
-
 #include "conio.h" // for non-ANSI _kbhit() and _getch()
-
 #include <XMLFunctions.h>
 
-
 const std::string OPENSIMLIVE_ROOT = OPENSIMLIVE_ROOT_PATH;
-
 
 void printRollPitchYaw(std::vector<MtwCallback*> mtwCallbacks, std::vector<XsEuler> eulerData) {
 	for (size_t i = 0; i < mtwCallbacks.size(); ++i)
@@ -97,22 +90,52 @@ std::string calibrateModelFromSetupFile(std::string IMUPlacerSetupFile, OpenSim:
 		// add the station under the parent body in the calibrated model file
 		IMUPlacer.addStationToBody(stationParentBody, { station_x, station_y, station_z }, IMUPlacer.get_output_model_file());
 	}
-		
 
 	return IMUPlacer.get_output_model_file();
 }
 
 // This function calculates the values for all joint angles of the model based on live IMU data.
-std::vector<double> OpenSimInverseKinematicsFromIMUs(std::string modelFileName, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable, double duration, bool initialCall) {
-
+/*std::vector<double> OpenSimInverseKinematicsFromIMUs(std::string modelFileName, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable, double duration, bool initialCall) {
+	// Create a new IMUInverseKinematicsToolLive object
 	OpenSimLive::IMUInverseKinematicsToolLive IKTool(modelFileName, quatTable);
+	// set current time
 	IKTool.setTime(duration);
+	// run IK
 	IKTool.run(true);
-	
-
-
+	// return the calculated joint angles
 	return IKTool.getQ();
+}*/
+
+
+
+void RunIKProcedure(OpenSimLive::XsensDataReader& xsensDataReader, const std::vector<XsQuaternion>& quaternionData, OpenSimLive::IMUInverseKinematicsToolLive& IKTool, std::chrono::duration<double>& clockDuration, const bool& print_roll_pitch_yaw, const bool& enableMirrorTherapy, const std::vector<XsEuler>& eulerData, Server& myLink) {
+	// fill a time series table with quaternion orientations of the IMUs
+	OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
+	// give the necessary inputs to IKTool
+	IKTool.setQuaternion(quatTable);
+	IKTool.setTime(clockDuration.count());
+	// calculate the IK and update the visualization
+	IKTool.update(true);
+	// push joint angles to vector
+	//jointAngles.push_back(IKTool.getQ());
+	if (print_roll_pitch_yaw)
+		printRollPitchYaw(xsensDataReader.GetMtwCallbacks(), eulerData);
+
+	if (enableMirrorTherapy)
+	{
+		// get the data we want to send to Java program
+		std::vector<double> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
+		// get a double array from the double vector
+		double* mirrorTherapyPacket = &trackerResults[0];
+		// send the data
+		myLink.SendDoubles(mirrorTherapyPacket, 6);
+	}
+	//std::cout << "Positions: " << "[" << trackerResults[0] << ", " << trackerResults[1] << ", " << trackerResults[2] << "]" << std::endl;
+	//std::cout << "Rotations: " << "[" << trackerResults[3] << ", " << trackerResults[4] << ", " << trackerResults[5] << "]" << std::endl;
 }
+
+
+
 
 
 
@@ -122,15 +145,11 @@ void ConnectToDataStream() {
 	// create Xsens connection object and connect the program to IMUs
 	OpenSimLive::XsensDataReader xsensDataReader;
 	xsensDataReader.InitiateStartupPhase();
-		
-
-
 
 	std::vector<XsEuler> eulerData(xsensDataReader.GetMtwCallbacks().size()); // Room to store euler data for each mtw
 	std::vector<XsQuaternion> quaternionData(xsensDataReader.GetMtwCallbacks().size()); // for data in quaternion form
 		
-	std::string calibratedModelFile;
-
+	std::string calibratedModelFile; // the file name of the calibrated OpenSim model will be stored here
 	bool mainDataLoop = true; // IMU data is being measured while this is true
 	bool continuousMode = false; // IK is calculated continuously while this is true
 	bool getDataKeyHit = false; // tells if the key that initiates a single IK calculation is hit
@@ -141,7 +160,7 @@ void ConnectToDataStream() {
 	bool print_roll_pitch_yaw = ("true" == ConfigReader("MainConfiguration.xml", "print_roll_pitch_yaw")); // boolean that tells whether to print roll, pitch and yaw of IMUs while calculating IK
 	bool resetClockOnContinuousMode = ("true" == ConfigReader("MainConfiguration.xml", "reset_clock_on_continuous_mode")); // if true, clock will be reset to zero when entering continuous mode; if false, the clock will be set to zero at calibration
 	bool enableMirrorTherapy = (ConfigReader("MainConfiguration.xml", "station_parent_body") != "none"); // if "none", then set to false
-	std::vector<std::vector<double>> jointAngles; // vector that will hold the joint angles
+	//std::vector<std::vector<double>> jointAngles; // vector that will hold the joint angles
 
 	auto clockStart = std::chrono::high_resolution_clock::now(); // get the starting time of IMU measurement loop
 	auto clockNow = std::chrono::high_resolution_clock::now(); // this value will be updated in the loop
@@ -164,7 +183,7 @@ void ConnectToDataStream() {
 	}
 	if (enableMirrorTherapy) {	
 		std::cout << "Waiting for client program to connect..." << std::endl;
-		myLink.Connect();
+		myLink.Connect(); // create socket connection
 		std::cout << "Client program connected." << std::endl;
 	}
 		
@@ -216,7 +235,7 @@ void ConnectToDataStream() {
 			// use high resolution clock to count time since the IMU measurement began
 			clockNow = std::chrono::high_resolution_clock::now();
 			clockDuration = clockNow - clockStart; // time since calibration
-			// fill a time series table with quaternion orientations of the IMUs
+			/*// fill a time series table with quaternion orientations of the IMUs
 			OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
 			// give the necessary inputs to IKTool
 			IKTool.setQuaternion(quatTable); // update the IMU orientations
@@ -239,7 +258,8 @@ void ConnectToDataStream() {
 				double* mirrorTherapyPacket = &trackerResults[0];
 				// send the data
 				myLink.SendDoubles(mirrorTherapyPacket, 6);
-			}
+			}*/
+			RunIKProcedure(xsensDataReader, quaternionData, IKTool, clockDuration, print_roll_pitch_yaw, enableMirrorTherapy, eulerData, myLink);
 			getDataKeyHit = false;
 		}
 
@@ -256,7 +276,7 @@ void ConnectToDataStream() {
 				// set current time as the time IK was previously calculated for the following iterations of the while-loop
 				clockPrev = clockNow;
 
-				// fill a time series table with quaternion orientations of the IMUs
+				/*// fill a time series table with quaternion orientations of the IMUs
 				OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
 				// give the necessary inputs to IKTool
 				IKTool.setQuaternion(quatTable);
@@ -264,7 +284,7 @@ void ConnectToDataStream() {
 				// calculate the IK and update the visualization
 				IKTool.update(true);
 				// push joint angles to vector
-				jointAngles.push_back(IKTool.getQ());
+				//jointAngles.push_back(IKTool.getQ());
 				if (print_roll_pitch_yaw)
 					printRollPitchYaw(xsensDataReader.GetMtwCallbacks(), eulerData);
 					
@@ -279,6 +299,8 @@ void ConnectToDataStream() {
 				}
 				//std::cout << "Positions: " << "[" << trackerResults[0] << ", " << trackerResults[1] << ", " << trackerResults[2] << "]" << std::endl;
 				//std::cout << "Rotations: " << "[" << trackerResults[3] << ", " << trackerResults[4] << ", " << trackerResults[5] << "]" << std::endl;
+				*/
+				RunIKProcedure(xsensDataReader, quaternionData, IKTool, clockDuration, print_roll_pitch_yaw, enableMirrorTherapy, eulerData, myLink);
 			}
 		}
 
@@ -313,7 +335,7 @@ void ConnectToDataStream() {
 
 	// when exiting, close socket communication
 	if (enableMirrorTherapy) {
-		std::cout << "Socket server closing down, sending final packet..." << std::endl;
+		std::cout << "Socket server closing down, sending final packet to disable client..." << std::endl;
 		// send a packet that exceeds the limits of the rotation values, indicating this cannot be a legitimate packet and shutting client down on the Java side
 		double socketShutdownArray[6] = { 500, 500, 500, 500, 500, 500 };
 		myLink.SendDoubles(socketShutdownArray, 6);
