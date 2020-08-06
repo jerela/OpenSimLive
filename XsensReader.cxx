@@ -670,7 +670,7 @@ void ConnectToDataStream() {
 			
 		} while (mainDataLoop);
 
-		std::cout << "Exiting main data loop!" << std::cout;
+		std::cout << "Exiting main data loop!" << std::endl;
 
 		// when exiting, close socket communication
 		if (enableMirrorTherapy) {

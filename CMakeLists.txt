@@ -135,9 +135,10 @@ set(XSENS_SOURCES XsensReader.cxx "${INCLUDE_CLASSES_PATH}/IMUPlacerLive.h"
 add_executable(XsensReader "${XSENS_SOURCES}")
 
 # link MT SDK libraries
-target_link_libraries(XsensReader PRIVATE "${MT_LIBRARY}"
+target_link_libraries(XsensReader PRIVATE "${MT_LIBRARY}" # Xsens MT libraries for IMU data retrieval
 						PRIVATE "${OPENSIM_LIBRARY}"
-						PRIVATE "${SIMBODY_LIBRARY}")
+						PRIVATE "${SIMBODY_LIBRARY}"
+						PRIVATE "ws2_32.lib") # winsock2 required for socket communication
 
 target_include_directories(XsensReader PRIVATE
 						"${INCLUDE_CLASSES_PATH}"
