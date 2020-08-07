@@ -764,16 +764,3 @@ bool Server::SendAck()
 		return false;
 	return true;
 }
-
-// Send a packet of bytes using a datagram
-bool Server::SendDatagram(char* pVals, int iLen)
-{
-	// TBD
-	return false;
-}
-
-int Server::RecvDatagram(char* pVals, int iLen)
-{
-	// TBD
-	return 0;
-}

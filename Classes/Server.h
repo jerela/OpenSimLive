@@ -53,10 +53,6 @@ class Server
 		int					RecvDoubles(double* pVals, int iLen);  			// Receive some doubles
 		int					RecvBytes(char* pVals, int iLen);  				// Receive some bytes
 
-		// NOTE: these are not currently implemented!
-		bool				SendDatagram(char* pVals, int iLen);			// Send a datagram
-		int					RecvDatagram(char* pVals, int iLen);  			// Receive a datagram
-
 	protected:		
 		bool				m_bReverse;							// Am I reversing byte order or not?
 		int					m_iPort;							// The port I'm listening on
