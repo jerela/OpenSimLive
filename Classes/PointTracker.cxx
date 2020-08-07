@@ -95,9 +95,16 @@ SimTK::Vec3 PointTracker::calculatePointLocation(SimTK::Vec3 localLocation, SimT
 SimTK::Vec3 PointTracker::calculatePointRotation(SimTK::State* s, OpenSim::Model* model, const int axisIndex, OpenSim::Body* body, OpenSim::Body* referenceBody) {
 	// Get the rotation of the parent body in ground reference frame
 	SimTK::Rotation mirroringBodyRotation = body->getRotationInGround(*s);
-	//SimTK::Rotation referenceBodyRotation = referenceBody->getRotationInGround(*s);
-	// rotate the rotation by pi radians around a suitable axis and transpose/invert it
-	SimTK::Rotation mirroredRotation = mirroringBodyRotation.setRotationFromAngleAboutAxis(3.14159265358979323, SimTK::CoordinateAxis(axisIndex)).transpose();
+	SimTK::Rotation referenceBodyRotation = referenceBody->getRotationInGround(*s);
+	// calculate the rotation of the body with respect to the reference body's coordinate system
+	SimTK::Rotation bodyWrtRefBodyRot = referenceBodyRotation.invert()* mirroringBodyRotation;
+	//SimTK::Rotation mirroredRotation = mirroringBodyRotation.setRotationFromAngleAboutAxis(3.14159265358979323, SimTK::CoordinateAxis(axisIndex)).transpose();
+	//SimTK::Rotation mirroredRotation = bodyWrtRefBodyRot.setRotationFromAngleAboutAxis(3.14159265358979323, SimTK::CoordinateAxis(axisIndex)).transpose();
+	// create a rotation of 180 degrees around a suitable axis, then transpose/invert it (same thing because we are working with rotation matrices)
+	SimTK::Rotation mirroringRotation;
+	mirroringRotation.setRotationFromAngleAboutAxis(3.14159265358979323, SimTK::CoordinateAxis(axisIndex)).transpose();
+	// rotate the rotation of the body w.r.t. reference body coordinate system by the rotation we created
+	SimTK::Rotation mirroredRotation = bodyWrtRefBodyRot * mirroringRotation;
 	// convert the 3x3 rotation matrix into body fixed XYZ euler angles
 	return mirroredRotation.convertRotationToBodyFixedXYZ();
 }
