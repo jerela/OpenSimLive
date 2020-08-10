@@ -131,6 +131,8 @@ void ConnectToDataStream() {
 
 	// create Xsens connection object and connect the program to IMUs
 	OpenSimLive::XsensDataReader xsensDataReader;
+	int desiredUpdateRate = stoi(ConfigReader("MainConfiguration.xml", "desired_update_rate"));
+	xsensDataReader.SetDesiredUpdateRate(desiredUpdateRate);
 	xsensDataReader.InitiateStartupPhase();
 
 	std::vector<XsEuler> eulerData(xsensDataReader.GetMtwCallbacks().size()); // Room to store euler data for each mtw
@@ -225,30 +227,6 @@ void ConnectToDataStream() {
 			// use high resolution clock to count time since the IMU measurement began
 			clockNow = std::chrono::high_resolution_clock::now();
 			clockDuration = clockNow - clockStart; // time since calibration
-			/*// fill a time series table with quaternion orientations of the IMUs
-			OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
-			// give the necessary inputs to IKTool
-			IKTool.setQuaternion(quatTable); // update the IMU orientations
-			IKTool.setTime(clockDuration.count()); // time since calibration given as the time of the state to perform IK on
-			// calculate the IK and update the visualization
-			IKTool.update(true);
-			// push joint angles to vector
-			//jointAngles.push_back(IKTool.getQ());
-				
-			// print the roll, pitch and yaw angles for all IMUs
-			if (print_roll_pitch_yaw)
-				printRollPitchYaw(xsensDataReader.GetMtwCallbacks(), eulerData);
-			//std::cout << "Positions: " << "[" << trackerResults[0] << ", " << trackerResults[1] << ", " << trackerResults[2] << "]" << std::endl;
-			//std::cout << "Rotations: " << "[" << trackerResults[3] << ", " << trackerResults[4] << ", " << trackerResults[5] << "]" << std::endl;
-			if (enableMirrorTherapy)
-			{
-				// get the data we want to send to Java program
-				std::vector<double> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
-				// get a double array from the double vector
-				double* mirrorTherapyPacket = &trackerResults[0];
-				// send the data
-				myLink.SendDoubles(mirrorTherapyPacket, 6);
-			}*/
 			RunIKProcedure(xsensDataReader, quaternionData, IKTool, clockDuration, print_roll_pitch_yaw, enableMirrorTherapy, eulerData, myLink);
 			getDataKeyHit = false;
 		}
@@ -266,30 +244,6 @@ void ConnectToDataStream() {
 				// set current time as the time IK was previously calculated for the following iterations of the while-loop
 				clockPrev = clockNow;
 
-				/*// fill a time series table with quaternion orientations of the IMUs
-				OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
-				// give the necessary inputs to IKTool
-				IKTool.setQuaternion(quatTable);
-				IKTool.setTime(clockDuration.count());
-				// calculate the IK and update the visualization
-				IKTool.update(true);
-				// push joint angles to vector
-				//jointAngles.push_back(IKTool.getQ());
-				if (print_roll_pitch_yaw)
-					printRollPitchYaw(xsensDataReader.GetMtwCallbacks(), eulerData);
-					
-				if (enableMirrorTherapy)
-				{
-					// get the data we want to send to Java program
-					std::vector<double> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
-					// get a double array from the double vector
-					double* mirrorTherapyPacket = &trackerResults[0];
-					// send the data
-					myLink.SendDoubles(mirrorTherapyPacket, 6);
-				}
-				//std::cout << "Positions: " << "[" << trackerResults[0] << ", " << trackerResults[1] << ", " << trackerResults[2] << "]" << std::endl;
-				//std::cout << "Rotations: " << "[" << trackerResults[3] << ", " << trackerResults[4] << ", " << trackerResults[5] << "]" << std::endl;
-				*/
 				RunIKProcedure(xsensDataReader, quaternionData, IKTool, clockDuration, print_roll_pitch_yaw, enableMirrorTherapy, eulerData, myLink);
 			}
 		}

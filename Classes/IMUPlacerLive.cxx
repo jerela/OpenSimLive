@@ -75,8 +75,7 @@ bool IMUPlacerLive::run(bool visualizeResults) {
     // Check consistent heading correction specification
     // both base_heading_axis and base_imu_label should be specified
     // finer error checking is done downstream
-    bool performHeadingRequested =
-        !get_base_heading_axis().empty() && !get_base_imu_label().empty();
+    bool performHeadingRequested = !get_base_heading_axis().empty() && !get_base_imu_label().empty();
     if (performHeadingRequested) {
         std::string imu_axis = OpenSim::IO::Lowercase(get_base_heading_axis());
 
@@ -100,13 +99,8 @@ bool IMUPlacerLive::run(bool visualizeResults) {
 
         // Compute rotation matrix so that (e.g. "pelvis_imu"+ SimTK::ZAxis)
         // lines up with model forward (+X)
-        SimTK::Vec3 headingRotationVec3 =
-            OpenSim::OpenSenseUtilities::computeHeadingCorrection(*_model, quatTable,
-                get_base_imu_label(), directionOnIMU);
-        SimTK::Rotation headingRotation(
-            SimTK::BodyOrSpaceType::SpaceRotationSequence,
-            headingRotationVec3[0], SimTK::XAxis, headingRotationVec3[1],
-            SimTK::YAxis, headingRotationVec3[2], SimTK::ZAxis);
+        SimTK::Vec3 headingRotationVec3 = OpenSim::OpenSenseUtilities::computeHeadingCorrection(*_model, quatTable, get_base_imu_label(), directionOnIMU);
+        SimTK::Rotation headingRotation(SimTK::BodyOrSpaceType::SpaceRotationSequence, headingRotationVec3[0], SimTK::XAxis, headingRotationVec3[1], SimTK::YAxis, headingRotationVec3[2], SimTK::ZAxis);
 
         OpenSim::OpenSenseUtilities::rotateOrientationTable(quatTable, headingRotation);
     }

@@ -142,7 +142,7 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
     }
     catch (std::exception& e) { std::cout << e.what(); }
     catch (...) { std::cout << "Initialization exception!" << std::endl; }
-    //std::cout << "System initialized." << std::endl;
+    std::cout << "System initialized." << std::endl;
 
     // if we want to visualize results, set visualizer into sampling mode so we can update the joint angle values later
     if (visualizeResults) {
@@ -187,8 +187,8 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
         model_.getVisualizer().show(s_);
         model_.getVisualizer().getSimbodyVisualizer().setShowSimTime(true);
         model_.getVisualizer().getSimbodyVisualizer().setShowFrameRate(true);
+        std::cout << "Desired visualizer frame rate is " << model_.getVisualizer().getSimbodyVisualizer().getDesiredFrameRate() << std::endl;
     }
-    std::cout << "Desired visualizer frame rate is " << model_.getVisualizer().getSimbodyVisualizer().getDesiredFrameRate() << std::endl;
 
     // track the state at time defined for it
     ikSolver.track(s_);
@@ -248,14 +248,12 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model
     model.setUseVisualizer(false);
     SimTK::State& s0 = model.initSystem();
     // create the solver given the input data
-    const double accuracy = 1e-4;
+    const double accuracy = 1e-1;
     OpenSim::InverseKinematicsSolver ikSolver(model, mRefs, oRefs, coordinateReferences);
     ikSolver.setAccuracy(accuracy);
 
     auto& times = oRefs.getTimes();
-    std::shared_ptr<OpenSim::TimeSeriesTable> modelOrientationErrors(
-        get_report_errors() ? new OpenSim::TimeSeriesTable()
-        : nullptr);
+    std::shared_ptr<OpenSim::TimeSeriesTable> modelOrientationErrors(get_report_errors() ? new OpenSim::TimeSeriesTable() : nullptr);
 
     // set the time of state s0
     s0.updTime() = times[0];
@@ -299,7 +297,8 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model
     s_.updTime() = time_;
     // now insert q into the original visualized state and show them
     //model_.getVisualizer().getSimbodyVisualizer().flushFrames();
-    model_.getVisualizer().show(s_);
+    if (visualizeResults)
+        model_.getVisualizer().show(s_);
     //model_.getVisualizer().getSimbodyVisualizer().drawFrameNow(s_);
 
     // update the time of s0 so that when we realize the report, the correct timestamp is used for the joint angle values

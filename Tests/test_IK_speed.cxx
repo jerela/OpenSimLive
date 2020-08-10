@@ -39,7 +39,7 @@ OpenSim::TimeSeriesTable_<SimTK::Quaternion> fillQuaternionTable(std::vector<Mtw
 		// match the ID of the sensor to the name of the sensor on the model
 		//sensorNameInModel = sensorIdToLabel(currentSensorId, "C:/Users/wksadmin/source/repos/OpenSimLive/Config/SensorMappings.xml");
 		sensorNameInModel = sensorIdToLabel(currentSensorId, OPENSIMLIVE_ROOT+"/Config/"+ConfigReader("MainConfiguration.xml", "mappings_file"));
-		
+
 		// populate the vector of sensor names
 		sensorNameVector.push_back(sensorNameInModel);
 
@@ -96,6 +96,8 @@ void ConnectToDataStream(int inputSeconds) {
 
 	// create Xsens connection object and connect the program to IMUs
 	OpenSimLive::XsensDataReader xsensDataReader;
+	int desiredUpdateRate = stoi(ConfigReader("MainConfiguration.xml", "desired_update_rate"));
+	xsensDataReader.SetDesiredUpdateRate(desiredUpdateRate);
 	xsensDataReader.InitiateStartupPhase();
 
 	std::vector<XsQuaternion> quaternionData(xsensDataReader.GetMtwCallbacks().size()); // for data in quaternion form
@@ -138,23 +140,24 @@ void ConnectToDataStream(int inputSeconds) {
 		IKTool.setPointTrackerEnabled(false);
 	}
 
-
+	std::cout << "Entering measurement loop." << std::endl;
+	int iteration = 0;
 	auto clockStart = std::chrono::high_resolution_clock::now(); // get the starting time of IMU measurement loop
 	std::chrono::duration<double> clockDuration;
 
-	int iteration = 0;
 
 	do {
-
 		// get IMU orientation data in quaternions
 		quaternionData = xsensDataReader.GetQuaternionData(quaternionData);
-		
+
 		// fill a time series table with quaternion orientations of the IMUs
 		OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
+
 		// give the necessary inputs to IKTool
 		IKTool.setQuaternion(quatTable);
 		clockDuration = (std::chrono::high_resolution_clock::now() - clockStart);
 		IKTool.setTime(clockDuration.count());
+
 		// calculate the IK and update the visualization
 		IKTool.update(false);
 
@@ -168,12 +171,12 @@ void ConnectToDataStream(int inputSeconds) {
 
 		++iteration;
 		
-	} while (clockDuration.count() * 1000000 < inputSeconds);
+	} while (clockDuration.count() < inputSeconds);
 
-	double finalTime = clockDuration.count() * 1000000;
+	double finalTime = clockDuration.count();
 
 	std::cout << "Performed " << iteration << " iterations in " << finalTime << " seconds." << std::endl;
-	std::cout << "Frame rate: " << ((double)iteration / finalTime * 1000000) << " iterations per second." << std::endl;
+	std::cout << "Frame rate: " << ((double)iteration / finalTime) << " iterations per second." << std::endl;
 
 	// close the connection to IMUs
 	xsensDataReader.CloseConnection();
