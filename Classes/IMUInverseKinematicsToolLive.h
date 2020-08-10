@@ -39,7 +39,7 @@ namespace OpenSimLive {
 		void setPointTrackerBodyName(const std::string& bodyName) { pointTrackerBodyName_ = bodyName; }
 		void setSaveIKResults(bool save) { save_ik_results_ = save; }
 		bool getSaveIKResults() { return save_ik_results_; }
-		bool setReportErrors(bool report) { report_errors = report; }
+		void setReportErrors(bool report) { report_errors = report; }
 
 	private:
 		// PRIVATE VARIABLES

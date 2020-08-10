@@ -153,3 +153,7 @@ target_include_directories(XsensReader PUBLIC
 						   "${MTSDK_PATH}"
 						   "${MT_LIB_PATH}"
 						   )
+
+
+# add tests subfolder
+add_subdirectory("Tests")
