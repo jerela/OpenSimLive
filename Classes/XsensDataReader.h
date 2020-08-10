@@ -158,8 +158,8 @@ namespace OpenSimLive {
 
 		// PUBLIC METHODS
 		void InitiateStartupPhase(); // starts the connection from scratch
-		std::vector<XsQuaternion> XsensDataReader::GetQuaternionData(); // returns IMU orientations as quaternions
-		std::vector<XsEuler> XsensDataReader::GetEulerData(); // returns IMU orientations as Euler angles
+		std::vector<XsQuaternion> XsensDataReader::GetQuaternionData(std::vector<XsQuaternion>& quaternionData); // returns IMU orientations as quaternions
+		std::vector<XsEuler> XsensDataReader::GetEulerData(std::vector<XsEuler>& eulerData); // returns IMU orientations as Euler angles
 		void CloseConnection(); // shuts down the connection
 		std::vector<MtwCallback*> GetMtwCallbacks() { return mtwCallbacks_; } // returns a pointer to mtwCallbacks (returns mtwCallbacks_, which is a pointer itself)
 		void SetDesiredUpdateRate(int rate) { desiredUpdateRate_ = rate; } // sets the desired orientation measurement frequency

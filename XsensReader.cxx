@@ -194,9 +194,9 @@ void ConnectToDataStream() {
 	do
 	{
 		// get IMU orientation data in quaternions
-		quaternionData = xsensDataReader.GetQuaternionData();
+		quaternionData = xsensDataReader.GetQuaternionData(quaternionData);
 		if (print_roll_pitch_yaw)
-			eulerData = xsensDataReader.GetEulerData();
+			eulerData = xsensDataReader.GetEulerData(eulerData);
 		// update the boolean value to see if new data is available since orientation data was last retrieved
 		bool newDataAvailable = xsensDataReader.GetNewDataAvailable();
 

@@ -251,9 +251,9 @@ void XsensDataReader::InitiateStartupPhase() {
 }
 		
 
-std::vector<XsQuaternion> XsensDataReader::GetQuaternionData() {
+std::vector<XsQuaternion> XsensDataReader::GetQuaternionData(std::vector<XsQuaternion>& quaternionData) {
 	newDataAvailable_ = false;
-	std::vector<XsQuaternion> quaternionData(mtwCallbacks_.size());
+	//std::vector<XsQuaternion> quaternionData(mtwCallbacks_.size());
 	for (size_t i = 0; i < mtwCallbacks_.size(); ++i)
 	{
 		if (mtwCallbacks_[i]->dataAvailable())
@@ -269,9 +269,9 @@ std::vector<XsQuaternion> XsensDataReader::GetQuaternionData() {
 
 
 
-std::vector<XsEuler> XsensDataReader::GetEulerData() {
+std::vector<XsEuler> XsensDataReader::GetEulerData(std::vector<XsEuler>& eulerData) {
 	newDataAvailable_ = false;
-	std::vector<XsEuler> eulerData(mtwCallbacks_.size());
+	//std::vector<XsEuler> eulerData(mtwCallbacks_.size());
 	for (size_t i = 0; i < mtwCallbacks_.size(); ++i)
 	{
 		if (mtwCallbacks_[i]->dataAvailable())
