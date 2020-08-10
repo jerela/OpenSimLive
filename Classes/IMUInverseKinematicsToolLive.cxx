@@ -77,8 +77,11 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
     //OpenSim::TableReporter* ikReporter = nullptr;
     //if (reporterExists == nullptr) {
         // Add a reporter to get IK computed coordinate values out
+    if (save_ik_results_)
+    {
         ikReporter_ = new OpenSim::TableReporter();
         ikReporter_->setName("ik_reporter");
+    }
         //reuse_reporter = false;
     //}
     //else
@@ -92,13 +95,15 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
     // Hookup reporter inputs to the individual coordinate outputs
     // and lock coordinates that are translational since they cannot be
     for (auto& coord : coordinates) {
-        ikReporter_->updInput("inputs").connect(coord.getOutput("value"), coord.getName());
+        if (save_ik_results_)
+            ikReporter_->updInput("inputs").connect(coord.getOutput("value"), coord.getName());
         if (coord.getMotionType() == OpenSim::Coordinate::Translational) {
             coord.setDefaultLocked(true);
         }
     }
 
     //if (!reuse_reporter) {
+    if (save_ik_results_)
         model_.addComponent(ikReporter_);
     //}
     //TimeSeriesTable_<SimTK::Quaternion> quatTable(orientationsFileName);
@@ -120,7 +125,7 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
     //quatTable.trim(getStartTime(), getEndTime());
 
 
-
+    // convert quaternions to rotation data type
     OpenSim::TimeSeriesTable_<SimTK::Rotation> orientationsData = OpenSim::OpenSenseUtilities::convertQuaternionsToRotations(quatTable);
 
     OpenSim::OrientationsReference oRefs(orientationsData, &get_orientation_weights());
@@ -196,7 +201,8 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
     if (visualizeResults) {
         model_.getVisualizer().show(s_);
     }
-    model_.realizeReport(s_);
+    if (get_report_errors() || save_ik_results_)
+        model_.realizeReport(s_);
 
     // get coordinates from state s_
     SimTK::Vector stateQ(s_.getQ());

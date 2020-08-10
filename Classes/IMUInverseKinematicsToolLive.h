@@ -37,6 +37,9 @@ namespace OpenSimLive {
 		void setSensorToOpenSimRotations(const SimTK::Vec3& newRotations) { sensor_to_opensim_rotations = newRotations; }
 		void setPointTrackerReferenceBodyName(const std::string& referenceBodyName) { pointTrackerReferenceBodyName_ = referenceBodyName; }
 		void setPointTrackerBodyName(const std::string& bodyName) { pointTrackerBodyName_ = bodyName; }
+		void setSaveIKResults(bool save) { save_ik_results_ = save; }
+		bool getSaveIKResults() { return save_ik_results_; }
+		bool setReportErrors(bool report) { report_errors = report; }
 
 	private:
 		// PRIVATE VARIABLES
@@ -53,6 +56,7 @@ namespace OpenSimLive {
 		std::vector<double> pointTrackerPositionsAndOrientations_;
 		std::string pointTrackerBodyName_ = "";
 		std::string pointTrackerReferenceBodyName_ = "pelvis";
+		bool save_ik_results_ = false;
 
 		// PRIVATE METHODS
 		std::string OpenSimLiveRootDirectory_ = "";

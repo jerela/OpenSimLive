@@ -94,19 +94,6 @@ std::string calibrateModelFromSetupFile(const std::string& IMUPlacerSetupFile, c
 	return IMUPlacer.get_output_model_file();
 }
 
-// This function calculates the values for all joint angles of the model based on live IMU data.
-/*std::vector<double> OpenSimInverseKinematicsFromIMUs(std::string modelFileName, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable, double duration, bool initialCall) {
-	// Create a new IMUInverseKinematicsToolLive object
-	OpenSimLive::IMUInverseKinematicsToolLive IKTool(modelFileName, quatTable);
-	// set current time
-	IKTool.setTime(duration);
-	// run IK
-	IKTool.run(true);
-	// return the calculated joint angles
-	return IKTool.getQ();
-}*/
-
-
 
 void RunIKProcedure(OpenSimLive::XsensDataReader& xsensDataReader, std::vector<XsQuaternion>& quaternionData, OpenSimLive::IMUInverseKinematicsToolLive& IKTool, std::chrono::duration<double>& clockDuration, const bool print_roll_pitch_yaw, const bool enableMirrorTherapy, const std::vector<XsEuler>& eulerData, Server& myLink) {
 	// fill a time series table with quaternion orientations of the IMUs
@@ -156,6 +143,7 @@ void ConnectToDataStream() {
 	bool calibrateModelKeyHit = false; // tells if the key that initiates model calibration is hit
 	bool startContinuousModeKeyHit = false; // tells if the key that starts continuous mode is hit
 	bool stopContinuousModeKeyHit = false; // tells if the key that ends continuous mode is hit
+	bool saveIKResults = ("true" == ConfigReader("MainConfiguration.xml", "save_ik_results")); // Boolean that determines if we want to save IK results (joint angles and their errors) to file when the program finishes. This can be very memory-heavy especially with long measurements.
 	int continuousModeMsDelay = std::stoi(ConfigReader("MainConfiguration.xml", "continuous_mode_ms_delay")); // delay between consequent IK calculations in consequent mode, in milliseconds
 	bool print_roll_pitch_yaw = ("true" == ConfigReader("MainConfiguration.xml", "print_roll_pitch_yaw")); // boolean that tells whether to print roll, pitch and yaw of IMUs while calculating IK
 	bool resetClockOnContinuousMode = ("true" == ConfigReader("MainConfiguration.xml", "reset_clock_on_continuous_mode")); // if true, clock will be reset to zero when entering continuous mode; if false, the clock will be set to zero at calibration
@@ -168,6 +156,8 @@ void ConnectToDataStream() {
 	std::chrono::duration<double> clockDuration; std::chrono::duration<double> prevDuration;
 
 	OpenSimLive::IMUInverseKinematicsToolLive IKTool; // object that calculates IK
+	IKTool.setSaveIKResults(saveIKResults);
+	IKTool.setReportErrors(saveIKResults);
 
 	// get the sensor to opensim rotations for IMUInverseKinematicsToolLive
 	SimTK::Vec3 sensorToOpenSimRotations = get_sensor_to_opensim_rotations();
@@ -175,7 +165,7 @@ void ConnectToDataStream() {
 	// SOCKET COMMUNICATION
 	bool bResult = false;
 	int port = std::stoi(ConfigReader("MainConfiguration.xml", "socket_port"));
-	int dataport = -1;
+	int dataport = -1; // datagram port, not in use
 	Server myLink(port, dataport, &bResult);
 	if (!bResult)
 	{
@@ -344,8 +334,11 @@ void ConnectToDataStream() {
 	}
 
 	// when exiting, save acquired data to file
-	std::cout << "Reporting IK to file..." << std::endl;
-	IKTool.reportToFile();
+	if (IKTool.getSaveIKResults())
+	{
+		std::cout << "Reporting IK to file..." << std::endl;
+		IKTool.reportToFile();
+	}
 
 	// close the connection to IMUs
 	xsensDataReader.CloseConnection();
