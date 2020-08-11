@@ -229,7 +229,7 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
 
 // This function calculates the joint angle values for a new state s0, then updates state s with those values and redraws the visualization.
 void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults) {
-
+    
     // Convert to OpenSim Frame
     const SimTK::Vec3& rotations = get_sensor_to_opensim_rotations();
     SimTK::Rotation sensorToOpenSim = SimTK::Rotation(SimTK::BodyOrSpaceType::SpaceRotationSequence, rotations[0], SimTK::XAxis, rotations[1], SimTK::YAxis, rotations[2], SimTK::ZAxis);
@@ -246,14 +246,14 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model
 
     // make sure that we don't create an additional visualization window when we initialize system
     model.setUseVisualizer(false);
-    SimTK::State& s0 = model.initSystem();
+    SimTK::State& s0 = model.initSystem(); // initSystem causes a memory leak!
     // create the solver given the input data
     const double accuracy = 1e-1;
     OpenSim::InverseKinematicsSolver ikSolver(model, mRefs, oRefs, coordinateReferences);
     ikSolver.setAccuracy(accuracy);
 
     auto& times = oRefs.getTimes();
-    std::shared_ptr<OpenSim::TimeSeriesTable> modelOrientationErrors(get_report_errors() ? new OpenSim::TimeSeriesTable() : nullptr);
+    //std::shared_ptr<OpenSim::TimeSeriesTable> modelOrientationErrors(get_report_errors() ? new OpenSim::TimeSeriesTable() : nullptr);
 
     // set the time of state s0
     s0.updTime() = times[0];
@@ -262,10 +262,13 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model
     
     // Create place holder for orientation errors, populate based on user pref.
     // according to report_errors property
-    int nos = ikSolver.getNumOrientationSensorsInUse();
-    SimTK::Array_<double> orientationErrors(nos, 0.0);
-    // compute the orientation errors and save them into orientationErrors
-    ikSolver.computeCurrentOrientationErrors(orientationErrors);
+    if (get_report_errors())
+    {
+        int nos = ikSolver.getNumOrientationSensorsInUse();
+        SimTK::Array_<double> orientationErrors(nos, 0.0);
+        // compute the orientation errors and save them into orientationErrors
+        ikSolver.computeCurrentOrientationErrors(orientationErrors);
+    }
 
     // get coordinates from state s0
     SimTK::Vector stateQ(s0.getQ());
@@ -304,6 +307,8 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model
     // update the time of s0 so that when we realize the report, the correct timestamp is used for the joint angle values
     s0.updTime() = time_;
     if (get_report_errors()) {
+        int nos = ikSolver.getNumOrientationSensorsInUse();
+        SimTK::Array_<double> orientationErrors(nos, 0.0);
         // calculate orientation errors into orientationErrors
         ikSolver.computeCurrentOrientationErrors(orientationErrors);
         // append orientationErrors into modelOrientationErrors_
@@ -313,7 +318,8 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model
     //std::cout << model.updBodySet().get("femur_r").findStationLocationInAnotherFrame(s0, { 0,0,0 }, model.getGround()) << std::endl;
 
     // update IK values to report for time defined for s0
-    model_.realizeReport(s0);
+    if (save_ik_results_)
+        model_.realizeReport(s0);
 
 }
 
