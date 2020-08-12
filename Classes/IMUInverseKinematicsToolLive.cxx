@@ -228,7 +228,7 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
 
 
 // This function calculates the joint angle values for a new state s0, then updates state s with those values and redraws the visualization.
-void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults) {
+void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults) {
     
     // Convert to OpenSim Frame
     const SimTK::Vec3& rotations = get_sensor_to_opensim_rotations();
@@ -245,20 +245,24 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model
     SimTK::Array_<OpenSim::CoordinateReference> coordinateReferences;
 
     // make sure that we don't create an additional visualization window when we initialize system
-    model.setUseVisualizer(false);
-    SimTK::State& s0 = model.initSystem(); // initSystem causes a memory leak!
+    //model.setUseVisualizer(false);
+    //SimTK::State& s0 = model.initSystem(); // initSystem causes a memory leak!
+    //s_ = model.initSystem();
+    //model.buildSystem();
+    //s_ = model.initializeState();
     // create the solver given the input data
     const double accuracy = 1e-1;
-    OpenSim::InverseKinematicsSolver ikSolver(model, mRefs, oRefs, coordinateReferences);
+    OpenSim::InverseKinematicsSolver ikSolver(model_, mRefs, oRefs, coordinateReferences);
     ikSolver.setAccuracy(accuracy);
 
     auto& times = oRefs.getTimes();
     //std::shared_ptr<OpenSim::TimeSeriesTable> modelOrientationErrors(get_report_errors() ? new OpenSim::TimeSeriesTable() : nullptr);
 
     // set the time of state s0
-    s0.updTime() = times[0];
+    //s0.updTime() = times[0];
+    s_.updTime() = times[0];
     // assemble state s0, solving the initial joint angles in the least squares sense
-    ikSolver.assemble(s0);
+    ikSolver.assemble(s_);
     
     // Create place holder for orientation errors, populate based on user pref.
     // according to report_errors property
@@ -270,10 +274,13 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model
         ikSolver.computeCurrentOrientationErrors(orientationErrors);
     }
 
+    /*
     // get coordinates from state s0
-    SimTK::Vector stateQ(s0.getQ());
+    //SimTK::Vector stateQ(s0.getQ());
+    SimTK::Vector stateQ(s_.getQ());
     // get number of coordinates (joint angles) in the model
-    int numCoordinates = model.getNumCoordinates();
+    //int numCoordinates = model.getNumCoordinates();
+    int numCoordinates = model_.getNumCoordinates();
     // initialize vector that holds the joint angle values
     std::vector<double> q(numCoordinates);
     for (int j = 0; j < numCoordinates; j++) {
@@ -285,16 +292,7 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model
     }
 
     // set private variable q_ to equal q so that we can get the latest joint angle values with getQ
-    setQ(q);
-
-    if (getPointTrackerEnabled() == true) {
-        // calculate point location and orientation of its base body segment for mirror therapy
-        model.realizePosition(s0); // Required to advance system to a stage where we can use pointTracker
-        // Run PointTracker functions
-        std::vector<double> trackerResults = runTracker(&s0, &model, getPointTrackerBodyName(), getPointTrackerReferenceBodyName());
-        // Save the results to a private variable
-        setPointTrackerPositionsAndOrientations(trackerResults);
-    }
+    setQ(q);*/
 
     // update the time to be shown in the visualization
     s_.updTime() = time_;
@@ -305,21 +303,36 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::Model& model
     //model_.getVisualizer().getSimbodyVisualizer().drawFrameNow(s_);
 
     // update the time of s0 so that when we realize the report, the correct timestamp is used for the joint angle values
-    s0.updTime() = time_;
+    //s0.updTime() = time_;
+    //s_.updTime() = time_;
     if (get_report_errors()) {
         int nos = ikSolver.getNumOrientationSensorsInUse();
         SimTK::Array_<double> orientationErrors(nos, 0.0);
         // calculate orientation errors into orientationErrors
         ikSolver.computeCurrentOrientationErrors(orientationErrors);
         // append orientationErrors into modelOrientationErrors_
-        modelOrientationErrors_->appendRow(s0.getTime(), orientationErrors);
+        //modelOrientationErrors_->appendRow(s0.getTime(), orientationErrors);
+        modelOrientationErrors_->appendRow(s_.getTime(), orientationErrors);
     }
 
     //std::cout << model.updBodySet().get("femur_r").findStationLocationInAnotherFrame(s0, { 0,0,0 }, model.getGround()) << std::endl;
 
+    if (getPointTrackerEnabled() == true) {
+        s_.updTime() = times[0];
+        // calculate point location and orientation of its base body segment for mirror therapy
+        //model.realizePosition(s0); // Required to advance system to a stage where we can use pointTracker
+        model_.realizePosition(s_);
+        // Run PointTracker functions
+        //std::vector<double> trackerResults = runTracker(&s0, &model, getPointTrackerBodyName(), getPointTrackerReferenceBodyName());
+        std::vector<double> trackerResults = runTracker(&s_, &model_, getPointTrackerBodyName(), getPointTrackerReferenceBodyName());
+        // Save the results to a private variable
+        setPointTrackerPositionsAndOrientations(trackerResults);
+    }
+
     // update IK values to report for time defined for s0
     if (save_ik_results_)
-        model_.realizeReport(s0);
+        model_.realizeReport(s_);
+        //model_.realizeReport(s0);
 
 }
 
@@ -370,6 +383,6 @@ bool IMUInverseKinematicsToolLive::run(const bool visualizeResults)
 // This function updates the IK after it's been initially run
 bool IMUInverseKinematicsToolLive::update(const bool visualizeResults)
 {
-    updateInverseKinematics(get_model(), get_quat(), visualizeResults);
+    updateInverseKinematics(get_quat(), visualizeResults);
     return true;
 }
