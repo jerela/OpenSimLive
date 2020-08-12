@@ -28,7 +28,7 @@ std::vector<double> PointTracker::runTracker(SimTK::State* s, OpenSim::Model* mo
 	// Get the location of the station in its parent body's reference frame
 	SimTK::Vec3 stationLocationLocal(findStationLocationInLocalFrame(model, bodyName));
 	// Calculate the location of the station in another body's reference frame
-	SimTK::Vec3 pointLocation = calculatePointLocation(stationLocationLocal, s, body, referenceBody);
+	SimTK::Vec3 pointLocation = calculatePointLocation(stationLocationLocal, *s, body, referenceBody);
 	// Calculate the rotation of the station's original parent frame (body) and mirror those orientations with respect to an axis.
 	SimTK::Vec3 mirroredEuler = calculatePointRotation(s, model, 2, body, referenceBody);
 	// Reflect the location of the station in another body's reference frame with respect to an axis
@@ -77,8 +77,8 @@ SimTK::Vec3 PointTracker::findStationLocationInLocalFrame(OpenSim::Model* model,
 }
 
 // This function calculates the location of the point in another body's reference frame
-SimTK::Vec3 PointTracker::calculatePointLocation(SimTK::Vec3 localLocation, SimTK::State* s, OpenSim::Body* body, OpenSim::Body* referenceBody) {
-	return body->findStationLocationInAnotherFrame(*s, localLocation, *referenceBody);
+SimTK::Vec3 PointTracker::calculatePointLocation(SimTK::Vec3 localLocation, const SimTK::State& s, OpenSim::Body* body, OpenSim::Body* referenceBody) {
+	return body->findStationLocationInAnotherFrame(s, localLocation, *referenceBody);
 }
 
 // This function calculates the rotation of the station by getting the rotation of its parent frame (body) and mirroring it with respect to the sagittal plane

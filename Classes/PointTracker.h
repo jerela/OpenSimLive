@@ -25,7 +25,7 @@ namespace OpenSimLive {
 	private:
 		// PRIVATE METHODS
 		SimTK::Vec3 findStationLocationInLocalFrame(OpenSim::Model* model, const std::string& bodyName);
-		SimTK::Vec3 calculatePointLocation(SimTK::Vec3 localLocation, SimTK::State* s, OpenSim::Body* body, OpenSim::Body* referenceBody);
+		SimTK::Vec3 calculatePointLocation(SimTK::Vec3 localLocation, const SimTK::State& s, OpenSim::Body* body, OpenSim::Body* referenceBody);
 		SimTK::Vec3 calculatePointRotation(SimTK::State* s, OpenSim::Model* model, const int axisIndex, OpenSim::Body* body, OpenSim::Body* referenceBody);
 		SimTK::Vec3 reflectWithRespectToAxis(SimTK::Vec3 pointLocation, const int axisIndex);
 		

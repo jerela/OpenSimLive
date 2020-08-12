@@ -133,8 +133,9 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
 
     SimTK::Array_<OpenSim::CoordinateReference> coordinateReferences;
 
-    if (visualizeResults)
+    if (visualizeResults){
         model_.setUseVisualizer(true);
+    }
 
     std::cout << "Initializing system." << std::endl;
     try {
@@ -309,7 +310,9 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
 
     if (getPointTrackerEnabled() == true) {
         // calculate point location and orientation of its base body segment for mirror therapy
-        s_.advanceSystemToStage(SimTK::Stage::Position); // Required to advance (or move back) system to a stage where we can use pointTracker
+        //s_.advanceSystemToStage(SimTK::Stage::Position);
+        //model_.realizePosition(s_);
+        model_.updMultibodySystem().realize(s_, SimTK::Stage::Position); // Required to advance (or move back) system to a stage where we can use pointTracker
         // Run PointTracker functions
         std::vector<double> trackerResults = runTracker(&s_, &model_, getPointTrackerBodyName(), getPointTrackerReferenceBodyName());
         // Save the results to a private variable
