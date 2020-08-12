@@ -249,7 +249,7 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
     //SimTK::State& s0 = model.initSystem(); // initSystem causes a memory leak!
     
     // create the solver given the input data
-    const double accuracy = 1e-1;
+    const double accuracy = 1e-4;
     OpenSim::InverseKinematicsSolver ikSolver(model_, mRefs, oRefs, coordinateReferences);
     ikSolver.setAccuracy(accuracy);
 
@@ -316,11 +316,13 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
     //std::cout << model.updBodySet().get("femur_r").findStationLocationInAnotherFrame(s0, { 0,0,0 }, model.getGround()) << std::endl;
 
     if (getPointTrackerEnabled() == true) {
+        std::cout << s_.getSystemStage() << std::endl;
         // calculate point location and orientation of its base body segment for mirror therapy
         //model.realizePosition(s0); // Required to advance system to a stage where we can use pointTracker
         //s_.updTime() = times[0];
-        
-        //model_.realizePosition(s_);
+        //model_.realizeReport(s_);
+        s_.advanceSystemToStage(SimTK::Stage::Position);
+        std::cout << s_.getSystemStage() << std::endl;
         // Run PointTracker functions
         //std::vector<double> trackerResults = runTracker(&s0, &model, getPointTrackerBodyName(), getPointTrackerReferenceBodyName());
         std::vector<double> trackerResults = runTracker(&s_, &model_, getPointTrackerBodyName(), getPointTrackerReferenceBodyName());
