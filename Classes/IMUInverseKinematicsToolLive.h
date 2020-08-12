@@ -69,6 +69,7 @@ namespace OpenSimLive {
 		std::string getPointTrackerBodyName() { return pointTrackerBodyName_; }
 		std::string getPointTrackerReferenceBodyName() { return pointTrackerReferenceBodyName_; }
 		void updateInverseKinematics(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults = false);
+		void updateJointAngleVariable(SimTK::State& s, OpenSim::Model& model);
 
 	};  // end of class
 

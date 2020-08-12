@@ -223,6 +223,24 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
 
 
 
+void IMUInverseKinematicsToolLive::updateJointAngleVariable(SimTK::State& s, OpenSim::Model& model) {
+    
+    // get coordinates from state s
+    SimTK::Vector stateQ(s.getQ());
+    // get number of coordinates (joint angles) in the model
+    int numCoordinates = model.getNumCoordinates();
+    // initialize vector that holds the joint angle values
+    std::vector<double> q(numCoordinates);
+    for (int j = 0; j < numCoordinates; j++) {
+        // fill q with angle values for different joint angles
+        q[j] = stateQ[j];
+    }
+
+    // set private variable q_ to equal q so that we can get the latest joint angle values with getQ
+    setQ(q);
+}
+
+
 
 
 
@@ -237,27 +255,21 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
     // Rotate data so Y-Axis is up
     OpenSim::OpenSenseUtilities::rotateOrientationTable(quatTable, sensorToOpenSim);
 
+    // convert quaternion orientation data of IMUs to rotation matrix form
     OpenSim::TimeSeriesTable_<SimTK::Rotation> orientationsData = OpenSim::OpenSenseUtilities::convertQuaternionsToRotations(quatTable);
 
     OpenSim::OrientationsReference oRefs(orientationsData, &get_orientation_weights());
     OpenSim::MarkersReference mRefs{};
 
     SimTK::Array_<OpenSim::CoordinateReference> coordinateReferences;
-
-    // make sure that we don't create an additional visualization window when we initialize system
-    //model.setUseVisualizer(false);
-    //SimTK::State& s0 = model.initSystem(); // initSystem causes a memory leak!
     
     // create the solver given the input data
     const double accuracy = 1e-4;
     OpenSim::InverseKinematicsSolver ikSolver(model_, mRefs, oRefs, coordinateReferences);
     ikSolver.setAccuracy(accuracy);
 
-    auto& times = oRefs.getTimes();
-    //std::shared_ptr<OpenSim::TimeSeriesTable> modelOrientationErrors(get_report_errors() ? new OpenSim::TimeSeriesTable() : nullptr);
-
     // set the time of state s0
-    //s0.updTime() = times[0];
+    auto& times = oRefs.getTimes();
     s_.updTime() = times[0];
     // assemble state s0, solving the initial joint angles in the least squares sense
     ikSolver.assemble(s_);
@@ -272,27 +284,10 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
         ikSolver.computeCurrentOrientationErrors(orientationErrors);
     }
 
-    /*
-    // get coordinates from state s0
-    //SimTK::Vector stateQ(s0.getQ());
-    SimTK::Vector stateQ(s_.getQ());
-    // get number of coordinates (joint angles) in the model
-    //int numCoordinates = model.getNumCoordinates();
-    int numCoordinates = model_.getNumCoordinates();
-    // initialize vector that holds the joint angle values
-    std::vector<double> q(numCoordinates);
-    for (int j = 0; j < numCoordinates; j++) {
-        // fill q with angle values for different joint angles
-        q[j] = stateQ[j];
-        //    std::cout << "Q" << j << ": " << q[j] << std::endl;
-        // insert the joint angle values calculated from state s0 into state s, which we use for visualization
-        s_.updQ()[j] = q[j];
-    }
+    // save joint angles to q_
+    //updateJointAngleVariable(s_, model_);
 
-    // set private variable q_ to equal q so that we can get the latest joint angle values with getQ
-    setQ(q);*/
-
-    // update the time to be shown in the visualization
+    // update the time to be shown in the visualization and so that when we realize the report, the correct timestamp is used for the joint angle values
     s_.updTime() = time_;
     // now insert q into the original visualized state and show them
     //model_.getVisualizer().getSimbodyVisualizer().flushFrames();
@@ -300,31 +295,22 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
         model_.getVisualizer().show(s_);
     //model_.getVisualizer().getSimbodyVisualizer().drawFrameNow(s_);
 
-    // update the time of s0 so that when we realize the report, the correct timestamp is used for the joint angle values
-    //s0.updTime() = time_;
-    //s_.updTime() = time_;
+    // update the time of s0 
     if (get_report_errors()) {
         int nos = ikSolver.getNumOrientationSensorsInUse();
         SimTK::Array_<double> orientationErrors(nos, 0.0);
         // calculate orientation errors into orientationErrors
         ikSolver.computeCurrentOrientationErrors(orientationErrors);
         // append orientationErrors into modelOrientationErrors_
-        //modelOrientationErrors_->appendRow(s0.getTime(), orientationErrors);
         modelOrientationErrors_->appendRow(s_.getTime(), orientationErrors);
     }
 
     //std::cout << model.updBodySet().get("femur_r").findStationLocationInAnotherFrame(s0, { 0,0,0 }, model.getGround()) << std::endl;
 
     if (getPointTrackerEnabled() == true) {
-        std::cout << s_.getSystemStage() << std::endl;
         // calculate point location and orientation of its base body segment for mirror therapy
-        //model.realizePosition(s0); // Required to advance system to a stage where we can use pointTracker
-        //s_.updTime() = times[0];
-        //model_.realizeReport(s_);
-        s_.advanceSystemToStage(SimTK::Stage::Position);
-        std::cout << s_.getSystemStage() << std::endl;
+        s_.advanceSystemToStage(SimTK::Stage::Position); // Required to advance (or move back) system to a stage where we can use pointTracker
         // Run PointTracker functions
-        //std::vector<double> trackerResults = runTracker(&s0, &model, getPointTrackerBodyName(), getPointTrackerReferenceBodyName());
         std::vector<double> trackerResults = runTracker(&s_, &model_, getPointTrackerBodyName(), getPointTrackerReferenceBodyName());
         // Save the results to a private variable
         setPointTrackerPositionsAndOrientations(trackerResults);
@@ -333,8 +319,7 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
     // update IK values to report for time defined for s0
     if (save_ik_results_)
         model_.realizeReport(s_);
-        //model_.realizeReport(s0);
-
+        
 }
 
 
