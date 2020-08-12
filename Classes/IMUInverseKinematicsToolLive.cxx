@@ -247,11 +247,9 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
     // make sure that we don't create an additional visualization window when we initialize system
     //model.setUseVisualizer(false);
     //SimTK::State& s0 = model.initSystem(); // initSystem causes a memory leak!
-    //s_ = model.initSystem();
-    //model.buildSystem();
-    //s_ = model.initializeState();
+    
     // create the solver given the input data
-    const double accuracy = 1e-4;
+    const double accuracy = 1e-5;
     OpenSim::InverseKinematicsSolver ikSolver(model_, mRefs, oRefs, coordinateReferences);
     ikSolver.setAccuracy(accuracy);
 
