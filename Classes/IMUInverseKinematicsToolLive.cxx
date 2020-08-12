@@ -251,7 +251,7 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
     //model.buildSystem();
     //s_ = model.initializeState();
     // create the solver given the input data
-    const double accuracy = 1e-1;
+    const double accuracy = 1e-4;
     OpenSim::InverseKinematicsSolver ikSolver(model_, mRefs, oRefs, coordinateReferences);
     ikSolver.setAccuracy(accuracy);
 
@@ -318,10 +318,11 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
     //std::cout << model.updBodySet().get("femur_r").findStationLocationInAnotherFrame(s0, { 0,0,0 }, model.getGround()) << std::endl;
 
     if (getPointTrackerEnabled() == true) {
-        s_.updTime() = times[0];
         // calculate point location and orientation of its base body segment for mirror therapy
         //model.realizePosition(s0); // Required to advance system to a stage where we can use pointTracker
-        model_.realizePosition(s_);
+        //s_.updTime() = times[0];
+        
+        //model_.realizePosition(s_);
         // Run PointTracker functions
         //std::vector<double> trackerResults = runTracker(&s0, &model, getPointTrackerBodyName(), getPointTrackerReferenceBodyName());
         std::vector<double> trackerResults = runTracker(&s_, &model_, getPointTrackerBodyName(), getPointTrackerReferenceBodyName());
