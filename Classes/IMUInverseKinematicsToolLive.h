@@ -21,7 +21,6 @@ namespace OpenSimLive {
 
 		// PUBLIC METHODS DEFINED IN THE .CXX FILE
 		void runInverseKinematicsWithLiveOrientations(OpenSim::Model& model, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults = false);
-		void updateInverseKinematics(OpenSim::Model& model, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults = false);
 		bool IMUInverseKinematicsToolLive::run(const bool visualizeResults);
 		bool IMUInverseKinematicsToolLive::update(const bool visualizeResults);
 		void reportToFile();
@@ -69,6 +68,7 @@ namespace OpenSimLive {
 		void setPointTrackerPositionsAndOrientations(const std::vector<double>& positionsAndOrientations) { pointTrackerPositionsAndOrientations_ = positionsAndOrientations; }
 		std::string getPointTrackerBodyName() { return pointTrackerBodyName_; }
 		std::string getPointTrackerReferenceBodyName() { return pointTrackerReferenceBodyName_; }
+		void updateInverseKinematics(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults = false);
 
 	};  // end of class
 

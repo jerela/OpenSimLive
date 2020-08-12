@@ -59,7 +59,7 @@ bool IMUPlacerLive::run(bool visualizeResults) {
     if (get_model_file().size() == 0) {
         OPENSIM_THROW(OpenSim::Exception, "No model file specified for IMUPlacer.");
     }
-    if (_model.empty()) { _model.reset(new OpenSim::Model(get_model_file())); }
+    if (_model.empty()) { _model.reset(new OpenSim::Model(get_model_file())); } // program failing here will indicate that one of the config .xml files points to the wrong OpenSim model file path
     OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(
         getQuaternion());
 
