@@ -39,9 +39,11 @@ namespace OpenSimLive {
 		void setSaveIKResults(bool save) { save_ik_results_ = save; }
 		bool getSaveIKResults() { return save_ik_results_; }
 		void setReportErrors(bool report) { report_errors = report; }
+		void setAccuracy(double accuracy) { accuracy_ = accuracy; }
 
 	private:
 		// PRIVATE VARIABLES
+		double accuracy_ = 1e-5;
 		OpenSim::TimeSeriesTable* modelOrientationErrors_;
 		OpenSim::TableReporter* ikReporter_;
 		SimTK::State s_; // the state we use for visualization

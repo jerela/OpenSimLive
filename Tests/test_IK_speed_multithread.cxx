@@ -10,6 +10,7 @@
 #include <thread>
 //#include <future>
 #include <mutex>
+#include <functional>
 
 const std::string OPENSIMLIVE_ROOT = OPENSIMLIVE_ROOT_PATH;
 
@@ -87,26 +88,27 @@ std::string calibrateModelFromSetupFile(const std::string& IMUPlacerSetupFile, c
 }
 
 
-std::mutex IMUDataHandlerMutex; std::mutex IKToolUpdateMutex;
+//std::mutex IMUDataHandlerMutex; std::mutex IKToolUpdateMutex;
 
 
-void IMUDataHandler(OpenSimLive::XsensDataReader* xsensDataReader, std::vector<XsQuaternion>& quaternionData, OpenSimLive::IMUInverseKinematicsToolLive* IKTool) {
-	quaternionData = xsensDataReader->GetQuaternionData(quaternionData);
+void IMUDataHandler(OpenSimLive::XsensDataReader& xsensDataReader, std::vector<XsQuaternion>& quaternionData, OpenSimLive::IMUInverseKinematicsToolLive& IKTool) {
+	
+	//IMUDataHandlerMutex.lock();
 
-	IMUDataHandlerMutex.lock();
+	quaternionData = xsensDataReader.GetQuaternionData(quaternionData);
 
 	// fill a time series table with quaternion orientations of the IMUs
-	OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(fillQuaternionTable(xsensDataReader->GetMtwCallbacks(), quaternionData));
+	OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
 
 	// give the necessary inputs to IKTool
-	IKTool->setQuaternion(quatTable);
-	IMUDataHandlerMutex.unlock();
+	IKTool.setQuaternion(quatTable);
+	//IMUDataHandlerMutex.unlock();
 }
 
-void updateIKTool(OpenSimLive::IMUInverseKinematicsToolLive* IKTool) {
-	IKToolUpdateMutex.lock();
-	IKTool->update(false);
-	IKToolUpdateMutex.unlock();
+void updateIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool) {
+	//IKToolUpdateMutex.lock();
+	IKTool.update(false);
+	//IKToolUpdateMutex.unlock();
 }
 
 
@@ -168,34 +170,16 @@ void ConnectToDataStream(int inputSeconds) {
 
 
 
-	do {
-		// get IMU orientation data in quaternions
-		//quaternionData = xsensDataReader.GetQuaternionData(quaternionData);
-		
-		std::thread IMUDataThread(IMUDataHandler, &xsensDataReader, quaternionData, &IKTool);
-		//IMUDataHandler(&xsensDataReader, quaternionData, &IKTool);
+	do {		
+		std::thread IMUDataThread(IMUDataHandler, std::ref(xsensDataReader), quaternionData, std::ref(IKTool));
+		//IMUDataThread.detach();
 
-		// fill a time series table with quaternion orientations of the IMUs
-		//OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
-
-		// give the necessary inputs to IKTool
-		//IKTool.setQuaternion(quatTable);
 		clockDuration = (std::chrono::high_resolution_clock::now() - clockStart);
 		IKTool.setTime(clockDuration.count());
 
-		// calculate the IK and update the visualization
-		//std::cout << "Joinable: " << IMUDataThread.joinable() << std::endl;
-		try {
-			IMUDataThread.join();
-		}
-		catch (std::exception& e) {
-			std::cerr << e.what();
-		}
-		catch (...) {
-			std::cout << "Woop" << std::endl;
-		}
-		std::thread IKToolUpdateThread(updateIKTool,&IKTool);
-		//updateIKTool(&IKTool);
+		
+		std::thread IKToolUpdateThread(updateIKTool,std::ref(IKTool));
+		//IKToolUpdateThread.detach();
 
 		if (enableMirrorTherapy)
 		{
@@ -206,6 +190,8 @@ void ConnectToDataStream(int inputSeconds) {
 		}
 
 		++iteration;
+		IMUDataThread.join();
+		IKToolUpdateThread.join();
 		
 	} while (clockDuration.count() < inputSeconds);
 
