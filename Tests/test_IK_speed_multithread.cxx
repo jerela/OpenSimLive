@@ -111,6 +111,17 @@ void updateIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool) {
 	//IKToolUpdateMutex.unlock();
 }
 
+std::mutex pointTrackerMutex;
+void updatePT(OpenSimLive::IMUInverseKinematicsToolLive& IKTool) {
+	pointTrackerMutex.lock();
+	// calculate the data
+	IKTool.updatePointTracker();
+	// get the data we want to send to Java program
+	std::vector<double> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
+	// get a double array from the double vector
+	double* mirrorTherapyPacket = &trackerResults[0];
+	pointTrackerMutex.unlock();
+}
 
 
 
@@ -170,28 +181,29 @@ void ConnectToDataStream(int inputSeconds) {
 
 
 
-	do {		
+	do {
 		std::thread IMUDataThread(IMUDataHandler, std::ref(xsensDataReader), quaternionData, std::ref(IKTool));
 		//IMUDataThread.detach();
 
 		clockDuration = (std::chrono::high_resolution_clock::now() - clockStart);
+		
+		IMUDataThread.join();
 		IKTool.setTime(clockDuration.count());
 
 		
 		std::thread IKToolUpdateThread(updateIKTool,std::ref(IKTool));
 		//IKToolUpdateThread.detach();
 
+
+		IKToolUpdateThread.join();
 		if (enableMirrorTherapy)
 		{
-			// get the data we want to send to Java program
-			std::vector<double> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
-			// get a double array from the double vector
-			double* mirrorTherapyPacket = &trackerResults[0];
+			std::thread PointTrackerThread(updatePT,std::ref(IKTool));
+			PointTrackerThread.join();
 		}
 
 		++iteration;
-		IMUDataThread.join();
-		IKToolUpdateThread.join();
+
 		
 	} while (clockDuration.count() < inputSeconds);
 

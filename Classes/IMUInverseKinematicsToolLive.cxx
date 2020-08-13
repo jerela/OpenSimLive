@@ -253,7 +253,7 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
         model_.realizeReport(s_);
     }
 
-    if (getPointTrackerEnabled() == true) {
+/*    if (getPointTrackerEnabled() == true) {
         // calculate point location and orientation of its base body segment for mirror therapy
         //s_.advanceSystemToStage(SimTK::Stage::Position);
         //model_.realizePosition(s_);
@@ -262,11 +262,27 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
         std::vector<double> trackerResults = runTracker(&s_, &model_, getPointTrackerBodyName(), getPointTrackerReferenceBodyName());
         // Save the results to a private variable
         setPointTrackerPositionsAndOrientations(trackerResults);
-    }
+    }*/
 
         
         
 }
+
+
+
+void IMUInverseKinematicsToolLive::updatePointTracker() {
+    // calculate point location and orientation of its base body segment for mirror therapy
+    //s_.advanceSystemToStage(SimTK::Stage::Position);
+    //model_.realizePosition(s_);
+    model_.updMultibodySystem().realize(s_, SimTK::Stage::Position); // Required to advance (or move back) system to a stage where we can use pointTracker
+    // Run PointTracker functions
+    std::vector<double> trackerResults = runTracker(&s_, &model_, getPointTrackerBodyName(), getPointTrackerReferenceBodyName());
+    // Save the results to a private variable
+    setPointTrackerPositionsAndOrientations(trackerResults);
+}
+
+
+
 
 
 

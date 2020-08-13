@@ -20,7 +20,7 @@ PointTracker::PointTracker(SimTK::State state, std::string modelFileName, std::s
 PointTracker::~PointTracker() {}
 
 // This function performs all the necessary calculations to fetch the local position of the station, calculate it in another reference frame (body), mirror the position in that new reference frame, get the original body's orientation, mirror the orientation with respect to an axis and finally return a 6-element vector with mirrored positions and orientations.
-std::vector<double> PointTracker::runTracker(SimTK::State* s, OpenSim::Model* model, const std::string& bodyName, const std::string& referenceBodyName) {
+std::vector<double> PointTracker::runTracker(const SimTK::State* s, OpenSim::Model* model, const std::string& bodyName, const std::string& referenceBodyName) {
 	// Get a pointer to the body the station is located on
 	OpenSim::Body* body = &(model->updBodySet().get(bodyName));
 	// Get a pointer to the body we want to use as the new reference frame for the station's location
@@ -77,12 +77,12 @@ SimTK::Vec3 PointTracker::findStationLocationInLocalFrame(OpenSim::Model* model,
 }
 
 // This function calculates the location of the point in another body's reference frame
-SimTK::Vec3 PointTracker::calculatePointLocation(SimTK::Vec3 localLocation, const SimTK::State& s, OpenSim::Body* body, OpenSim::Body* referenceBody) {
+SimTK::Vec3 PointTracker::calculatePointLocation(const SimTK::Vec3& localLocation, const SimTK::State& s, const OpenSim::Body* body, const OpenSim::Body* referenceBody) {
 	return body->findStationLocationInAnotherFrame(s, localLocation, *referenceBody);
 }
 
 // This function calculates the rotation of the station by getting the rotation of its parent frame (body) and mirroring it with respect to the sagittal plane
-SimTK::Vec3 PointTracker::calculatePointRotation(SimTK::State* s, OpenSim::Model* model, const int axisIndex, OpenSim::Body* body, OpenSim::Body* referenceBody) {
+SimTK::Vec3 PointTracker::calculatePointRotation(const SimTK::State* s, OpenSim::Model* model, const int axisIndex, const OpenSim::Body* body, const OpenSim::Body* referenceBody) {
 	// Get the rotation of the parent body in ground reference frame
 	SimTK::Rotation mirroringBodyRotation = body->getRotationInGround(*s);
 	SimTK::Rotation referenceBodyRotation = referenceBody->getRotationInGround(*s);
