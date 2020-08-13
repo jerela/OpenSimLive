@@ -16,7 +16,7 @@ namespace OpenSimLive {
 
 		// PUBLIC METHODS
 		void addStationToBody(const std::string& bodyName, const SimTK::Vec3& pointLocation, const std::string& modelFile);
-		std::vector<double> runTracker(const SimTK::State* s, OpenSim::Model* model, const std::string& bodyName, const std::string& referenceBodyName);
+		std::vector<double> runTracker(const SimTK::State* s, OpenSim::Model* model, const std::string& bodyName, const std::string& referenceBodyName, bool multithread = false);
 		void setPointTrackerEnabled(const bool setting) { pointTrackerEnabled_ = setting; }
 
 	protected:

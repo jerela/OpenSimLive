@@ -1,6 +1,7 @@
 #include <PointTracker.h>
 #include <OpenSim.h>
 #include <vector>
+#include <future>
 
 using namespace OpenSimLive;
 
@@ -20,23 +21,82 @@ PointTracker::PointTracker(SimTK::State state, std::string modelFileName, std::s
 PointTracker::~PointTracker() {}
 
 // This function performs all the necessary calculations to fetch the local position of the station, calculate it in another reference frame (body), mirror the position in that new reference frame, get the original body's orientation, mirror the orientation with respect to an axis and finally return a 6-element vector with mirrored positions and orientations.
-std::vector<double> PointTracker::runTracker(const SimTK::State* s, OpenSim::Model* model, const std::string& bodyName, const std::string& referenceBodyName) {
+std::vector<double> PointTracker::runTracker(const SimTK::State* s, OpenSim::Model* model, const std::string& bodyName, const std::string& referenceBodyName, bool multithread) {
+	
+	if (multithread) {
+		// Get the location of the station in its parent body's reference frame
+		std::future<SimTK::Vec3> futureStationLocationLocal = std::async(std::launch::async, &PointTracker::findStationLocationInLocalFrame, this, model, bodyName);
+
+
+		// Get a pointer to the body the station is located on
+		OpenSim::Body* body = &(model->updBodySet().get(bodyName));
+		// Get a pointer to the body we want to use as the new reference frame for the station's location
+		OpenSim::Body* referenceBody = &(model->updBodySet().get(referenceBodyName));
+		// Calculate the rotation of the station's original parent frame (body) and mirror those orientations with respect to an axis.
+		std::future<SimTK::Vec3> futureMirroredEuler = std::async(std::launch::async, &PointTracker::calculatePointRotation, this, s, model, 2, body, referenceBody);
+
+		SimTK::Vec3 stationLocationLocal = futureStationLocationLocal.get();
+		// Calculate the location of the station in another body's reference frame
+		SimTK::Vec3 pointLocation = calculatePointLocation(stationLocationLocal, *s, body, referenceBody);
+		// Reflect the location of the station in another body's reference frame with respect to an axis
+		SimTK::Vec3 reflectedPointLocation = reflectWithRespectToAxis(pointLocation, 2); // 0 for x, 1 for y, 2 for z
+
+		//std::cout << "Original point location in reference frame: " << pointLocation << std::endl;
+		//std::cout << "Mirrored point location in reference frame: " << reflectedPointLocation << std::endl;
+
+		SimTK::Vec3 mirroredEuler = futureMirroredEuler.get();
+		// Save the calculated results in a vector and return it
+		std::vector<double> positionsAndRotations = { pointLocation[0], pointLocation[1], pointLocation[2], mirroredEuler[0], mirroredEuler[1], mirroredEuler[2] };
+		return positionsAndRotations;
+	}
+	else
+	{
+		// Get the location of the station in its parent body's reference frame
+		SimTK::Vec3 stationLocationLocal(findStationLocationInLocalFrame(model, bodyName));
+		
+		// Get a pointer to the body the station is located on
+		OpenSim::Body* body = &(model->updBodySet().get(bodyName));
+		// Get a pointer to the body we want to use as the new reference frame for the station's location
+		OpenSim::Body* referenceBody = &(model->updBodySet().get(referenceBodyName));
+		// Calculate the rotation of the station's original parent frame (body) and mirror those orientations with respect to an axis.
+		SimTK::Vec3 mirroredEuler = calculatePointRotation(s, model, 2, body, referenceBody);
+		
+		// Calculate the location of the station in another body's reference frame
+		SimTK::Vec3 pointLocation = calculatePointLocation(stationLocationLocal, *s, body, referenceBody);
+		// Reflect the location of the station in another body's reference frame with respect to an axis
+		SimTK::Vec3 reflectedPointLocation = reflectWithRespectToAxis(pointLocation, 2); // 0 for x, 1 for y, 2 for z
+
+		//std::cout << "Original point location in reference frame: " << pointLocation << std::endl;
+		//std::cout << "Mirrored point location in reference frame: " << reflectedPointLocation << std::endl;
+
+		// Save the calculated results in a vector and return it
+		std::vector<double> positionsAndRotations = { pointLocation[0], pointLocation[1], pointLocation[2], mirroredEuler[0], mirroredEuler[1], mirroredEuler[2] };
+		return positionsAndRotations;
+	}
+
+	// Get the location of the station in its parent body's reference frame
+	//SimTK::Vec3 stationLocationLocal(findStationLocationInLocalFrame(model, bodyName));
+	std::future<SimTK::Vec3> futureStationLocationLocal = std::async(std::launch::async, &PointTracker::findStationLocationInLocalFrame, this, model, bodyName);
+
+
 	// Get a pointer to the body the station is located on
 	OpenSim::Body* body = &(model->updBodySet().get(bodyName));
 	// Get a pointer to the body we want to use as the new reference frame for the station's location
 	OpenSim::Body* referenceBody = &(model->updBodySet().get(referenceBodyName));
-	// Get the location of the station in its parent body's reference frame
-	SimTK::Vec3 stationLocationLocal(findStationLocationInLocalFrame(model, bodyName));
+	// Calculate the rotation of the station's original parent frame (body) and mirror those orientations with respect to an axis.
+	//SimTK::Vec3 mirroredEuler = calculatePointRotation(s, model, 2, body, referenceBody);
+	std::future<SimTK::Vec3> futureMirroredEuler = std::async(std::launch::async, &PointTracker::calculatePointRotation, this, s, model, 2, body, referenceBody);
+
+	SimTK::Vec3 stationLocationLocal = futureStationLocationLocal.get();
 	// Calculate the location of the station in another body's reference frame
 	SimTK::Vec3 pointLocation = calculatePointLocation(stationLocationLocal, *s, body, referenceBody);
-	// Calculate the rotation of the station's original parent frame (body) and mirror those orientations with respect to an axis.
-	SimTK::Vec3 mirroredEuler = calculatePointRotation(s, model, 2, body, referenceBody);
 	// Reflect the location of the station in another body's reference frame with respect to an axis
 	SimTK::Vec3 reflectedPointLocation = reflectWithRespectToAxis(pointLocation, 2); // 0 for x, 1 for y, 2 for z
 
 	//std::cout << "Original point location in reference frame: " << pointLocation << std::endl;
 	//std::cout << "Mirrored point location in reference frame: " << reflectedPointLocation << std::endl;
 
+	SimTK::Vec3 mirroredEuler = futureMirroredEuler.get();
 	// Save the calculated results in a vector and return it
 	std::vector<double> positionsAndRotations = { pointLocation[0], pointLocation[1], pointLocation[2], mirroredEuler[0], mirroredEuler[1], mirroredEuler[2] };
 	return positionsAndRotations;

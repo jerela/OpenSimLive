@@ -8,7 +8,7 @@
 #include "conio.h" // for non-ANSI _kbhit() and _getch()
 #include <XMLFunctions.h>
 #include <thread>
-//#include <future>
+#include <future>
 #include <mutex>
 #include <functional>
 
@@ -88,21 +88,22 @@ std::string calibrateModelFromSetupFile(const std::string& IMUPlacerSetupFile, c
 }
 
 
-//std::mutex IMUDataHandlerMutex; std::mutex IKToolUpdateMutex;
+std::mutex IMUDataHandlerMutex; std::mutex IKToolUpdateMutex;
 
 
 void IMUDataHandler(OpenSimLive::XsensDataReader& xsensDataReader, std::vector<XsQuaternion>& quaternionData, OpenSimLive::IMUInverseKinematicsToolLive& IKTool) {
 	
-	//IMUDataHandlerMutex.lock();
+	IMUDataHandlerMutex.lock();
 
-	quaternionData = xsensDataReader.GetQuaternionData(quaternionData);
+	/*quaternionData = xsensDataReader.GetQuaternionData(quaternionData);
 
 	// fill a time series table with quaternion orientations of the IMUs
 	OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
 
 	// give the necessary inputs to IKTool
-	IKTool.setQuaternion(quatTable);
-	//IMUDataHandlerMutex.unlock();
+	IKTool.setQuaternion(quatTable);*/
+	IKTool.setQuaternion(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), xsensDataReader.GetQuaternionData(quaternionData)));
+	IMUDataHandlerMutex.unlock();
 }
 
 void updateIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool) {
@@ -112,10 +113,11 @@ void updateIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool) {
 }
 
 std::mutex pointTrackerMutex;
+// run PointTracker calculations
 void updatePT(OpenSimLive::IMUInverseKinematicsToolLive& IKTool) {
 	pointTrackerMutex.lock();
 	// calculate the data
-	IKTool.updatePointTracker();
+	IKTool.updatePointTracker(true);
 	// get the data we want to send to Java program
 	std::vector<double> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
 	// get a double array from the double vector
@@ -179,27 +181,38 @@ void ConnectToDataStream(int inputSeconds) {
 	auto clockStart = std::chrono::high_resolution_clock::now(); // get the starting time of IMU measurement loop
 	std::chrono::duration<double> clockDuration;
 
-
+	std::future<void> futureUpdatePT;
+	bool passedOnce = false;
 
 	do {
-		std::thread IMUDataThread(IMUDataHandler, std::ref(xsensDataReader), quaternionData, std::ref(IKTool));
-		//IMUDataThread.detach();
+		//std::thread IMUDataThread(IMUDataHandler, std::ref(xsensDataReader), quaternionData, std::ref(IKTool));
+		//IMUDataThread.detach(); // send IMUDataThread to operate independently in the background
+
+		std::future<void> futureIMUDataThread = std::async(std::launch::async, IMUDataHandler, std::ref(xsensDataReader), quaternionData, std::ref(IKTool));
 
 		clockDuration = (std::chrono::high_resolution_clock::now() - clockStart);
-		
-		IMUDataThread.join();
+
+		//IMUDataThread.join();
 		IKTool.setTime(clockDuration.count());
 
-		
-		std::thread IKToolUpdateThread(updateIKTool,std::ref(IKTool));
+		futureIMUDataThread.get();
+		if (passedOnce)
+		{
+			futureUpdatePT.get();
+		}
+		//std::thread IKToolUpdateThread(updateIKTool,std::ref(IKTool));
+		std::future<void> futureUpdateIKTool = std::async(std::launch::async, updateIKTool, std::ref(IKTool));
 		//IKToolUpdateThread.detach();
 
 
-		IKToolUpdateThread.join();
+		//IKToolUpdateThread.join(); // wait until IKToolUpdateThread finishes
+		futureUpdateIKTool.get();
 		if (enableMirrorTherapy)
 		{
-			std::thread PointTrackerThread(updatePT,std::ref(IKTool));
-			PointTrackerThread.join();
+			//std::thread PointTrackerThread(updatePT,std::ref(IKTool));
+			//PointTrackerThread.detach();
+			futureUpdatePT = std::async(std::launch::async, updatePT, std::ref(IKTool));
+			passedOnce = true;
 		}
 
 		++iteration;

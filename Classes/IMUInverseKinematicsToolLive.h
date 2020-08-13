@@ -24,7 +24,7 @@ namespace OpenSimLive {
 		bool IMUInverseKinematicsToolLive::run(const bool visualizeResults);
 		bool IMUInverseKinematicsToolLive::update(const bool visualizeResults);
 		void reportToFile();
-		void updatePointTracker();
+		void updatePointTracker(bool multithread = false);
 
 		// PUBLIC METHODS DEFINED HERE
 		std::vector<double> getQ() { return q_; }
