@@ -23,6 +23,7 @@ namespace OpenSimLive {
 		void runInverseKinematicsWithLiveOrientations(OpenSim::Model& model, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults = false);
 		bool IMUInverseKinematicsToolLive::run(const bool visualizeResults);
 		bool IMUInverseKinematicsToolLive::update(const bool visualizeResults);
+		bool IMUInverseKinematicsToolLive::updateConcurrent(const bool visualizeResults);
 		void reportToFile();
 		void updatePointTracker(bool multithread = false);
 
@@ -72,6 +73,7 @@ namespace OpenSimLive {
 		std::string getPointTrackerBodyName() { return pointTrackerBodyName_; }
 		std::string getPointTrackerReferenceBodyName() { return pointTrackerReferenceBodyName_; }
 		void updateInverseKinematics(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults = false);
+		void updateConcurrentInverseKinematics(OpenSim::Model model, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults = false);
 		void updateJointAngleVariable(SimTK::State& s, OpenSim::Model& model);
 
 	};  // end of class

@@ -125,6 +125,17 @@ void updatePT(OpenSimLive::IMUInverseKinematicsToolLive& IKTool) {
 	pointTrackerMutex.unlock();
 }
 
+std::mutex concurrentIKToolMutex;
+
+void updateConcurrentIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool) {
+	IKTool.updateConcurrent(false);
+	IKTool.updatePointTracker(false);
+	concurrentIKToolMutex.lock();
+	std::vector<double> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
+	double* mirrorTherapyPacket = &trackerResults[0];
+	concurrentIKToolMutex.unlock();
+}
+
 
 
 void ConnectToDataStream(int inputSeconds) {
@@ -196,23 +207,26 @@ void ConnectToDataStream(int inputSeconds) {
 		IKTool.setTime(clockDuration.count());
 
 		futureIMUDataThread.get();
-		if (passedOnce)
-		{
-			futureUpdatePT.get();
-		}
+		//if (passedOnce)
+		//{
+		//	futureUpdatePT.get();
+		//}
 		//std::thread IKToolUpdateThread(updateIKTool,std::ref(IKTool));
-		std::future<void> futureUpdateIKTool = std::async(std::launch::async, updateIKTool, std::ref(IKTool));
+		//std::future<void> futureUpdateIKTool = std::async(std::launch::async, updateIKTool, std::ref(IKTool));
 		//IKToolUpdateThread.detach();
 
 
 		//IKToolUpdateThread.join(); // wait until IKToolUpdateThread finishes
-		futureUpdateIKTool.get();
+		//futureUpdateIKTool.get();
 		if (enableMirrorTherapy)
 		{
+			//std::future<void> futureUpdateConcurrentIKTool = std::async(std::launch::async, updateConcurrentIKTool, std::ref(IKTool));
+			std::thread updateConcurrentIKToolThread(updateConcurrentIKTool, std::ref(IKTool));
+			updateConcurrentIKToolThread.detach();
 			//std::thread PointTrackerThread(updatePT,std::ref(IKTool));
 			//PointTrackerThread.detach();
-			futureUpdatePT = std::async(std::launch::async, updatePT, std::ref(IKTool));
-			passedOnce = true;
+			//futureUpdatePT = std::async(std::launch::async, updatePT, std::ref(IKTool));
+			//passedOnce = true;
 		}
 
 		++iteration;
