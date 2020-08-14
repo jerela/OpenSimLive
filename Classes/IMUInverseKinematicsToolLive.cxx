@@ -11,6 +11,7 @@
 #include <OpenSim/Simulation/OrientationsReference.h>
 #include <IMUInverseKinematicsToolLive.h>
 #include <OpenSim.h>
+#include <mutex>
 
 using namespace OpenSimLive;
 using namespace SimTK;
@@ -266,7 +267,10 @@ void IMUInverseKinematicsToolLive::updateConcurrentInverseKinematics(OpenSim::Mo
         ikSolver.computeCurrentOrientationErrors(orientationErrors);
         // append orientationErrors into modelOrientationErrors_
         modelOrientationErrors_->appendRow(time_, orientationErrors);
-        //model_.realizeReport(s_);
+        std::unique_lock<std::mutex> concurrentRealizeReportLock;
+        (void)concurrentRealizeReportLock.try_lock();
+        model_.realizeReport(s); // this may require mutex
+        (void)concurrentRealizeReportLock.unlock();
     }
 
 }

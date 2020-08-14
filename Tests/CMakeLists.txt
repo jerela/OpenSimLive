@@ -30,11 +30,19 @@ target_include_directories(test_IK_speed PUBLIC
 						   )
 						   
 						   
+						   
+						   
+						   
+set(TEST_IK_SPEED_MULTITHREAD_SOURCES
+	"${TEST_IK_SPEED_SOURCES}"
+	"${INCLUDE_CLASSES_PATH}/ThreadPool.h"
+	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.h"
+	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.cxx")						   
+						   
 # add executable based on the source files determined in TEST_IK_SPEED_SOURCES
 add_executable(test_IK_speed_multithread
 			   test_IK_speed_multithread.cxx
-			   "${TEST_IK_SPEED_SOURCES}"
-			   "${INCLUDE_CLASSES_PATH}/ThreadPool.h")
+			   "${TEST_IK_SPEED_MULTITHREAD_SOURCES}")
 
 target_link_libraries(test_IK_speed_multithread PRIVATE "${MT_LIBRARY}" # Xsens MT libraries for IMU data retrieval
 						PRIVATE "${OPENSIM_LIBRARY}"
@@ -43,6 +51,7 @@ target_link_libraries(test_IK_speed_multithread PRIVATE "${MT_LIBRARY}" # Xsens 
 target_include_directories(test_IK_speed_multithread PRIVATE
 						"${INCLUDE_CLASSES_PATH}"
 						"${INCLUDE_FUNCTIONS_PATH}")
+						
 target_include_directories(test_IK_speed_multithread PUBLIC
 						   "${PROJECT_BINARY_DIR}"
 						   "${OPENSIM_INCLUDE_PATH}"

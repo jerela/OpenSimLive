@@ -5,14 +5,13 @@
 #include <IMUPlacerLive.h>
 #include <IMUInverseKinematicsToolLive.h>
 #include <XsensDataReader.h>
+#include <ThreadPoolContainer.h>
 #include "conio.h" // for non-ANSI _kbhit() and _getch()
 #include <XMLFunctions.h>
 #include <thread>
 #include <future>
 #include <mutex>
 #include <functional>
-
-#include<ThreadPool.h>
 
 const std::string OPENSIMLIVE_ROOT = OPENSIMLIVE_ROOT_PATH;
 
@@ -190,9 +189,10 @@ void ConnectToDataStream(double inputSeconds) {
 	}
 
 	unsigned int maxThreads = 8;
-	std::vector<std::future<void>> futureVector;
+	//std::vector<std::future<void>> futureVector;
 
-	ThreadPool threadPool(maxThreads);
+	//ThreadPool threadPool(maxThreads);
+	OpenSimLive::ThreadPoolContainer threadPoolContainer(maxThreads);
 
 	std::cout << "Entering measurement loop." << std::endl;
 	int iteration = 0;
@@ -231,7 +231,10 @@ void ConnectToDataStream(double inputSeconds) {
 			//std::future<void> futureUpdateConcurrentIKTool = std::async(std::launch::async, updateConcurrentIKTool, std::ref(IKTool));
 			//std::thread updateConcurrentIKToolThread(updateConcurrentIKTool, std::ref(IKTool));
 			//updateConcurrentIKToolThread.detach();
-			if (futureVector.size() < maxThreads)
+			
+			threadPoolContainer.offerFuture(updateConcurrentIKTool, std::ref(IKTool));
+
+			/*if (futureVector.size() < maxThreads)
 			{
 				auto futureIK = threadPool.enqueue(updateConcurrentIKTool, std::ref(IKTool));
 				futureVector.push_back(std::move(futureIK));
@@ -242,7 +245,7 @@ void ConnectToDataStream(double inputSeconds) {
 				futureVector.erase(futureVector.begin());
 				auto futureIK = threadPool.enqueue(updateConcurrentIKTool, std::ref(IKTool));
 				futureVector.push_back(std::move(futureIK));
-			}
+			}*/
 			
 			//std::thread PointTrackerThread(updatePT,std::ref(IKTool));
 			//PointTrackerThread.detach();
@@ -254,8 +257,6 @@ void ConnectToDataStream(double inputSeconds) {
 
 		
 	} while (clockDuration.count() < inputSeconds);
-
-	threadPool.~ThreadPool();
 
 	double finalTime = clockDuration.count();
 
