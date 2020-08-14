@@ -12,6 +12,8 @@
 #include <mutex>
 #include <functional>
 
+#include<ThreadPool.h>
+
 const std::string OPENSIMLIVE_ROOT = OPENSIMLIVE_ROOT_PATH;
 
 
@@ -138,7 +140,7 @@ void updateConcurrentIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool) {
 
 
 
-void ConnectToDataStream(int inputSeconds) {
+void ConnectToDataStream(double inputSeconds) {
 
 	// create Xsens connection object and connect the program to IMUs
 	OpenSimLive::XsensDataReader xsensDataReader;
@@ -187,14 +189,20 @@ void ConnectToDataStream(int inputSeconds) {
 		IKTool.setPointTrackerEnabled(false);
 	}
 
+	unsigned int maxThreads = 8;
+	std::vector<std::future<void>> futureVector;
+
+	ThreadPool threadPool(maxThreads);
+
 	std::cout << "Entering measurement loop." << std::endl;
 	int iteration = 0;
 	auto clockStart = std::chrono::high_resolution_clock::now(); // get the starting time of IMU measurement loop
 	std::chrono::duration<double> clockDuration;
 
-	std::future<void> futureUpdatePT;
-	bool passedOnce = false;
+	//std::future<void> futureUpdatePT;
+	//bool passedOnce = false;
 
+	
 	do {
 		//std::thread IMUDataThread(IMUDataHandler, std::ref(xsensDataReader), quaternionData, std::ref(IKTool));
 		//IMUDataThread.detach(); // send IMUDataThread to operate independently in the background
@@ -221,8 +229,21 @@ void ConnectToDataStream(int inputSeconds) {
 		if (enableMirrorTherapy)
 		{
 			//std::future<void> futureUpdateConcurrentIKTool = std::async(std::launch::async, updateConcurrentIKTool, std::ref(IKTool));
-			std::thread updateConcurrentIKToolThread(updateConcurrentIKTool, std::ref(IKTool));
-			updateConcurrentIKToolThread.detach();
+			//std::thread updateConcurrentIKToolThread(updateConcurrentIKTool, std::ref(IKTool));
+			//updateConcurrentIKToolThread.detach();
+			if (futureVector.size() < maxThreads)
+			{
+				auto futureIK = threadPool.enqueue(updateConcurrentIKTool, std::ref(IKTool));
+				futureVector.push_back(std::move(futureIK));
+			}
+			else
+			{
+				futureVector.front().wait();
+				futureVector.erase(futureVector.begin());
+				auto futureIK = threadPool.enqueue(updateConcurrentIKTool, std::ref(IKTool));
+				futureVector.push_back(std::move(futureIK));
+			}
+			
 			//std::thread PointTrackerThread(updatePT,std::ref(IKTool));
 			//PointTrackerThread.detach();
 			//futureUpdatePT = std::async(std::launch::async, updatePT, std::ref(IKTool));
@@ -234,10 +255,23 @@ void ConnectToDataStream(int inputSeconds) {
 		
 	} while (clockDuration.count() < inputSeconds);
 
+	threadPool.~ThreadPool();
+
 	double finalTime = clockDuration.count();
 
 	std::cout << "Performed " << iteration << " iterations in " << finalTime << " seconds." << std::endl;
 	std::cout << "Frame rate: " << ((double)iteration / finalTime) << " iterations per second." << std::endl;
+
+	if (saveIKResults) {
+		std::cout << "Saving IK results to file..." << std::endl;
+		if (iteration < 1000) {
+			IKTool.reportToFile();
+		}
+		else
+		{
+			std::cout << "More than 1000 iterations calculated, as a safety precaution program is not saving results to file!" << std::endl;
+		}
+	}
 
 	// close the connection to IMUs
 	xsensDataReader.CloseConnection();
@@ -251,7 +285,7 @@ int main(int argc, char *argv[])
 	std::string inputSecsStr;
 	std::cout << "How many seconds will we run the program: ";
 	std::cin >> inputSecsStr;
-	int inputSecs = stoi(inputSecsStr);
+	double inputSecs = stod(inputSecsStr);
 
 	std::cout << "Connecting to MTw Awinda data stream..." << std::endl;
 	// connect to XSens IMUs, perform IK etc

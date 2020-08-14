@@ -221,9 +221,9 @@ void IMUInverseKinematicsToolLive::updateConcurrentInverseKinematics(OpenSim::Mo
 
     SimTK::Array_<OpenSim::CoordinateReference> coordinateReferences;
 
-    std::cout << "Initializing system." << std::endl;
+    //std::cout << "Initializing system." << std::endl;
     SimTK::State& s = model.initSystem(); // this creates the visualizer window; consists of buildSystem() and initializeState()
-    std::cout << "System initialized." << std::endl;
+    //std::cout << "System initialized." << std::endl;
 
     // create the solver given the input data
     OpenSim::InverseKinematicsSolver ikSolver(model, mRefs, oRefs, coordinateReferences);
@@ -250,14 +250,13 @@ void IMUInverseKinematicsToolLive::updateConcurrentInverseKinematics(OpenSim::Mo
     //updateJointAngleVariable(s_, model_);
 
     // update the time to be shown in the visualization and so that when we realize the report, the correct timestamp is used for the joint angle values
-    s_ = s;
-    s_.updTime() = time_;
+    //s_ = s;
+    s.updTime() = time_;
     // now insert q into the original visualized state and show them
     //model_.getVisualizer().getSimbodyVisualizer().flushFrames();
     if (visualizeResults)
-        model_.getVisualizer().show(s_);
+        model_.getVisualizer().show(s);
     //model_.getVisualizer().getSimbodyVisualizer().drawFrameNow(s_);
-
 
     // update the time of s_
     if (get_report_errors()) {
@@ -266,8 +265,8 @@ void IMUInverseKinematicsToolLive::updateConcurrentInverseKinematics(OpenSim::Mo
         // calculate orientation errors into orientationErrors
         ikSolver.computeCurrentOrientationErrors(orientationErrors);
         // append orientationErrors into modelOrientationErrors_
-        modelOrientationErrors_->appendRow(s_.getTime(), orientationErrors);
-        model_.realizeReport(s_);
+        modelOrientationErrors_->appendRow(time_, orientationErrors);
+        //model_.realizeReport(s_);
     }
 
 }
@@ -399,8 +398,7 @@ bool IMUInverseKinematicsToolLive::update(const bool visualizeResults)
 }
 
 
-bool IMUInverseKinematicsToolLive::updateConcurrent(const bool visualizeResults)
+void IMUInverseKinematicsToolLive::updateConcurrent(const bool visualizeResults)
 {
     updateConcurrentInverseKinematics(get_model(), get_quat(), visualizeResults);
-    return true;
 }
