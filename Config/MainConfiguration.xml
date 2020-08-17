@@ -11,7 +11,7 @@
 	<!--Boolean that determines if we want to save IK results (joint angles and their errors) to file when the program finishes. This can be very memory-heavy especially with long measurements.-->
 	<save_ik_results>false</save_ik_results>
 	<!--Delay that occurs between consequent IK calculations in continuous measurement mode. Given in milliseconds.-->
-	<continuous_mode_ms_delay>150</continuous_mode_ms_delay>
+	<continuous_mode_ms_delay>50</continuous_mode_ms_delay>
 	<!--Whether to print roll, pitch and yaw to command prompt whenever IK is calculated, or not.-->
 	<print_roll_pitch_yaw>false</print_roll_pitch_yaw>
 	<!--Whether to reset clock to zero when continuous mode begins instead of using the calibration moment as the zero time point.-->

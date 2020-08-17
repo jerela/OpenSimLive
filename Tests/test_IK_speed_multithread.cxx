@@ -88,44 +88,6 @@ std::string calibrateModelFromSetupFile(const std::string& IMUPlacerSetupFile, c
 	return IMUPlacer.get_output_model_file();
 }
 
-
-std::mutex IMUDataHandlerMutex; std::mutex IKToolUpdateMutex;
-
-
-void IMUDataHandler(OpenSimLive::XsensDataReader& xsensDataReader, std::vector<XsQuaternion>& quaternionData, OpenSimLive::IMUInverseKinematicsToolLive& IKTool) {
-	
-	IMUDataHandlerMutex.lock();
-
-	/*quaternionData = xsensDataReader.GetQuaternionData(quaternionData);
-
-	// fill a time series table with quaternion orientations of the IMUs
-	OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
-
-	// give the necessary inputs to IKTool
-	IKTool.setQuaternion(quatTable);*/
-	IKTool.setQuaternion(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), xsensDataReader.GetQuaternionData(quaternionData)));
-	IMUDataHandlerMutex.unlock();
-}
-
-void updateIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool) {
-	//IKToolUpdateMutex.lock();
-	IKTool.update(false);
-	//IKToolUpdateMutex.unlock();
-}
-
-std::mutex pointTrackerMutex;
-// run PointTracker calculations
-void updatePT(OpenSimLive::IMUInverseKinematicsToolLive& IKTool) {
-	pointTrackerMutex.lock();
-	// calculate the data
-	IKTool.updatePointTracker();
-	// get the data we want to send to Java program
-	std::vector<double> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
-	// get a double array from the double vector
-	double* mirrorTherapyPacket = &trackerResults[0];
-	pointTrackerMutex.unlock();
-}
-
 std::mutex concurrentIKToolMutex;
 
 void updateConcurrentIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool) {
@@ -196,63 +158,21 @@ void ConnectToDataStream(double inputSeconds, int inputThreads) {
 	auto clockStart = std::chrono::high_resolution_clock::now(); // get the starting time of IMU measurement loop
 	std::chrono::duration<double> clockDuration;
 
-	//std::future<void> futureUpdatePT;
-	//bool passedOnce = false;
-
-	
+	// loop until enough time has been elapsed
 	do {
-		//std::thread IMUDataThread(IMUDataHandler, std::ref(xsensDataReader), quaternionData, std::ref(IKTool));
-		//IMUDataThread.detach(); // send IMUDataThread to operate independently in the background
-
-		std::future<void> futureIMUDataThread = std::async(std::launch::async, IMUDataHandler, std::ref(xsensDataReader), quaternionData, std::ref(IKTool));
-
+		// update quaternions for IKTool
+		IKTool.setQuaternion(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), xsensDataReader.GetQuaternionData(quaternionData)));
+		// calculate current duration
 		clockDuration = (std::chrono::high_resolution_clock::now() - clockStart);
-
-		//IMUDataThread.join();
+		// update current duration as time in IKTool
 		IKTool.setTime(clockDuration.count());
-
-		futureIMUDataThread.get();
-		//if (passedOnce)
-		//{
-		//	futureUpdatePT.get();
-		//}
-		//std::thread IKToolUpdateThread(updateIKTool,std::ref(IKTool));
-		//std::future<void> futureUpdateIKTool = std::async(std::launch::async, updateIKTool, std::ref(IKTool));
-		//IKToolUpdateThread.detach();
-
-
-		//IKToolUpdateThread.join(); // wait until IKToolUpdateThread finishes
-		//futureUpdateIKTool.get();
-		if (enableMirrorTherapy)
-		{
-			//std::future<void> futureUpdateConcurrentIKTool = std::async(std::launch::async, updateConcurrentIKTool, std::ref(IKTool));
-			//std::thread updateConcurrentIKToolThread(updateConcurrentIKTool, std::ref(IKTool));
-			//updateConcurrentIKToolThread.detach();
-			
-			threadPoolContainer.offerFuture(updateConcurrentIKTool, std::ref(IKTool));
-
-			/*if (futureVector.size() < maxThreads)
-			{
-				auto futureIK = threadPool.enqueue(updateConcurrentIKTool, std::ref(IKTool));
-				futureVector.push_back(std::move(futureIK));
-			}
-			else
-			{
-				futureVector.front().wait();
-				futureVector.erase(futureVector.begin());
-				auto futureIK = threadPool.enqueue(updateConcurrentIKTool, std::ref(IKTool));
-				futureVector.push_back(std::move(futureIK));
-			}*/
-			
-			//std::thread PointTrackerThread(updatePT,std::ref(IKTool));
-			//PointTrackerThread.detach();
-			//futureUpdatePT = std::async(std::launch::async, updatePT, std::ref(IKTool));
-			//passedOnce = true;
-		}
-
+		
+		// begin multithreading a function that consists of IK calculations + PointTracker
+		threadPoolContainer.offerFuture(updateConcurrentIKTool, std::ref(IKTool));
+		
+		// increment iterations number
 		++iteration;
 
-		
 	} while (clockDuration.count() < inputSeconds);
 
 	double finalTime = clockDuration.count();

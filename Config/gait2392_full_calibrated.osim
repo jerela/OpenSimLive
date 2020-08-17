@@ -79,7 +79,7 @@
                             <!--Translational offset (in meters) of this frame's origin from the parent frame's origin, expressed in the parent frame.-->
                             <translation>-0.075838024129085038 0 0</translation>
                             <!--Orientation offset (in radians) of this frame in its parent frame, expressed as a frame-fixed x-y-z rotation sequence.-->
-                            <orientation>-3.1054252202877639 -0.03405559295743478 -2.8781070844301153</orientation>
+                            <orientation>0.013597572408033103 0.4687872423182986 1.3511797958734337</orientation>
                         </PhysicalOffsetFrame>
                     </components>
                     <!--The geometry used to display the axes of this Frame.-->
@@ -179,7 +179,7 @@
                             <!--Translational offset (in meters) of this frame's origin from the parent frame's origin, expressed in the parent frame.-->
                             <translation>0 -0.1908390320765074 0</translation>
                             <!--Orientation offset (in radians) of this frame in its parent frame, expressed as a frame-fixed x-y-z rotation sequence.-->
-                            <orientation>-3.0932826923042733 -0.10183601542194605 3.0137150735266758</orientation>
+                            <orientation>-2.992550234625067 -1.4127909739329754 -1.4957314214946344</orientation>
                         </PhysicalOffsetFrame>
                     </components>
                     <!--The geometry used to display the axes of this Frame.-->
@@ -416,7 +416,7 @@
                             <!--Translational offset (in meters) of this frame's origin from the parent frame's origin, expressed in the parent frame.-->
                             <translation>0 -0.1908390320765074 0</translation>
                             <!--Orientation offset (in radians) of this frame in its parent frame, expressed as a frame-fixed x-y-z rotation sequence.-->
-                            <orientation>3.1004671087285347 0.15587454693404015 2.981220229330912</orientation>
+                            <orientation>-0.36600617701250543 0.64340068808356909 1.8791680778949496</orientation>
                         </PhysicalOffsetFrame>
                     </components>
                     <!--The geometry used to display the axes of this Frame.-->

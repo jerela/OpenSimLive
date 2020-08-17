@@ -37,6 +37,7 @@ set(TEST_IK_SPEED_MULTITHREAD_SOURCES
 	"${TEST_IK_SPEED_SOURCES}"
 	"${INCLUDE_CLASSES_PATH}/ThreadPool.h"
 	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.h"
+	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.tpp"
 	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.cxx")						   
 						   
 # add executable based on the source files determined in TEST_IK_SPEED_SOURCES
