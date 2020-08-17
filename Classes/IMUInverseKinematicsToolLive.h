@@ -23,7 +23,9 @@ namespace OpenSimLive {
 		void runInverseKinematicsWithLiveOrientations(OpenSim::Model& model, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults = false);
 		bool IMUInverseKinematicsToolLive::run(const bool visualizeResults);
 		bool IMUInverseKinematicsToolLive::update(const bool visualizeResults);
+		void IMUInverseKinematicsToolLive::updateConcurrent(const bool visualizeResults);
 		void reportToFile();
+		void updatePointTracker();
 
 		// PUBLIC METHODS DEFINED HERE
 		std::vector<double> getQ() { return q_; }
@@ -39,9 +41,11 @@ namespace OpenSimLive {
 		void setSaveIKResults(bool save) { save_ik_results_ = save; }
 		bool getSaveIKResults() { return save_ik_results_; }
 		void setReportErrors(bool report) { report_errors = report; }
+		void setAccuracy(double accuracy) { accuracy_ = accuracy; }
 
 	private:
 		// PRIVATE VARIABLES
+		double accuracy_ = 1e-5;
 		OpenSim::TimeSeriesTable* modelOrientationErrors_;
 		OpenSim::TableReporter* ikReporter_;
 		SimTK::State s_; // the state we use for visualization
@@ -69,6 +73,7 @@ namespace OpenSimLive {
 		std::string getPointTrackerBodyName() { return pointTrackerBodyName_; }
 		std::string getPointTrackerReferenceBodyName() { return pointTrackerReferenceBodyName_; }
 		void updateInverseKinematics(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults = false);
+		void updateConcurrentInverseKinematics(OpenSim::Model model, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults = false);
 		void updateJointAngleVariable(SimTK::State& s, OpenSim::Model& model);
 
 	};  // end of class

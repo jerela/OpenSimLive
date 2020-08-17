@@ -16,7 +16,7 @@ namespace OpenSimLive {
 
 		// PUBLIC METHODS
 		void addStationToBody(const std::string& bodyName, const SimTK::Vec3& pointLocation, const std::string& modelFile);
-		std::vector<double> runTracker(SimTK::State* s, OpenSim::Model* model, const std::string& bodyName, const std::string& referenceBodyName);
+		std::vector<double> runTracker(const SimTK::State* s, OpenSim::Model* model, const std::string& bodyName, const std::string& referenceBodyName);
 		void setPointTrackerEnabled(const bool setting) { pointTrackerEnabled_ = setting; }
 
 	protected:
@@ -25,8 +25,8 @@ namespace OpenSimLive {
 	private:
 		// PRIVATE METHODS
 		SimTK::Vec3 findStationLocationInLocalFrame(OpenSim::Model* model, const std::string& bodyName);
-		SimTK::Vec3 calculatePointLocation(SimTK::Vec3 localLocation, SimTK::State* s, OpenSim::Body* body, OpenSim::Body* referenceBody);
-		SimTK::Vec3 calculatePointRotation(SimTK::State* s, OpenSim::Model* model, const int axisIndex, OpenSim::Body* body, OpenSim::Body* referenceBody);
+		SimTK::Vec3 calculatePointLocation(const SimTK::Vec3& localLocation, const SimTK::State& s, const OpenSim::Body* body, const OpenSim::Body* referenceBody);
+		SimTK::Vec3 calculatePointRotation(const SimTK::State* s, OpenSim::Model* model, const int axisIndex, const OpenSim::Body* body, const OpenSim::Body* referenceBody);
 		SimTK::Vec3 reflectWithRespectToAxis(SimTK::Vec3 pointLocation, const int axisIndex);
 		
 		//PRIVATE VARIABLES
