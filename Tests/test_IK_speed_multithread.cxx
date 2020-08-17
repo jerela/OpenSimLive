@@ -118,7 +118,7 @@ std::mutex pointTrackerMutex;
 void updatePT(OpenSimLive::IMUInverseKinematicsToolLive& IKTool) {
 	pointTrackerMutex.lock();
 	// calculate the data
-	IKTool.updatePointTracker(true);
+	IKTool.updatePointTracker();
 	// get the data we want to send to Java program
 	std::vector<double> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
 	// get a double array from the double vector
@@ -130,16 +130,13 @@ std::mutex concurrentIKToolMutex;
 
 void updateConcurrentIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool) {
 	IKTool.updateConcurrent(false);
-	IKTool.updatePointTracker(false);
-	concurrentIKToolMutex.lock();
 	std::vector<double> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
 	double* mirrorTherapyPacket = &trackerResults[0];
-	concurrentIKToolMutex.unlock();
 }
 
 
 
-void ConnectToDataStream(double inputSeconds) {
+void ConnectToDataStream(double inputSeconds, int inputThreads) {
 
 	// create Xsens connection object and connect the program to IMUs
 	OpenSimLive::XsensDataReader xsensDataReader;
@@ -188,7 +185,7 @@ void ConnectToDataStream(double inputSeconds) {
 		IKTool.setPointTrackerEnabled(false);
 	}
 
-	unsigned int maxThreads = 8;
+	unsigned int maxThreads = inputThreads;
 	//std::vector<std::future<void>> futureVector;
 
 	//ThreadPool threadPool(maxThreads);
@@ -284,13 +281,18 @@ void ConnectToDataStream(double inputSeconds) {
 int main(int argc, char *argv[])
 {
 	std::string inputSecsStr;
-	std::cout << "How many seconds will we run the program: ";
+	std::cout << "Please input test duration in seconds: ";
 	std::cin >> inputSecsStr;
 	double inputSecs = stod(inputSecsStr);
 
+	std::string inputThreadsStr;
+	std::cout << "Please input the number of threads to be used: ";
+	std::cin >> inputThreadsStr;
+	int inputThreads = stoi(inputThreadsStr);
+
 	std::cout << "Connecting to MTw Awinda data stream..." << std::endl;
 	// connect to XSens IMUs, perform IK etc
-	ConnectToDataStream(inputSecs);
+	ConnectToDataStream(inputSecs, inputThreads);
 
 	std::cout << "Program finished." << std::endl;
 	return 1;
