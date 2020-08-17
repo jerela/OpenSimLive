@@ -41,7 +41,7 @@ std::vector<double> PointTracker::runTracker(const SimTK::State* s, OpenSim::Mod
 	//std::cout << "Mirrored point location in reference frame: " << reflectedPointLocation << std::endl;
 
 	// Save the calculated results in a vector and return it
-	std::vector<double> positionsAndRotations = { pointLocation[0], pointLocation[1], pointLocation[2], mirroredEuler[0], mirroredEuler[1], mirroredEuler[2] };
+	std::vector<double> positionsAndRotations = { reflectedPointLocation[0], reflectedPointLocation[1], reflectedPointLocation[2], mirroredEuler[0], mirroredEuler[1], mirroredEuler[2] };
 	return positionsAndRotations;
 }
 
