@@ -90,7 +90,12 @@ std::string calibrateModelFromSetupFile(const std::string& IMUPlacerSetupFile, c
 
 std::mutex concurrentIKToolMutex;
 
-void updateConcurrentIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool) {
+void updateConcurrentIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, std::chrono::steady_clock::time_point& clockStart, std::chrono::duration<double>& clockDuration) {
+	// calculate current duration
+	clockDuration = (std::chrono::high_resolution_clock::now() - clockStart);
+	// update current duration as time in IKTool
+	IKTool.setTime(clockDuration.count());
+
 	IKTool.updateConcurrent(false);
 	std::vector<double> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
 	double* mirrorTherapyPacket = &trackerResults[0];
@@ -162,13 +167,9 @@ void ConnectToDataStream(double inputSeconds, int inputThreads) {
 	do {
 		// update quaternions for IKTool
 		IKTool.setQuaternion(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), xsensDataReader.GetQuaternionData(quaternionData)));
-		// calculate current duration
-		clockDuration = (std::chrono::high_resolution_clock::now() - clockStart);
-		// update current duration as time in IKTool
-		IKTool.setTime(clockDuration.count());
 		
 		// begin multithreading a function that consists of IK calculations + PointTracker
-		threadPoolContainer.offerFuture(updateConcurrentIKTool, std::ref(IKTool));
+		threadPoolContainer.offerFuture(updateConcurrentIKTool, std::ref(IKTool), std::ref(clockStart), std::ref(clockDuration));
 		
 		// increment iterations number
 		++iteration;
