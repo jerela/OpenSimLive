@@ -205,7 +205,7 @@ void IMUInverseKinematicsToolLive::updateJointAngleVariable(SimTK::State& s, Ope
 
 
 // This function calculates the joint angle values for a new state s0, then updates state s with those values and redraws the visualization.
-void IMUInverseKinematicsToolLive::updateConcurrentInverseKinematics(OpenSim::Model model, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults) {
+void IMUInverseKinematicsToolLive::updateConcurrentInverseKinematics(OpenSim::Model model, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable, const bool visualizeResults) {
 
     // Convert to OpenSim Frame
     const SimTK::Vec3& rotations = get_sensor_to_opensim_rotations();
@@ -223,7 +223,7 @@ void IMUInverseKinematicsToolLive::updateConcurrentInverseKinematics(OpenSim::Mo
     SimTK::Array_<OpenSim::CoordinateReference> coordinateReferences;
 
     //std::cout << "Initializing system." << std::endl;
-    SimTK::State& s = model.initSystem(); // this creates the visualizer window; consists of buildSystem() and initializeState()
+    SimTK::State& s = model.initSystem(); // consists of buildSystem() and initializeState()
     //std::cout << "System initialized." << std::endl;
 
     // create the solver given the input data
