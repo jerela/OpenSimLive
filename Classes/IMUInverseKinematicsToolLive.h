@@ -1,3 +1,5 @@
+// This class calculates inverse kinematics aka joint angles of the OpenSim model based on live data measured with IMUs.
+
 #pragma once
 
 #include <OpenSim/Common/Object.h>

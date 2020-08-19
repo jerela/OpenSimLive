@@ -1,3 +1,5 @@
+// This class calculates the position of a mirrored point and the orientation of its parent body for mirror therapy applications.
+
 #pragma once
 
 #include <OpenSim.h>

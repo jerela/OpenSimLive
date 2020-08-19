@@ -22,79 +22,8 @@ void printRollPitchYaw(std::vector<MtwCallback*> mtwCallbacks, const std::vector
 	}
 }
 
-// This function fills a TimeSeriesTable with quaternion values for a single time frame.
-OpenSim::TimeSeriesTable_<SimTK::Quaternion> fillQuaternionTable(std::vector<MtwCallback*>& mtwCallbacks, std::vector<XsQuaternion>& quaternionVector)
-{
-	// get the number of active sensors
-	int numberOfSensors = mtwCallbacks.size();
 
-	// declare a vector for the sensor names in the OpenSim model
-	std::vector<std::string> sensorNameVector;
-
-	// define a vector with a single time value (such as zero) for constructing OpenSim::TimeSeriesTable
-	std::vector<double> timeVector{ 0 };
-
-	// initialize a matrix where each element is an entire quaternion, requires for constructing OpenSim::TimeSeriesTable
-	SimTK::Matrix_<SimTK::Quaternion> quaternionMatrix(1, numberOfSensors);
-
-	std::string currentSensorId; std::string sensorNameInModel;
-
-	// "intermediary" variable for populating quaternionMatrix inside the for-loop
-	SimTK::Quaternion_<SimTK::Real> quat;
-
-	// populate sensorNameVector and quaternionMatrix
-	for (size_t i = 0; i < mtwCallbacks.size(); ++i) {
-		// get the ID of the current IMU
-		currentSensorId = mtwCallbacks[i]->device().deviceId().toString().toStdString();
-
-		// match the ID of the sensor to the name of the sensor on the model
-		//sensorNameInModel = sensorIdToLabel(currentSensorId, "C:/Users/wksadmin/source/repos/OpenSimLive/Config/SensorMappings.xml");
-		sensorNameInModel = sensorIdToLabel(currentSensorId, OPENSIMLIVE_ROOT+"/Config/"+ConfigReader("MainConfiguration.xml", "mappings_file"));
-		
-		// populate the vector of sensor names
-		sensorNameVector.push_back(sensorNameInModel);
-
-		// get the quaternions from XsQuaternion, put them into SimTK::Quaternion and put that quaternion into quaternionMatrix
-		quat[0] = quaternionVector[i].w();
-		quat[1] = quaternionVector[i].x();
-		quat[2] = quaternionVector[i].y();
-		quat[3] = quaternionVector[i].z();
-		quaternionMatrix.set(0, i, quat);
-	}
-
-	// construct a TimeSeriesTable from the data we calculated in this function and return it
-	OpenSim::TimeSeriesTable_<SimTK::Quaternion> outputTable(timeVector, quaternionMatrix, sensorNameVector);
-	return outputTable;
-}
-
-// This function calibrates an OpenSim model from setup file, similarly to how MATLAB scripting commands for OpenSense work.
-std::string calibrateModelFromSetupFile(const std::string& IMUPlacerSetupFile, const OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quaternionTimeSeriesTable)
-{
-	// construct IMUPlacer
-	OpenSimLive::IMUPlacerLive IMUPlacer(IMUPlacerSetupFile);
-
-	// give the TimeSeriesTable of quaternions to IMUPlacer and run IMUPlacer to calibrate the model
-	IMUPlacer.setQuaternion(quaternionTimeSeriesTable);
-	IMUPlacer.run(false); // false as argument = do not visualize
-
-	// add a station to a desired body in the calibrated .osim file if the parent body is named
-	std::string stationParentBody = ConfigReader("MainConfiguration.xml", "station_parent_body");
-	if (stationParentBody != "none") {
-		// read the location of the station as a string
-		std::string stationLocationString = ConfigReader("MainConfiguration.xml", "station_location");
-		// write the location into doubles station_x,y,z using stringstream
-		std::stringstream ss(stationLocationString);
-		double station_x; ss >> station_x;
-		double station_y; ss >> station_y;
-		double station_z; ss >> station_z;
-		// add the station under the parent body in the calibrated model file
-		IMUPlacer.addStationToBody(stationParentBody, { station_x, station_y, station_z }, IMUPlacer.get_output_model_file());
-	}
-
-	return IMUPlacer.get_output_model_file();
-}
-
-
+// Runs IK and related shenanigans
 void RunIKProcedure(OpenSimLive::XsensDataReader& xsensDataReader, std::vector<XsQuaternion>& quaternionData, OpenSimLive::IMUInverseKinematicsToolLive& IKTool, std::chrono::duration<double>& clockDuration, const bool print_roll_pitch_yaw, const bool enableMirrorTherapy, const std::vector<XsEuler>& eulerData, Server& myLink) {
 	// fill a time series table with quaternion orientations of the IMUs
 	OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));

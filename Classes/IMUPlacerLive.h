@@ -1,3 +1,5 @@
+// This class calibrates the model by adding IMUs as XML elements on it, then saves the calibrated model as .osim file.
+
 #pragma once
 
 #include <OpenSim.h>
