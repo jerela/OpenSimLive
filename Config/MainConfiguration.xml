@@ -9,7 +9,7 @@
 	<!--File that configures IMUPlacer.-->
 	<imu_placer_setup_file>IMUPlacerSetup.xml</imu_placer_setup_file>
 	<!--Boolean that determines if we want to save IK results (joint angles and their errors) to file when the program finishes. This can be very memory-heavy especially with long measurements.-->
-	<save_ik_results>false</save_ik_results>
+	<save_ik_results>true</save_ik_results>
 	<!--Delay that occurs between consequent IK calculations in continuous measurement mode. Given in milliseconds.-->
 	<continuous_mode_ms_delay>50</continuous_mode_ms_delay>
 	<!--Whether to print roll, pitch and yaw to command prompt whenever IK is calculated, or not.-->

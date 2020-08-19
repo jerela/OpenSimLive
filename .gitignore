@@ -9,3 +9,4 @@ Config/gait2392_full_calibrated.osim
 *.PNG
 Config/Geometry/README.md
 Config/Geometry/vtpbinary2ascii.py
+Config/gait2392_full_calibrated.osim

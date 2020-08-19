@@ -180,6 +180,17 @@ void ConnectToDataStream(int inputSeconds) {
 	std::cout << "Performed " << iteration << " iterations in " << finalTime << " seconds." << std::endl;
 	std::cout << "Frame rate: " << ((double)iteration / finalTime) << " iterations per second." << std::endl;
 
+	if (saveIKResults) {
+		std::cout << "Saving IK results to file..." << std::endl;
+		if (iteration < 1000) {
+			IKTool.reportToFile();
+		}
+		else
+		{
+			std::cout << "More than 1000 iterations calculated, as a safety precaution program is not saving results to file!" << std::endl;
+		}
+	}
+
 	// close the connection to IMUs
 	xsensDataReader.CloseConnection();
 

@@ -170,7 +170,7 @@ void ConnectToDataStream(double inputSeconds, int inputThreads) {
 		
 		// begin multithreading a function that consists of IK calculations + PointTracker
 		threadPoolContainer.offerFuture(updateConcurrentIKTool, std::ref(IKTool), std::ref(clockStart), std::ref(clockDuration));
-		
+
 		// increment iterations number
 		++iteration;
 
