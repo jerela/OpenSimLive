@@ -203,85 +203,6 @@ void IMUInverseKinematicsToolLive::updateJointAngleVariable(SimTK::State& s, Ope
 std::mutex m;
 
 // This function calculates the joint angle values for a new state s0, then updates state s with those values and redraws the visualization.
-void IMUInverseKinematicsToolLive::updateConcurrentInverseKinematics(OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable, const bool visualizeResults) {
-
-    // Convert to OpenSim Frame
-    const SimTK::Vec3& rotations = get_sensor_to_opensim_rotations();
-    SimTK::Rotation sensorToOpenSim = SimTK::Rotation(SimTK::BodyOrSpaceType::SpaceRotationSequence, rotations[0], SimTK::XAxis, rotations[1], SimTK::YAxis, rotations[2], SimTK::ZAxis);
-
-    // Rotate data so Y-Axis is up
-    OpenSim::OpenSenseUtilities::rotateOrientationTable(quatTable, sensorToOpenSim);
-    
-    // convert quaternion orientation data of IMUs to rotation matrix form
-    OpenSim::TimeSeriesTable_<SimTK::Rotation> orientationsData = OpenSim::OpenSenseUtilities::convertQuaternionsToRotations(quatTable);
-
-    OpenSim::OrientationsReference oRefs(orientationsData, &get_orientation_weights());
-    OpenSim::MarkersReference mRefs{};
-
-    SimTK::Array_<OpenSim::CoordinateReference> coordinateReferences;
-
-    //std::cout << "Initializing system." << std::endl;
-    //SimTK::State& s = model.initSystem(); // consists of buildSystem() and initializeState()
-    //std::cout << "System initialized." << std::endl;
-
-    // create the solver given the input data
-    OpenSim::InverseKinematicsSolver ikSolver(model_, mRefs, oRefs, coordinateReferences);
-    ikSolver.setAccuracy(accuracy_);
-
-    // set the time of state s0
-    auto& times = oRefs.getTimes();
-    std::unique_lock<std::mutex> concurrentIKMutex(m); 
-    s_.updTime() = times[0];
-    concurrentIKMutex.unlock();
-    
-    // assemble state s0, solving the initial joint angles in the least squares sense
-    ikSolver.assemble(s_);
-    
-    // save joint angles to q_
-    //updateJointAngleVariable(s_, model_);
-
-    // update the time to be shown in the visualization and so that when we realize the report, the correct timestamp is used for the joint angle values
-    concurrentIKMutex.lock();
-    s_.updTime() = time_;
-    concurrentIKMutex.unlock();
-    
-    // now insert q into the original visualized state and show them
-    //model_.getVisualizer().getSimbodyVisualizer().flushFrames();
-    if (visualizeResults)
-        model_.getVisualizer().show(s_);
-    //model_.getVisualizer().getSimbodyVisualizer().drawFrameNow(s_);
-
-    // update the time of s_
-    if (get_report_errors()) {
-        int nos = ikSolver.getNumOrientationSensorsInUse();
-        SimTK::Array_<double> orientationErrors(nos, 0.0);
-        // calculate orientation errors into orientationErrors
-        ikSolver.computeCurrentOrientationErrors(orientationErrors);
-        // append orientationErrors into modelOrientationErrors_
-        concurrentIKMutex.lock();
-        modelOrientationErrors_->appendRow(s_.getTime(), orientationErrors);
-        model_.realizeReport(s_);
-        concurrentIKMutex.unlock();
-    }
-
-    if (getPointTrackerEnabled() == true) {
-        concurrentIKMutex.lock();
-        // calculate point location and orientation of its base body segment for mirror therapy
-        //s_.advanceSystemToStage(SimTK::Stage::Position);
-        //model_.realizePosition(s_);
-        model_.updMultibodySystem().realize(s_, SimTK::Stage::Position); // Required to advance (or move back) system to a stage where we can use pointTracker
-        // Run PointTracker functions
-        std::vector<double> trackerResults = runTracker(&s_, &model_, getPointTrackerBodyName(), getPointTrackerReferenceBodyName());
-        // Save the results to a private variable
-        setPointTrackerPositionsAndOrientations(trackerResults);
-        concurrentIKMutex.unlock();
-    }
-
-}
-
-
-
-// This function calculates the joint angle values for a new state s0, then updates state s with those values and redraws the visualization.
 void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults) {
     
     // Convert to OpenSim Frame
@@ -305,7 +226,9 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
 
     // set the time of state s0
     auto& times = oRefs.getTimes();
+    std::unique_lock<std::mutex> concurrentIKMutex(m);
     s_.updTime() = times[0];
+    concurrentIKMutex.unlock();
     // assemble state s0, solving the initial joint angles in the least squares sense
     ikSolver.assemble(s_);
 
@@ -313,7 +236,9 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
     //updateJointAngleVariable(s_, model_);
 
     // update the time to be shown in the visualization and so that when we realize the report, the correct timestamp is used for the joint angle values
+    concurrentIKMutex.lock();
     s_.updTime() = time_;
+    concurrentIKMutex.unlock();
     // now insert q into the original visualized state and show them
     //model_.getVisualizer().getSimbodyVisualizer().flushFrames();
     if (visualizeResults)
@@ -327,23 +252,18 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
         // calculate orientation errors into orientationErrors
         ikSolver.computeCurrentOrientationErrors(orientationErrors);
         // append orientationErrors into modelOrientationErrors_
+        concurrentIKMutex.lock();
         modelOrientationErrors_->appendRow(s_.getTime(), orientationErrors);
         model_.realizeReport(s_);
+        concurrentIKMutex.unlock();
     }
 
-/*    if (getPointTrackerEnabled() == true) {
-        // calculate point location and orientation of its base body segment for mirror therapy
-        //s_.advanceSystemToStage(SimTK::Stage::Position);
-        //model_.realizePosition(s_);
-        model_.updMultibodySystem().realize(s_, SimTK::Stage::Position); // Required to advance (or move back) system to a stage where we can use pointTracker
-        // Run PointTracker functions
-        std::vector<double> trackerResults = runTracker(&s_, &model_, getPointTrackerBodyName(), getPointTrackerReferenceBodyName());
-        // Save the results to a private variable
-        setPointTrackerPositionsAndOrientations(trackerResults);
-    }*/
+    if (getPointTrackerEnabled() == true) {
+        concurrentIKMutex.lock();
+        updatePointTracker();
+        concurrentIKMutex.unlock();
+    }
 
-        
-        
 }
 
 
@@ -396,14 +316,8 @@ bool IMUInverseKinematicsToolLive::run(const bool visualizeResults)
 }
 
 // This function updates the IK after it's been initially run
-bool IMUInverseKinematicsToolLive::update(const bool visualizeResults)
+void IMUInverseKinematicsToolLive::update(const bool visualizeResults)
 {
     updateInverseKinematics(get_quat(), visualizeResults);
-    return true;
 }
 
-
-void IMUInverseKinematicsToolLive::updateConcurrent(const bool visualizeResults)
-{
-    updateConcurrentInverseKinematics(get_quat(), visualizeResults);
-}

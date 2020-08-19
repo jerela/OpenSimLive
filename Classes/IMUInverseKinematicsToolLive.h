@@ -22,10 +22,8 @@ namespace OpenSimLive {
 		// PUBLIC METHODS DEFINED IN THE .CXX FILE
 		void runInverseKinematicsWithLiveOrientations(OpenSim::Model& model, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults = false);
 		bool IMUInverseKinematicsToolLive::run(const bool visualizeResults);
-		bool IMUInverseKinematicsToolLive::update(const bool visualizeResults);
-		void IMUInverseKinematicsToolLive::updateConcurrent(const bool visualizeResults);
+		void IMUInverseKinematicsToolLive::update(const bool visualizeResults);
 		void reportToFile();
-		void updatePointTracker();
 
 		// PUBLIC METHODS DEFINED HERE
 		std::vector<double> getQ() { return q_; }
@@ -45,6 +43,7 @@ namespace OpenSimLive {
 
 	private:
 		// PRIVATE VARIABLES
+		std::string OpenSimLiveRootDirectory_ = "";
 		double accuracy_ = 1e-5;
 		OpenSim::TimeSeriesTable* modelOrientationErrors_;
 		OpenSim::TableReporter* ikReporter_;
@@ -61,8 +60,7 @@ namespace OpenSimLive {
 		std::string pointTrackerReferenceBodyName_ = "pelvis";
 		bool save_ik_results_ = false;
 
-		// PRIVATE METHODS
-		std::string OpenSimLiveRootDirectory_ = "";
+		// PRIVATE METHODS DEFINED HERE
 		SimTK::Vec3 get_sensor_to_opensim_rotations() { return sensor_to_opensim_rotations; }
 		OpenSim::Set<OpenSim::OrientationWeight> get_orientation_weights() { return orientationWeightSet; }
 		bool get_report_errors() { return report_errors; }
@@ -72,9 +70,12 @@ namespace OpenSimLive {
 		void setPointTrackerPositionsAndOrientations(const std::vector<double>& positionsAndOrientations) { pointTrackerPositionsAndOrientations_ = positionsAndOrientations; }
 		std::string getPointTrackerBodyName() { return pointTrackerBodyName_; }
 		std::string getPointTrackerReferenceBodyName() { return pointTrackerReferenceBodyName_; }
+
+		// PRIVATE METHODS DEFINED IN THE .CXX FILE
 		void updateInverseKinematics(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults = false);
 		void updateConcurrentInverseKinematics(OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable, const bool visualizeResults = false);
 		void updateJointAngleVariable(SimTK::State& s, OpenSim::Model& model);
+		void updatePointTracker();
 
 	};  // end of class
 

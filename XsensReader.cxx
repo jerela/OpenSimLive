@@ -110,7 +110,6 @@ void RunIKProcedure(OpenSimLive::XsensDataReader& xsensDataReader, std::vector<X
 
 	if (enableMirrorTherapy)
 	{
-		IKTool.updatePointTracker();
 		// get the data we want to send to Java program
 		std::vector<double> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
 		// get a double array from the double vector

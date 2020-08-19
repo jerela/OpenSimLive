@@ -88,7 +88,6 @@ std::string calibrateModelFromSetupFile(const std::string& IMUPlacerSetupFile, c
 	return IMUPlacer.get_output_model_file();
 }
 
-std::mutex concurrentIKToolMutex;
 
 void updateConcurrentIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, std::chrono::steady_clock::time_point& clockStart, std::chrono::duration<double>& clockDuration) {
 	// calculate current duration
@@ -96,7 +95,7 @@ void updateConcurrentIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, s
 	// update current duration as time in IKTool
 	IKTool.setTime(clockDuration.count());
 
-	IKTool.updateConcurrent(false);
+	IKTool.update(false);
 	std::vector<double> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
 	double* mirrorTherapyPacket = &trackerResults[0];
 }
