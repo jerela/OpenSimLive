@@ -45,6 +45,59 @@ Step by step instructions on how to install this project.
 
 Instructions on how to run the automated tests for this project.
 
+## How it works
+
+IMU-based inverse kinematics and mirror therapy applications rely on a number of classes. The most important ones and some of their member functions are highlighted below.
+
+### IMUPlacerLive
+
+This class calibrates an OpenSim model (XML file saved as .osim that contains joint angle definitions, constraints etc) by taking applying the orientations of IMUs at the calibration time point and placing IMUs on the bodies of the model. Config/IMUPlacerSetup.xml contains information about the model file that is calibrated, the file name that the calibrated model will be saved as, information about the initial heading of the "base" IMU and orientation transformations between IMU and OpenSim coordinates. Config/SensorMappings.xml describes which IMU corresponds to which body on the OpenSim model.
+
+IMUPlacerLive is based on the [IMUPlacer class from OpenSim 4.1](https://simtk.org/api_docs/opensim/api_docs/classOpenSim_1_1IMUPlacer.html) and inherits it. It also inherits PointTracker, which is used to call inherited public methods through IMUPlacerLive.
+
+### IMUInverseKinematicsToolLive
+
+This class calculates inverse kinematics on the model based on IMU orientation data. It's based on the IMUInverseKinematicsTool class from an unpublished version of OpenSim that follows OpenSim 4.1. It supports multithreading, which is why it utilizes mutex locks in some of its methods. It inherits PointTracker, which is used to perform calculations related to mirror therapy when the state of the system is suitable.
+
+#### IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations()
+
+This method is used to calculate the initial IK and establish the initial state of the system. It is supposed to be called only once per calibration, directly after the calibration, and it calculates the inverse kinematics at the initial time point. Subsequent IK calculations are done with IMUInverseKinematicsToolLive::updateInverseKinematics().
+This method is private and should be invoked from other classes by IMUInverseKinematicsToolLive::run().
+
+#### IMUInverseKinematicsToolLive::updateInverseKinematics()
+
+This method is used to calculate inverse kinematics repeatedly. It can be run concurrently by different threads. If PointTracker is enabled, PointTracker calculations are performed at the end of this method.
+This method is private and should be invoked from other classes by IMUInverseKinematicsToolLive::update().
+
+### PointTracker
+
+This class takes the position and parent body of a point in the model and a reference body as input. The position of the point is then expressed in the reference body's coordinate system and reflected with respect to the z axis of that coordinate system. The orientation of the point's parent body is similarly mirrored. The class is independent in the sense that it doesn't inherit other classes and isn't based on any existing classes, although its methods make extensive use of the OpenSim 4.1 API.
+
+#### PointTracker::runTracker()
+
+This method is the "main" method of this class and calls other methods to perform individual parts of the calculations. These calculations sometimes require writable references to OpenSim::Model and SimTK::State, which is why the method has to be invoked in IMUInverseKinematisToolLive::updateInverseKinematics().
+
+#### PointTracker::addStationToBody()
+
+This method is used by IMUPlacerLive during calibration to modify the XML file containing the OpenSim model. It adds XML elements describing the point of interest in mirror therapy to the OpenSim model.
+
+### XsensDataReader
+
+This class establishes the connection to Xsens MTw Awinda inertial measurement units, acquires orientation data from them and closes the connection.
+
+#### XsensDataReader::GetQuaternionData()
+
+This method takes a vector of XsQuaternion objects as its input. If any IMUs have new data, it updates the quaternion orientation values in the vector for that IMU. In any case the input vector is returned.
+
+### ThreadPoolContainer
+
+This class controls the number of worker threads during multithreading and works as an interface to access the ThreadPool class. When constructed with an integer parameter N, ThreadPoolContainer creates a ThreadPool object with N worker threads. This class ensures that the user has control over how many worker threads run at a time.
+This class is not necessary if multithreading is not used.
+
+#### ThreadPoolContainer::offerFuture()
+
+This method sends a function to the thread pool. If there are N worker threads running already, the function will wait in queue until the oldest of them has finished, then it will be given to the worker thread. If there are less than N worker threads running, the function is immediately given to a vacant worker thread. The elements of the thread pool are managed in a vector.
+
 ## Authors
 
 Jere Lavikainen, jere.lavikainen (at) uef.fi
