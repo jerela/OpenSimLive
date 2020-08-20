@@ -8,6 +8,7 @@
 #include <XsensDataReader.h>
 #include "conio.h" // for non-ANSI _kbhit() and _getch()
 #include <XMLFunctions.h>
+#include <ThreadPoolContainer.h>
 
 const std::string OPENSIMLIVE_ROOT = OPENSIMLIVE_ROOT_PATH;
 
@@ -22,21 +23,11 @@ void printRollPitchYaw(std::vector<MtwCallback*> mtwCallbacks, const std::vector
 	}
 }
 
-
-// Runs IK and related shenanigans
-void RunIKProcedure(OpenSimLive::XsensDataReader& xsensDataReader, std::vector<XsQuaternion>& quaternionData, OpenSimLive::IMUInverseKinematicsToolLive& IKTool, std::chrono::duration<double>& clockDuration, const bool print_roll_pitch_yaw, const bool enableMirrorTherapy, const std::vector<XsEuler>& eulerData, Server& myLink) {
-	// fill a time series table with quaternion orientations of the IMUs
-	OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
-	// give the necessary inputs to IKTool
-	IKTool.setQuaternion(quatTable);
+// IK for multithreading
+void concurrentIK(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, std::chrono::duration<double>& clockDuration, bool enableMirrorTherapy, Server& myLink) {
 	IKTool.setTime(clockDuration.count());
 	// calculate the IK and update the visualization
 	IKTool.update(true);
-	// push joint angles to vector
-	//jointAngles.push_back(IKTool.getQ());
-	if (print_roll_pitch_yaw)
-		printRollPitchYaw(xsensDataReader.GetMtwCallbacks(), eulerData);
-
 	if (enableMirrorTherapy)
 	{
 		// get the data we want to send to Java program
@@ -46,6 +37,22 @@ void RunIKProcedure(OpenSimLive::XsensDataReader& xsensDataReader, std::vector<X
 		// send the data
 		myLink.SendDoubles(mirrorTherapyPacket, 6);
 	}
+}
+
+// Runs IK and related shenanigans
+void RunIKProcedure(OpenSimLive::XsensDataReader& xsensDataReader, std::vector<XsQuaternion>& quaternionData, OpenSimLive::IMUInverseKinematicsToolLive& IKTool, std::chrono::duration<double>& clockDuration, const bool print_roll_pitch_yaw, const bool enableMirrorTherapy, const std::vector<XsEuler>& eulerData, Server& myLink, OpenSimLive::ThreadPoolContainer& threadPoolContainer) {
+	// fill a time series table with quaternion orientations of the IMUs
+	OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
+	// give the necessary inputs to IKTool
+	IKTool.setQuaternion(quatTable);
+
+	threadPoolContainer.offerFuture(concurrentIK, std::ref(IKTool), std::ref(clockDuration), enableMirrorTherapy, std::ref(myLink));
+
+	// push joint angles to vector
+	//jointAngles.push_back(IKTool.getQ());
+	if (print_roll_pitch_yaw)
+		printRollPitchYaw(xsensDataReader.GetMtwCallbacks(), eulerData);
+
 	//std::cout << "Positions: " << "[" << trackerResults[0] << ", " << trackerResults[1] << ", " << trackerResults[2] << "]" << std::endl;
 	//std::cout << "Rotations: " << "[" << trackerResults[3] << ", " << trackerResults[4] << ", " << trackerResults[5] << "]" << std::endl;
 }
@@ -68,7 +75,7 @@ void ConnectToDataStream() {
 	std::vector<XsQuaternion> quaternionData(xsensDataReader.GetMtwCallbacks().size()); // for data in quaternion form
 		
 	std::string calibratedModelFile; // the file name of the calibrated OpenSim model will be stored here
-	bool mainDataLoop = true; // IMU data is being measured while this is true
+	bool mainDataLoop = true; // IMU data is being measured and analyzed while this is true
 	bool continuousMode = false; // IK is calculated continuously while this is true
 	bool getDataKeyHit = false; // tells if the key that initiates a single IK calculation is hit
 	bool calibrateModelKeyHit = false; // tells if the key that initiates model calibration is hit
@@ -79,6 +86,11 @@ void ConnectToDataStream() {
 	bool print_roll_pitch_yaw = ("true" == ConfigReader("MainConfiguration.xml", "print_roll_pitch_yaw")); // boolean that tells whether to print roll, pitch and yaw of IMUs while calculating IK
 	bool resetClockOnContinuousMode = ("true" == ConfigReader("MainConfiguration.xml", "reset_clock_on_continuous_mode")); // if true, clock will be reset to zero when entering continuous mode; if false, the clock will be set to zero at calibration
 	bool enableMirrorTherapy = (ConfigReader("MainConfiguration.xml", "station_parent_body") != "none"); // if "none", then set to false
+	unsigned int maxThreads = stoi(ConfigReader("MainConfiguration.xml", "threads")); // get the maximum number of concurrent threads for multithreading
+
+	// initialize the object that handles multithreading
+	OpenSimLive::ThreadPoolContainer threadPoolContainer(maxThreads);
+
 	//std::vector<std::vector<double>> jointAngles; // vector that will hold the joint angles
 
 	auto clockStart = std::chrono::high_resolution_clock::now(); // get the starting time of IMU measurement loop
@@ -156,7 +168,7 @@ void ConnectToDataStream() {
 			// use high resolution clock to count time since the IMU measurement began
 			clockNow = std::chrono::high_resolution_clock::now();
 			clockDuration = clockNow - clockStart; // time since calibration
-			RunIKProcedure(xsensDataReader, quaternionData, IKTool, clockDuration, print_roll_pitch_yaw, enableMirrorTherapy, eulerData, myLink);
+			RunIKProcedure(xsensDataReader, quaternionData, IKTool, clockDuration, print_roll_pitch_yaw, enableMirrorTherapy, eulerData, myLink, threadPoolContainer);
 			getDataKeyHit = false;
 		}
 
@@ -173,7 +185,7 @@ void ConnectToDataStream() {
 				// set current time as the time IK was previously calculated for the following iterations of the while-loop
 				clockPrev = clockNow;
 
-				RunIKProcedure(xsensDataReader, quaternionData, IKTool, clockDuration, print_roll_pitch_yaw, enableMirrorTherapy, eulerData, myLink);
+				RunIKProcedure(xsensDataReader, quaternionData, IKTool, clockDuration, print_roll_pitch_yaw, enableMirrorTherapy, eulerData, myLink, threadPoolContainer);
 			}
 		}
 

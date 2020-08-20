@@ -130,6 +130,10 @@ set(XSENS_SOURCES XsensReader.cxx "${INCLUDE_CLASSES_PATH}/IMUPlacerLive.h"
 	"${INCLUDE_CLASSES_PATH}/Server.cpp"
 	"${INCLUDE_CLASSES_PATH}/XsensDataReader.h"
 	"${INCLUDE_CLASSES_PATH}/XsensDataReader.cxx"
+	"${INCLUDE_CLASSES_PATH}/ThreadPool.h"
+	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.h"
+	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.cxx"
+	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.tpp"
 	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctions.h"
 	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctions.cxx")
 

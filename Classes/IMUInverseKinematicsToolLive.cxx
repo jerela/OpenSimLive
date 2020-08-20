@@ -154,7 +154,8 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
     if (visualizeResults) {
         // if we want to visualize results, set visualizer into sampling mode so we can update the joint angle values later
         //SimTK::Visualizer& viz = model_.updVisualizer().updSimbodyVisualizer();
-        model_.updVisualizer().updSimbodyVisualizer().setMode(SimTK::Visualizer::Mode::Sampling); // try RealTime mode instead for better FPS?
+        model_.updVisualizer().updSimbodyVisualizer().setMode(SimTK::Visualizer::Mode::PassThrough); // try RealTime mode instead for better FPS?
+        model_.updVisualizer().updSimbodyVisualizer().setDesiredFrameRate(60);
         model_.getVisualizer().show(s_);
         model_.getVisualizer().getSimbodyVisualizer().setShowSimTime(true);
         model_.getVisualizer().getSimbodyVisualizer().setShowFrameRate(true);
@@ -230,19 +231,27 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
     s_.updTime() = times[0];
     concurrentIKMutex.unlock();
     // assemble state s0, solving the initial joint angles in the least squares sense
+    concurrentIKMutex.lock();
     ikSolver.assemble(s_);
 
     // save joint angles to q_
     //updateJointAngleVariable(s_, model_);
 
     // update the time to be shown in the visualization and so that when we realize the report, the correct timestamp is used for the joint angle values
-    concurrentIKMutex.lock();
     s_.updTime() = time_;
-    concurrentIKMutex.unlock();
     // now insert q into the original visualized state and show them
-    //model_.getVisualizer().getSimbodyVisualizer().flushFrames();
-    if (visualizeResults)
-        model_.getVisualizer().show(s_);
+    if (visualizeResults) {
+        try {
+            model_.getVisualizer().show(s_);
+        }
+        catch (std::exception& e) {
+            std::cerr << "Exception in visualizing: " << e.what() << std::endl;
+        }
+        catch (...) {
+            std::cerr << "Unknown exception in visualizer" << std::endl;
+        }
+    }
+    concurrentIKMutex.unlock();
     //model_.getVisualizer().getSimbodyVisualizer().drawFrameNow(s_);
 
     // update the time of s_
