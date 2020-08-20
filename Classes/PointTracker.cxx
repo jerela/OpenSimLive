@@ -35,13 +35,13 @@ std::vector<double> PointTracker::runTracker(const SimTK::State* s, OpenSim::Mod
 	// Calculate the location of the station in another body's reference frame
 	SimTK::Vec3 pointLocation = calculatePointLocation(stationLocationLocal, *s, body, referenceBody);
 	// Reflect the location of the station in another body's reference frame with respect to an axis
-	SimTK::Vec3 reflectedPointLocation = reflectWithRespectToAxis(pointLocation, 2); // 0 for x, 1 for y, 2 for z
+	reflectWithRespectToAxis(pointLocation, 2); // 0 for x, 1 for y, 2 for z
 
 	//std::cout << "Original point location in reference frame: " << pointLocation << std::endl;
 	//std::cout << "Mirrored point location in reference frame: " << reflectedPointLocation << std::endl;
 
 	// Save the calculated results in a vector and return it
-	std::vector<double> positionsAndRotations = { reflectedPointLocation[0], reflectedPointLocation[1], reflectedPointLocation[2], mirroredEuler[0], mirroredEuler[1], mirroredEuler[2] };
+	std::vector<double> positionsAndRotations = { pointLocation[0], pointLocation[1], pointLocation[2], mirroredEuler[0], mirroredEuler[1], mirroredEuler[2] };
 	return positionsAndRotations;
 }
 
@@ -101,10 +101,9 @@ SimTK::Vec3 PointTracker::calculatePointRotation(const SimTK::State* s, OpenSim:
 }
 
 // This function reflects a point with respect to an axis by multiplying the element corresponding to that axis by -1
-SimTK::Vec3 PointTracker::reflectWithRespectToAxis(SimTK::Vec3 pointLocation, const int axisIndex) {
+void PointTracker::reflectWithRespectToAxis(SimTK::Vec3& pointLocation, const int axisIndex) {
 	// Change the point's coordinates in its local coordinate system by multiplying one of the coordinates by -1
 	pointLocation[axisIndex] = -1 * pointLocation[axisIndex];
-	return pointLocation;
 }
 
 // This function takes a calibrated model file, creates a station element in under the desired body and then overwrites the .osim file

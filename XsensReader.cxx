@@ -99,7 +99,6 @@ void ConnectToDataStream() {
 	std::chrono::duration<double> clockDuration; std::chrono::duration<double> prevDuration;
 
 	OpenSimLive::IMUInverseKinematicsToolLive IKTool; // object that calculates IK
-	IKTool.setSaveIKResults(saveIKResults);
 	IKTool.setReportErrors(saveIKResults);
 
 	// get the sensor to opensim rotations for IMUInverseKinematicsToolLive
@@ -229,7 +228,7 @@ void ConnectToDataStream() {
 	}
 
 	// when exiting, save acquired data to file
-	if (IKTool.getSaveIKResults())
+	if (IKTool.get_report_errors())
 	{
 		std::cout << "Reporting IK to file..." << std::endl;
 		IKTool.reportToFile();

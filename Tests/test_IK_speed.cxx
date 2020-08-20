@@ -27,7 +27,6 @@ void ConnectToDataStream(int inputSeconds) {
 	
 
 	OpenSimLive::IMUInverseKinematicsToolLive IKTool; // object that calculates IK
-	IKTool.setSaveIKResults(saveIKResults);
 	IKTool.setReportErrors(saveIKResults);
 
 	// get the sensor to opensim rotations for IMUInverseKinematicsToolLive

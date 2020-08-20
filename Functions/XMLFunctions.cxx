@@ -109,7 +109,6 @@ OpenSim::TimeSeriesTable_<SimTK::Quaternion> fillQuaternionTable(std::vector<Mtw
 		currentSensorId = mtwCallbacks[i]->device().deviceId().toString().toStdString();
 
 		// match the ID of the sensor to the name of the sensor on the model
-		//sensorNameInModel = sensorIdToLabel(currentSensorId, "C:/Users/wksadmin/source/repos/OpenSimLive/Config/SensorMappings.xml");
 		sensorNameInModel = sensorIdToLabel(currentSensorId, OPENSIMLIVE_ROOT + "/Config/" + ConfigReader("MainConfiguration.xml", "mappings_file"));
 
 		// populate the vector of sensor names

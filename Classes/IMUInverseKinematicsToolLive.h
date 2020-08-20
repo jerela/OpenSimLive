@@ -28,6 +28,7 @@ namespace OpenSimLive {
 		void reportToFile();
 
 		// PUBLIC METHODS DEFINED HERE
+		bool get_report_errors() { return report_errors; }
 		std::vector<double> getQ() { return q_; }
 		std::vector<double> getPointTrackerPositionsAndOrientations() { return pointTrackerPositionsAndOrientations_; }
 		void setTime(const double time) { time_ = time; }
@@ -38,8 +39,6 @@ namespace OpenSimLive {
 		void setSensorToOpenSimRotations(const SimTK::Vec3& newRotations) { sensor_to_opensim_rotations = newRotations; }
 		void setPointTrackerReferenceBodyName(const std::string& referenceBodyName) { pointTrackerReferenceBodyName_ = referenceBodyName; }
 		void setPointTrackerBodyName(const std::string& bodyName) { pointTrackerBodyName_ = bodyName; }
-		void setSaveIKResults(bool save) { save_ik_results_ = save; }
-		bool getSaveIKResults() { return save_ik_results_; }
 		void setReportErrors(bool report) { report_errors = report; }
 		void setAccuracy(double accuracy) { accuracy_ = accuracy; }
 
@@ -60,12 +59,10 @@ namespace OpenSimLive {
 		std::vector<double> pointTrackerPositionsAndOrientations_;
 		std::string pointTrackerBodyName_ = "";
 		std::string pointTrackerReferenceBodyName_ = "pelvis";
-		bool save_ik_results_ = false;
 
 		// PRIVATE METHODS DEFINED HERE
 		SimTK::Vec3 get_sensor_to_opensim_rotations() { return sensor_to_opensim_rotations; }
 		OpenSim::Set<OpenSim::OrientationWeight> get_orientation_weights() { return orientationWeightSet; }
-		bool get_report_errors() { return report_errors; }
 		OpenSim::TimeSeriesTable_<SimTK::Quaternion> get_quat() { return quat_; }
 		OpenSim::Model get_model() { return model_; }
 		void setQ(const std::vector<double>& q) { q_ = q; }
@@ -75,7 +72,6 @@ namespace OpenSimLive {
 
 		// PRIVATE METHODS DEFINED IN THE .CXX FILE
 		void updateInverseKinematics(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults = false);
-		void updateConcurrentInverseKinematics(OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable, const bool visualizeResults = false);
 		void updateJointAngleVariable(SimTK::State& s, OpenSim::Model& model);
 		void updatePointTracker();
 

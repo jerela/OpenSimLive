@@ -29,7 +29,7 @@ namespace OpenSimLive {
 		SimTK::Vec3 findStationLocationInLocalFrame(OpenSim::Model* model, const std::string& bodyName);
 		SimTK::Vec3 calculatePointLocation(const SimTK::Vec3& localLocation, const SimTK::State& s, const OpenSim::Body* body, const OpenSim::Body* referenceBody);
 		SimTK::Vec3 calculatePointRotation(const SimTK::State* s, OpenSim::Model* model, const int axisIndex, const OpenSim::Body* body, const OpenSim::Body* referenceBody);
-		SimTK::Vec3 reflectWithRespectToAxis(SimTK::Vec3 pointLocation, const int axisIndex);
+		void reflectWithRespectToAxis(SimTK::Vec3& pointLocation, const int axisIndex);
 		
 		//PRIVATE VARIABLES
 		std::string referenceBodyName_ = "pelvis";
