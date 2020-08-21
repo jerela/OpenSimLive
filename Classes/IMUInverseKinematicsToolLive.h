@@ -74,6 +74,7 @@ namespace OpenSimLive {
 		void updateInverseKinematics(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults = false);
 		void updateJointAngleVariable(SimTK::State& s, OpenSim::Model& model);
 		void updatePointTracker();
+		void startDecorationGenerator();
 
 	};  // end of class
 

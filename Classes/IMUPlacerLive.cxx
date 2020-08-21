@@ -15,10 +15,7 @@ IMUPlacerLive::IMUPlacerLive() {
 }
 
 IMUPlacerLive::IMUPlacerLive(const std::string& setupFile) : OpenSim::IMUPlacer(setupFile) {
-    std::cout << "Preparing to construct properties..." << std::endl;
-    //constructProperties();
-    std::cout << "Preparing to update from XML document..." << std::endl;
-    updateFromXMLDocument();
+
 }
 
 //_____________________________________________________________________________
@@ -53,7 +50,7 @@ OpenSim::TimeSeriesTable_<SimTK::Quaternion> IMUPlacerLive::getQuaternion() {
  */
 bool IMUPlacerLive::run(bool visualizeResults) {
 
-    std::cout << "IMUPlacerLive run intiated" << std::endl;
+    std::cout << "IMUPlacerLive run initiated" << std::endl;
     _calibrated = false;
     // Check there's a model file specified before trying to open it
     if (get_model_file().size() == 0) {

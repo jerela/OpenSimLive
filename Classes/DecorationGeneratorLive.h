@@ -9,11 +9,12 @@ namespace OpenSimLive {
 	public:
 		// CONSTRUCTORS AND DECONSTRUCTORS
 		DecorationGeneratorLive();
-		DecorationGeneratorLive(double radius);
 		~DecorationGeneratorLive();
 
 		// PUBLIC METHODS
-		void generateDecorations(const SimTK::State& state, SimTK::Array_<SimTK::DecorativeGeometry>& geometry);
+		void generateDecorations(const SimTK::State& state, SimTK::Array_<SimTK::DecorativeGeometry>& geometry) override;
+		void setReferenceBodyId(int id) { referenceBodyId_ = id; }
+		void setTransformInReferenceBody(SimTK::Transform transform) { transform_ = transform; }
 
 	protected:
 		
@@ -21,6 +22,8 @@ namespace OpenSimLive {
 		// PRIVATE METHODS
 		
 		//PRIVATE VARIABLES
+		int referenceBodyId_;
+		SimTK::Transform transform_;
 
 	}; // end of class
 }

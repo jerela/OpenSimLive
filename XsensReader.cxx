@@ -143,14 +143,12 @@ void ConnectToDataStream() {
 			// reset the keyhit so that we won't re-enter this if-statement before hitting the key again
 			calibrateModelKeyHit = false;
 			// give IKTool the necessary inputs and run it
+			//IKTool.deleteHeapVariables();
 			IKTool.setModelFile(calibratedModelFile); // the model to perform IK on
 			IKTool.setQuaternion(quaternionTimeSeriesTable); // the orientations of IMUs
 			IKTool.setSensorToOpenSimRotations(sensorToOpenSimRotations);
 			IKTool.setTime(0); // set the time of the first state as 0 at calibration
 			IKTool.setOpenSimLiveRootDirectory(OPENSIMLIVE_ROOT); // this is needed for saving the IK report to file
-			IKTool.run(true); // true for visualization
-			std::cout << "Model has been calibrated." << std::endl;
-
 			// set private variables to be accessed in IK calculations
 			if (enableMirrorTherapy == true) {
 				IKTool.setPointTrackerBodyName(ConfigReader("MainConfiguration.xml", "station_parent_body"));
@@ -159,6 +157,10 @@ void ConnectToDataStream() {
 			else {
 				IKTool.setPointTrackerEnabled(false);
 			}
+			IKTool.run(true); // true for visualization
+			std::cout << "Model has been calibrated." << std::endl;
+
+			
 		}
 
 		// if user hits the single IK calculation key, new data is available and the model has been calibrated

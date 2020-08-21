@@ -5,6 +5,8 @@ set(TEST_IK_SPEED_SOURCES
 	"${INCLUDE_CLASSES_PATH}/IMUInverseKinematicsToolLive.cxx"
 	"${INCLUDE_CLASSES_PATH}/PointTracker.h"
 	"${INCLUDE_CLASSES_PATH}/PointTracker.cxx"
+	"${INCLUDE_CLASSES_PATH}/DecorationGeneratorLive.h"
+	"${INCLUDE_CLASSES_PATH}/DecorationGeneratorLive.cxx"
 	"${INCLUDE_CLASSES_PATH}/XsensDataReader.h"
 	"${INCLUDE_CLASSES_PATH}/XsensDataReader.cxx"
 	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctions.h"

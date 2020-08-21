@@ -12,6 +12,7 @@
 #include <IMUInverseKinematicsToolLive.h>
 #include <OpenSim.h>
 #include <mutex>
+#include <DecorationGeneratorLive.h>
 
 using namespace OpenSimLive;
 using namespace SimTK;
@@ -59,8 +60,7 @@ IMUInverseKinematicsToolLive::IMUInverseKinematicsToolLive(const std::string& mo
 
 // DESTRUCTOR
 
-IMUInverseKinematicsToolLive::~IMUInverseKinematicsToolLive()
-{
+IMUInverseKinematicsToolLive::~IMUInverseKinematicsToolLive(){
 }
 
 // PUBLIC MEMBER FUNCTIONS
@@ -143,24 +143,22 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
     int nos = ikSolver.getNumOrientationSensorsInUse();
     SimTK::Array_<double> orientationErrors(nos, 0.0);
 
-
-    // track the state at time defined for it
-    ikSolver.track(s_);
-    // set state time as time after calibration
-    s_.updTime() = time_;
-
-
     // draw the image in the visualizer window if desired
     if (visualizeResults) {
         // if we want to visualize results, set visualizer into sampling mode so we can update the joint angle values later
         //SimTK::Visualizer& viz = model_.updVisualizer().updSimbodyVisualizer();
         model_.updVisualizer().updSimbodyVisualizer().setMode(SimTK::Visualizer::Mode::PassThrough); // try RealTime mode instead for better FPS?
         model_.updVisualizer().updSimbodyVisualizer().setDesiredFrameRate(60);
+        // prepare to visualize the mirrored point
+        startDecorationGenerator();
+        // visualize actually
         model_.getVisualizer().show(s_);
         model_.getVisualizer().getSimbodyVisualizer().setShowSimTime(true);
         model_.getVisualizer().getSimbodyVisualizer().setShowFrameRate(true);
         std::cout << "Desired visualizer frame rate is " << model_.getVisualizer().getSimbodyVisualizer().getDesiredFrameRate() << std::endl;
     }
+
+//    s_.updTime() = time_;
 
     if (get_report_errors()) {
         modelOrientationErrors_ = new OpenSim::TimeSeriesTable();
@@ -169,8 +167,7 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
             labels.push_back(ikSolver.getOrientationSensorNameForIndex(i));
         }
         modelOrientationErrors_->setColumnLabels(labels);
-        modelOrientationErrors_->updTableMetaData().setValueForKey<string>(
-            "name", "OrientationErrors");
+        modelOrientationErrors_->updTableMetaData().setValueForKey<string>("name", "OrientationErrors");
         ikSolver.computeCurrentOrientationErrors(orientationErrors);
         modelOrientationErrors_->appendRow(s_.getTime(), orientationErrors);
         model_.realizeReport(s_);
@@ -180,7 +177,21 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
 
 }
 
-
+// Define and add a decoration generator to the visualizer
+void IMUInverseKinematicsToolLive::startDecorationGenerator() {
+    // Make PointTracker construct a new decGen_
+    createDecorationGenerator();
+    // set visualize to true so PointTracker knows to calculate data for decoration generator
+    setVisualize(true);
+    // PointTracker must be run so we can obtain the location of the mirrored point
+    updatePointTracker();
+    // realize positions for adding decoration generator to visualizer
+    model_.realizePosition(s_);
+    // make the decoration generator's objects adopt the coordinate system of the reference body
+    decGen_->setReferenceBodyId(model_.updBodySet().get(getPointTrackerReferenceBodyName()).getMobilizedBodyIndex());
+    // add decoration generator to visualizer
+    model_.updVisualizer().updSimbodyVisualizer().addDecorationGenerator(decGen_);
+}
 
 
 void IMUInverseKinematicsToolLive::updateJointAngleVariable(SimTK::State& s, OpenSim::Model& model) {

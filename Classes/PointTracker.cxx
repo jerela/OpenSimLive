@@ -17,7 +17,8 @@ PointTracker::PointTracker(SimTK::State state, std::string modelFileName, std::s
 	//setBodyName(bodyName);
 }
 
-PointTracker::~PointTracker() {}
+PointTracker::~PointTracker() {
+}
 
 // This function performs all the necessary calculations to fetch the local position of the station, calculate it in another reference frame (body), mirror the position in that new reference frame, get the original body's orientation, mirror the orientation with respect to an axis and finally return a 6-element vector with mirrored positions and orientations.
 std::vector<double> PointTracker::runTracker(const SimTK::State* s, OpenSim::Model* model, const std::string& bodyName, const std::string& referenceBodyName) {
@@ -39,6 +40,13 @@ std::vector<double> PointTracker::runTracker(const SimTK::State* s, OpenSim::Mod
 
 	//std::cout << "Original point location in reference frame: " << pointLocation << std::endl;
 	//std::cout << "Mirrored point location in reference frame: " << reflectedPointLocation << std::endl;
+
+	// calculate and set transform for decoration generator
+	if (visualize_)
+	{
+		SimTK::Transform_<SimTK::Real> mirroredTransform({ pointLocation[0], pointLocation[1], pointLocation[2] });
+		decGen_->setTransformInReferenceBody(mirroredTransform);
+	}
 
 	// Save the calculated results in a vector and return it
 	std::vector<double> positionsAndRotations = { pointLocation[0], pointLocation[1], pointLocation[2], mirroredEuler[0], mirroredEuler[1], mirroredEuler[2] };

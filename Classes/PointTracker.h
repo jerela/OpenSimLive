@@ -4,6 +4,7 @@
 
 #include <OpenSim.h>
 #include <vector>
+#include <DecorationGeneratorLive.h>
 
 namespace OpenSimLive {
 
@@ -22,8 +23,14 @@ namespace OpenSimLive {
 		void setPointTrackerEnabled(const bool setting) { pointTrackerEnabled_ = setting; }
 
 	protected:
+		// PROTECTED METHODS
 		bool getPointTrackerEnabled() { return pointTrackerEnabled_; }
-		
+		void createDecorationGenerator() { decGen_ = new OpenSimLive::DecorationGeneratorLive(); }
+		void setVisualize(bool setting) { visualize_ = setting; }
+
+		// PROTECTED VARIABLES
+		OpenSimLive::DecorationGeneratorLive* decGen_;
+
 	private:
 		// PRIVATE METHODS
 		SimTK::Vec3 findStationLocationInLocalFrame(OpenSim::Model* model, const std::string& bodyName);
@@ -35,6 +42,7 @@ namespace OpenSimLive {
 		std::string referenceBodyName_ = "pelvis";
 		std::string bodyName_ = "";
 		bool pointTrackerEnabled_ = true;
+		bool visualize_ = false;
 
 	}; // end of class
 }
