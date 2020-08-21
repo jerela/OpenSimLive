@@ -56,14 +56,14 @@ bool IMUPlacerLive::run(bool visualizeResults) {
     if (get_model_file().size() == 0) {
         OPENSIM_THROW(OpenSim::Exception, "No model file specified for IMUPlacer.");
     }
+    // If there is no model file loaded, load one
     if (_model.empty()) { _model.reset(new OpenSim::Model(get_model_file())); } // program failing here will indicate that one of the config .xml files points to the wrong OpenSim model file path
-    OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(
-        getQuaternion());
-
-    const SimTK::Vec3& sensor_to_opensim_rotations =
-        get_sensor_to_opensim_rotations();
-    SimTK::Rotation sensorToOpenSim =
-        SimTK::Rotation(SimTK::BodyOrSpaceType::SpaceRotationSequence,
+    // Define quatTable
+    OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(getQuaternion());
+    // Get sensor to OpenSim rotations to a vector from file
+    const SimTK::Vec3& sensor_to_opensim_rotations = get_sensor_to_opensim_rotations();
+    // Get those rotations as a rotation matrix
+    SimTK::Rotation sensorToOpenSim = SimTK::Rotation(SimTK::BodyOrSpaceType::SpaceRotationSequence,
             sensor_to_opensim_rotations[0], SimTK::XAxis,
             sensor_to_opensim_rotations[1], SimTK::YAxis,
             sensor_to_opensim_rotations[2], SimTK::ZAxis);
@@ -79,16 +79,14 @@ bool IMUPlacerLive::run(bool visualizeResults) {
         SimTK::CoordinateDirection directionOnIMU(SimTK::ZAxis);
         int direction = 1;
         if (imu_axis.front() == '-') direction = -1;
+        // get the last char of string imu_axis, which is either x, y or z
         char& back = imu_axis.back();
         if (back == 'x')
-            directionOnIMU =
-            SimTK::CoordinateDirection(SimTK::XAxis, direction);
+            directionOnIMU = SimTK::CoordinateDirection(SimTK::XAxis, direction);
         else if (back == 'y')
-            directionOnIMU =
-            SimTK::CoordinateDirection(SimTK::YAxis, direction);
+            directionOnIMU = SimTK::CoordinateDirection(SimTK::YAxis, direction);
         else if (back == 'z')
-            directionOnIMU =
-            SimTK::CoordinateDirection(SimTK::ZAxis, direction);
+            directionOnIMU = SimTK::CoordinateDirection(SimTK::ZAxis, direction);
         else { // Throw, invalid specification
             OPENSIM_THROW(OpenSim::Exception, "Invalid specification of heading axis '" +
                 imu_axis + "' found.");
@@ -97,6 +95,7 @@ bool IMUPlacerLive::run(bool visualizeResults) {
         // Compute rotation matrix so that (e.g. "pelvis_imu"+ SimTK::ZAxis)
         // lines up with model forward (+X)
         SimTK::Vec3 headingRotationVec3 = OpenSim::OpenSenseUtilities::computeHeadingCorrection(*_model, quatTable, get_base_imu_label(), directionOnIMU);
+        // rotation matrix describing rotation between OpenSim coordinate system and IMU coordinate system with base heading axis pointing along X axis of the OpenSim coordinate system
         SimTK::Rotation headingRotation(SimTK::BodyOrSpaceType::SpaceRotationSequence, headingRotationVec3[0], SimTK::XAxis, headingRotationVec3[1], SimTK::YAxis, headingRotationVec3[2], SimTK::ZAxis);
 
         OpenSim::OpenSenseUtilities::rotateOrientationTable(quatTable, headingRotation);
@@ -105,9 +104,7 @@ bool IMUPlacerLive::run(bool visualizeResults) {
         cout << "No heading correction is applied." << endl;
 
     // This is now plain conversion, no Rotation or magic underneath
-    OpenSim::TimeSeriesTable_<SimTK::Rotation>
-        orientationsData =
-        OpenSim::OpenSenseUtilities::convertQuaternionsToRotations(quatTable);
+    OpenSim::TimeSeriesTable_<SimTK::Rotation> orientationsData = OpenSim::OpenSenseUtilities::convertQuaternionsToRotations(quatTable);
 
     auto imuLabels = orientationsData.getColumnLabels();
     auto& times = orientationsData.getIndependentColumn();
@@ -119,7 +116,7 @@ bool IMUPlacerLive::run(bool visualizeResults) {
     SimTK::State& s0 = _model->initSystem();
     s0.updTime() = times[0];
 
-    // default pose of the model defined by marker-based IK
+    // default pose of the model
     _model->realizePosition(s0);
 
     size_t imuix = 0;

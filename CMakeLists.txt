@@ -82,7 +82,9 @@ if(VICONSDK_LIB)
 						   )
 else()
 	# if Vicon SDK is not found, inform the user but continue CMake
-	message([STATUS] "Cannot find Vicon SDK.")	
+	message([STATUS] "Cannot find Vicon SDK. Removing VICONSDK_LIB and VICONSDK_PATH from list of CMake variables and disabling ViconMarkerReader. This will not affect your ability to use OpenSimLive with IMUs.")
+	unset(VICONSDK_LIB)
+	unset(VICONSDK_PATH)
 endif()
 
 
