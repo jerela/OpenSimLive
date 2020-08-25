@@ -125,7 +125,7 @@ void ConnectToDataStream() {
 		
 		
 
-	std::cout << "Entering data streaming and IK loop. Press C to calibrate model, V to calculate IK, N to enter continuous mode, M to exit continuous mode and X to quit." << std::endl;
+	std::cout << "Entering data streaming and IK loop. Press C to calibrate model, Z to calculate IK once, N to enter continuous mode, M to exit continuous mode, V to enter send mode, B to exit send mode and X to quit." << std::endl;
 
 	do
 	{
@@ -225,7 +225,7 @@ void ConnectToDataStream() {
 		{
 			hitKey = toupper((char)_getch());
 			mainDataLoop = (hitKey != 'X'); // stay in main data loop as long as we don't hit X
-			getDataKeyHit = (hitKey == 'V');
+			getDataKeyHit = (hitKey == 'Z');
 			calibrateModelKeyHit = (hitKey == 'C');
 			startContinuousModeKeyHit = (hitKey == 'N');
 			stopContinuousModeKeyHit = (hitKey == 'M');

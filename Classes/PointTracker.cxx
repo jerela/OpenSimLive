@@ -104,8 +104,18 @@ SimTK::Vec3 PointTracker::calculatePointRotation(const SimTK::State* s, OpenSim:
 	mirroringRotation.setRotationFromAngleAboutAxis(3.14159265358979323, SimTK::CoordinateAxis(axisIndex)).transpose();
 	// rotate the rotation of the body w.r.t. reference body coordinate system by the rotation we created
 	SimTK::Rotation mirroredRotation = bodyWrtRefBodyRot * mirroringRotation;
+	// Now we have the mirrored rotation w.r.t. coordinates of the reference body.
+
+	SimTK::Rotation deg90AboutX; SimTK::Rotation deg180AboutZ;
+	deg90AboutX.setRotationFromAngleAboutX(-1.570796326794897);
+	deg180AboutZ.setRotationFromAngleAboutZ(3.14159265358979323);
+	SimTK::Rotation mirroredRotationOppositeKuka = deg180AboutZ*(deg90AboutX*mirroredRotation);
+	
+
 	// convert the 3x3 rotation matrix into body fixed XYZ euler angles
-	return mirroredRotation.convertRotationToBodyFixedXYZ();
+	//return mirroredRotation.convertRotationToBodyFixedXYZ();
+	//return mirroredRotation.convertThreeAxesRotationToThreeAngles(SimTK::BodyRotationSequence, SimTK::XAxis, SimTK::YAxis, SimTK::ZAxis);
+	return mirroredRotationOppositeKuka.convertThreeAxesRotationToThreeAngles(SimTK::BodyRotationSequence, SimTK::XAxis, SimTK::YAxis, SimTK::ZAxis);
 }
 
 // This function reflects a point with respect to an axis by multiplying the element corresponding to that axis by -1
