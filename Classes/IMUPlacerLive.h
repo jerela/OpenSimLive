@@ -36,6 +36,15 @@ namespace OpenSimLive {
 		/** Flag indicating if Calibration run has been invoked already */
 		bool _calibrated;
 		OpenSim::TimeSeriesTable_<SimTK::Quaternion> quat_;
+		// This should become redundant after moving to OpenSim 4.2
+		SimTK::Vec3 IMUPlacerLive::computeHeadingCorrection(
+			OpenSim::Model& model,
+			const SimTK::State& state,
+			OpenSim::TimeSeriesTable_<SimTK::Quaternion_<double>>&
+			quaternionsTable,
+			const std::string& baseImuName,
+			const SimTK::CoordinateDirection baseHeadingDirection);
+
 
 
 	}; // end of IMUPlacerLive

@@ -36,49 +36,49 @@ distribution.*/
 
 class ThreadPool {
 public:
-    ThreadPool(size_t);
-    template<class F, class... Args>
+    ThreadPool(size_t); // constructor
+    template<class F, class... Args> // template to allow enqueue to work with any input functions and their arguments
     auto enqueue(F&& f, Args&&... args)
-        ->std::future<typename std::result_of<F(Args...)>::type>;
-    ~ThreadPool();
+        ->std::future<typename std::result_of<F(Args...)>::type>; // arrow operator describes the return type of enqueue (trailing return type)
+    ~ThreadPool(); // deconstructor
 private:
     // need to keep track of threads so we can join them
-    std::vector< std::thread > workers;
+    std::vector< std::thread > workers; // workers is a vector of threads
     // the task queue
-    std::queue< std::function<void()> > tasks;
+    std::queue< std::function<void()> > tasks; // tasks is a queue of functions that return void
 
     // synchronization
     std::mutex queue_mutex;
-    std::condition_variable condition;
-    bool stop;
-};
+    std::condition_variable condition; // can be used to block a thread or multiple threads until another thread modifies a shared variable
+    bool stop; // if threadpool is unused or destructed, stop is set to true
+}; // end of class
 
 // the constructor just launches some amount of workers
 inline ThreadPool::ThreadPool(size_t threads)
-    : stop(false)
+    : stop(false) // set stop to false when constructing
 {
-    for (size_t i = 0; i < threads; ++i)
-        workers.emplace_back(
-            [this]
+    for (size_t i = 0; i < threads; ++i) // iterate through all threads
+        workers.emplace_back( // similar to push_back, but instead of copying or moving, the new element is constructed into the vector
+            [this] // "this" returns a pointer to the ThreadPool object; square brackets for lambda expression
             {
-                for (;;)
+                for (;;) // two semicolons indicate an infinite for loop
                 {
                     std::function<void()> task;
 
                     {
                         std::unique_lock<std::mutex> lock(this->queue_mutex);
-                        this->condition.wait(lock,
+                        this->condition.wait(lock, // if stop is false or tasks is empty, waiting continues; therefore this waits until stop is true or a task is given
                             [this] { return this->stop || !this->tasks.empty(); });
-                        if (this->stop && this->tasks.empty())
+                        if (this->stop && this->tasks.empty()) // if stop is true and there are no tasks, return from this endless loop
                             return;
-                        task = std::move(this->tasks.front());
-                        this->tasks.pop();
+                        task = std::move(this->tasks.front()); // move this task to the front of tasks queue
+                        this->tasks.pop(); // removes the next element in the queue (the one we just moved)
                     }
 
                     task();
                 }
-            }
-            );
+            } // lambda expression ends
+            ); // emplace_back ends
 }
 
 // add new work item to the pool
@@ -113,9 +113,9 @@ inline ThreadPool::~ThreadPool()
         std::unique_lock<std::mutex> lock(queue_mutex);
         stop = true;
     }
-    condition.notify_all();
-    for (std::thread& worker : workers)
-        worker.join();
+    condition.notify_all(); // unblock threads
+    for (std::thread& worker : workers) // iterate through all workers
+        worker.join(); // join each worker thread
 }
 
 #endif
