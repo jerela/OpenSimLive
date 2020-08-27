@@ -21,9 +21,11 @@ Step by step instructions on how to install this project.
 1. Download and unzip the package to a directory on your hard drive.
 2. Open CMake and select that directory as the source code directory.
 - Put YourFilePath/YourSourceCodeFolder-build or whatever else you want as the build folder and allow CMake to create a new folder when prompted.
-- Select x64 as the generator when prompted.
+- Select **x64** as the generator when prompted.
 - Select **Configure**. CMake variables and their values should now be displayed. If any of them are not found, you can manually type in folders. An example file path of each is as follows:
+   - CONFIG_PATH:               C:/Users/YourUserHere/Documents/OpenSimLive/Config
    - INCLUDE_CLASSES_PATH:      C:/Users/YourUserHere/Documents/OpenSimLive/Classes
+   - INCLUDE_FUNCTIONS_PATH:    C:/Users/YourUserHere/Documents/OpenSimLive/Functions
    - MTSDK_PATH:                C:/Program Files/Xsens/MT Software Suite 4.6/MT SDK/x64/include
    - MT_LIB_PATH:               C:/Program Files/Xsens/MT Software Suite 4.6/MT SDK/x64/lib
    - OPENSIM_INCLUDE_PATH:      C:/OpenSim 4.1/sdk/include/OpenSim
@@ -97,6 +99,28 @@ This class is not necessary if multithreading is not used.
 #### ThreadPoolContainer::offerFuture()
 
 This method sends a function to the thread pool. If there are N worker threads running already, the function will wait in queue until the oldest of them has finished, then it will be given to the worker thread. If there are less than N worker threads running, the function is immediately given to a vacant worker thread. The elements of the thread pool are managed in a vector.
+
+## Troubleshooting FAQ
+
+### General questions
+
+#### What operating systems are supported by OpenSimLive?
+
+Currently OpenSimLive has been tested with 64-bit Windows 7 and 64-bit Windows 10.
+
+### Run-time issues
+
+#### The program crashes right after printing "IMUPlacerLive run initiated"
+
+Make sure that **IMUPlacerSetup.xml** in OpenSimLive/Config/ has the correct file path for *model_file*. The file path should include the whole directory starting from the letter of your hard disk drive. Make sure that the same .osim file exists in OpenSimLive/Config/.
+
+#### The program crashes right after printing "Loaded model ... from file ..."
+
+Make sure that **IMUPlacerSetup.xml** in OpenSimLive/Config/ has the correct value for **base_imu_label**. The value should equal one of the *name_in_model* values in **SensorMappings_full.xml** in OpenSimLive/Config/. Additionally make sure that the IMU in question is in use.
+
+#### The program is stuck after printing "Waiting for ack..."
+
+OpenSimLive is waiting on client program that is receiving data to acknowledge it received data. This is an issue with data not getting back to OpenSimLive, likely because the client has stopped working. The issue is therefore in the client program and not in OpenSimLive.
 
 ## Authors
 
