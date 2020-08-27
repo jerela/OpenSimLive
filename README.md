@@ -1,4 +1,18 @@
 # OpenSimLive
+
+- [Getting started](#getting-started)
+  * [Prerequisites](#prerequisites)
+  * [Installing](#installing)
+  * [Running the tests](#running-the-tests)
+- [How it works](#how-it-works)
+- [Troubleshooting and FAQ](#troubleshooting-and-faq)
+  * [General questions](#general-questions)
+  * [Run-time issues](#run-time-issues)
+- [Authors](#authors)
+- [License](#license)
+- [Acknowledgments](#acknowledgments)
+<!-- toc -->
+
 OpenSimLive is a C++ package that streams orientation data from Xsens MTw Awinda inertial measurement units and calculates inverse kinematics based on that data. It relies on OpenSim for biomechanical analyses and related tools. The current version uses OpenSim 4.1 API and XDA 4.6.
 
 ## Getting started
@@ -100,7 +114,7 @@ This class is not necessary if multithreading is not used.
 
 This method sends a function to the thread pool. If there are N worker threads running already, the function will wait in queue until the oldest of them has finished, then it will be given to the worker thread. If there are less than N worker threads running, the function is immediately given to a vacant worker thread. The elements of the thread pool are managed in a vector.
 
-## Troubleshooting FAQ
+## Troubleshooting and FAQ
 
 ### General questions
 
