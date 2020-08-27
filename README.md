@@ -59,7 +59,16 @@ Step by step instructions on how to install this project.
 
 ### Running the tests
 
-Instructions on how to run the automated tests for this project.
+There are currently two tests, **test_IK_speed** and **test_IK_speed_multithread**. They are found in OpenSimLive/Tests/ in the source directory and in a similar separate Tests folder in the build directory. Note that **xsensdeviceapi64.dll** and **xstypes64.dll** from .../Xsens/MT Software Suite 4.6/MT SDK/x64/lib must be copied to the folder where the test executables are.
+
+**test_IK_speed** measures how many inverse kinematics operations are performed over a time that the user inputs in seconds.
+**test_IK_speed_multithread** measures how many inverse kinematics operations are performed over a time that the user inputs in seconds. The user also inputs the number of threads to be used.
+
+Both tests calculate point position tracking operations for mirror therapy if **station_parent_body** in OpenSimLive/Config/MainConfiguration.xml is not set to *none*. In the case of **test_IK_speed_multithread**, these operations are also multithreaded.
+
+When the tests finish, results are printed on the command prompt. They include how many IK (and possibly point tracking) operations were performed in total, how much time was elapsed and how many operations were performed on average per second.
+
+
 
 ## How it works
 
