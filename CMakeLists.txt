@@ -15,10 +15,10 @@ find_path(VICONSDK_PATH DataStreamClient.h PATHS C:/Program Files/Vicon/DataStre
 find_library(VICONSDK_LIB ViconDataStreamSDK_CPP.lib PATHS "${VICONSDK_PATH}")
 
 # find path to OpenSim include and lib folders (according to OpenSim 4.1 directory hierarchy)
-find_path(OPENSIM_INCLUDE_PATH OpenSim.h PATHS "$ENV{OPENSIM_HOME}/sdk/include/OpenSim")
-find_path(SIMBODY_INCLUDE_PATH Simbody.h PATHS "$ENV{OPENSIM_HOME}/sdk/Simbody/include")
-find_path(OPENSIM_LIB_PATH osimCommon.lib PATHS "$ENV{OPENSIM_HOME}/sdk/lib")
-find_path(SIMBODY_LIB_PATH SimTKcommon.lib PATHS "$ENV{OPENSIM_HOME}/sdk/Simbody/lib")
+find_path(OPENSIM_INCLUDE_PATH OpenSim.h PATHS "$ENV{OPENSIM_HOME}/sdk/include/OpenSim" "C:/OpenSim 4.1/sdk/include/OpenSim")
+find_path(SIMBODY_INCLUDE_PATH Simbody.h PATHS "$ENV{OPENSIM_HOME}/sdk/Simbody/include" "C:/OpenSim 4.1/sdk/Simbody/include")
+find_path(OPENSIM_LIB_PATH osimCommon.lib PATHS "$ENV{OPENSIM_HOME}/sdk/lib" "C:/OpenSim 4.1/sdk/lib")
+find_path(SIMBODY_LIB_PATH SimTKcommon.lib PATHS "$ENV{OPENSIM_HOME}/sdk/Simbody/lib" "C:/OpenSim 4.1/sdk/Simbody/lib")
 
 # set variables for OpenSim and Simbody library name lists (according to OpenSim 4.1)
 set(OPENSIM_LIBRARY_LIST
@@ -165,3 +165,5 @@ target_include_directories(XsensReader PUBLIC
 
 # add tests subfolder
 add_subdirectory("Tests")
+# add config CMakeLists subfolder
+add_subdirectory("Config")
