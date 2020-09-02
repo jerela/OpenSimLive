@@ -57,6 +57,14 @@
 				<!--The name of the PhysicalFrame representing a sensor (IMU) in Model.When loading sensor data, it will be used as a table column label.-->
 				<name_in_model>head_imu</name_in_model>
 			</ExperimentalSensor>
+			<ExperimentalSensor name="_00B42D55">
+				<!--The name of the PhysicalFrame representing a sensor (IMU) in Model.When loading sensor data, it will be used as a table column label.-->
+				<name_in_model>hand_r_imu</name_in_model>
+			</ExperimentalSensor>
+			<ExperimentalSensor name="_00B42B48">
+				<!--The name of the PhysicalFrame representing a sensor (IMU) in Model.When loading sensor data, it will be used as a table column label.-->
+				<name_in_model>hand_l_imu</name_in_model>
+			</ExperimentalSensor>
 			</ExperimentalSensors>
 	</XsensDataReaderSettings>
 </OpenSimDocument>
