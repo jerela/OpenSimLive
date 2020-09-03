@@ -581,7 +581,6 @@
 					<!--The elements of the inertia tensor (Vec6) as [Ixx Iyy Izz Ixy Ixz Iyz] measured about the mass_center and not the body origin.-->
 					<inertia>1.4744999999999999 0.75549999999999995 1.4314 0 0 0</inertia>
 				</Body>
-				
 				<Body name="scapula_r">
 					<!--The geometry used to display the axes of this Frame.-->
 					<FrameGeometry name="frame_geometry">
@@ -616,11 +615,10 @@
 					<!--The mass of the body (kg)-->
 					<mass>34.236600000000003</mass>
 					<!--The location (Vec3) of the mass center in the body frame.-->
-					<mass_center>-0.029999999999999999 0.32000000000000001 0.3</mass_center>
+					<mass_center>-0.029999999999999999 0.32000000000000001 0.29999999999999999</mass_center>
 					<!--The elements of the inertia tensor (Vec6) as [Ixx Iyy Izz Ixy Ixz Iyz] measured about the mass_center and not the body origin.-->
 					<inertia>1.4744999999999999 0.75549999999999995 1.4314 0 0 0</inertia>
 				</Body>
-				
 				<Body name="scapula_l">
 					<!--The geometry used to display the axes of this Frame.-->
 					<FrameGeometry name="frame_geometry">
@@ -655,22 +653,11 @@
 					<!--The mass of the body (kg)-->
 					<mass>34.236600000000003</mass>
 					<!--The location (Vec3) of the mass center in the body frame.-->
-					<mass_center>-0.029999999999999999 0.32000000000000001 0.3</mass_center>
+					<mass_center>-0.029999999999999999 0.32000000000000001 0.29999999999999999</mass_center>
 					<!--The elements of the inertia tensor (Vec6) as [Ixx Iyy Izz Ixy Ixz Iyz] measured about the mass_center and not the body origin.-->
 					<inertia>1.4744999999999999 0.75549999999999995 1.4314 0 0 0</inertia>
 				</Body>
-				
-				
-				
 				<Body name="clavicle_r">
-					<mass>0.156</mass>
-					<mass_center> -0.02172 0.01007 0.06704</mass_center>
-					<inertia_xx>6.4e-006</inertia_xx>
-					<inertia_yy>2.63e-005</inertia_yy>
-					<inertia_zz>2.43e-005</inertia_zz>
-					<inertia_xy>-6.7e-006</inertia_xy>
-					<inertia_xz>-9.5e-006</inertia_xz>
-					<inertia_yz>2.9e-006</inertia_yz>
 					<!--The geometry used to display the axes of this Frame.-->
 					<FrameGeometry name="frame_geometry">
 						<!--Path to a Component that satisfies the Socket 'frame' of type Frame.-->
@@ -684,7 +671,7 @@
 							<!--Path to a Component that satisfies the Socket 'frame' of type Frame.-->
 							<socket_frame>..</socket_frame>
 							<!--Scale factors in X, Y, Z directions respectively.-->
-							<scale_factors>0.8 0.8 0.8</scale_factors>
+							<scale_factors>0.80000000000000004 0.80000000000000004 0.80000000000000004</scale_factors>
 							<!--Default appearance attributes for this Geometry-->
 							<Appearance>
 								<!--The opacity used to display the geometry between 0:transparent, 1:opaque.-->
@@ -696,21 +683,17 @@
 							<mesh_file>clavicle_rv.vtp</mesh_file>
 						</Mesh>
 					</attached_geometry>
-					<WrapObjectSet>
+					<!--Set of wrap objects fixed to this body that GeometryPaths can wrap over.This property used to be a member of Body but was moved up with the introduction of Frames.-->
+					<WrapObjectSet name="wrapobjectset">
 						<objects />
 						<groups />
 					</WrapObjectSet>
-				</Body>
-				
-				<Body name="clavicle_l">
+					<!--The mass of the body (kg)-->
 					<mass>0.156</mass>
-					<mass_center> -0.02172 0.01007 0.06704</mass_center>
-					<inertia_xx>6.4e-006</inertia_xx>
-					<inertia_yy>2.63e-005</inertia_yy>
-					<inertia_zz>2.43e-005</inertia_zz>
-					<inertia_xy>-6.7e-006</inertia_xy>
-					<inertia_xz>-9.5e-006</inertia_xz>
-					<inertia_yz>2.9e-006</inertia_yz>
+					<!--The location (Vec3) of the mass center in the body frame.-->
+					<mass_center>-0.02172 0.010070000000000001 0.067040000000000002</mass_center>
+				</Body>
+				<Body name="clavicle_l">
 					<!--The geometry used to display the axes of this Frame.-->
 					<FrameGeometry name="frame_geometry">
 						<!--Path to a Component that satisfies the Socket 'frame' of type Frame.-->
@@ -724,7 +707,7 @@
 							<!--Path to a Component that satisfies the Socket 'frame' of type Frame.-->
 							<socket_frame>..</socket_frame>
 							<!--Scale factors in X, Y, Z directions respectively.-->
-							<scale_factors>0.8 0.8 0.8</scale_factors>
+							<scale_factors>0.80000000000000004 0.80000000000000004 0.80000000000000004</scale_factors>
 							<!--Default appearance attributes for this Geometry-->
 							<Appearance>
 								<!--The opacity used to display the geometry between 0:transparent, 1:opaque.-->
@@ -736,29 +719,16 @@
 							<mesh_file>clavicle_lv.vtp</mesh_file>
 						</Mesh>
 					</attached_geometry>
-					<WrapObjectSet>
+					<!--Set of wrap objects fixed to this body that GeometryPaths can wrap over.This property used to be a member of Body but was moved up with the introduction of Frames.-->
+					<WrapObjectSet name="wrapobjectset">
 						<objects />
 						<groups />
 					</WrapObjectSet>
+					<!--The mass of the body (kg)-->
+					<mass>0.156</mass>
+					<!--The location (Vec3) of the mass center in the body frame.-->
+					<mass_center>-0.02172 0.010070000000000001 0.067040000000000002</mass_center>
 				</Body>
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
 				<Body name="head">
 					<!--List of components that this component owns and serializes.-->
 					<components>
@@ -1941,12 +1911,6 @@
 			</objects>
 			<groups />
 		</BodySet>
-		
-		
-		
-		
-		
-		
 		<!--List of joints that connect the bodies.-->
 		<JointSet name="jointset">
 			<objects>
@@ -2156,7 +2120,7 @@
 							<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
 							<range>-2.0943950999999998 2.0943950999999998</range>
 							<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
-							<clamped>false</clamped>
+							<clamped>true</clamped>
 							<!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
 							<locked>false</locked>
 							<!--If specified, the coordinate can be prescribed by a function of time. It can be any OpenSim Function with valid second order derivatives.-->
@@ -2170,7 +2134,7 @@
 							<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
 							<range>-2.0943950999999998 2.0943950999999998</range>
 							<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
-							<clamped>false</clamped>
+							<clamped>true</clamped>
 							<!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
 							<locked>false</locked>
 							<!--If specified, the coordinate can be prescribed by a function of time. It can be any OpenSim Function with valid second order derivatives.-->
@@ -2184,7 +2148,7 @@
 							<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
 							<range>-2.0943950999999998 2.0943950999999998</range>
 							<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
-							<clamped>false</clamped>
+							<clamped>true</clamped>
 							<!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
 							<locked>false</locked>
 							<!--If specified, the coordinate can be prescribed by a function of time. It can be any OpenSim Function with valid second order derivatives.-->
@@ -2305,7 +2269,7 @@
 							<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
 							<range>-2.0943950999999998 0.17453293</range>
 							<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
-							<clamped>false</clamped>
+							<clamped>true</clamped>
 							<!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
 							<locked>false</locked>
 							<!--If specified, the coordinate can be prescribed by a function of time. It can be any OpenSim Function with valid second order derivatives.-->
@@ -2428,7 +2392,7 @@
 							<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
 							<range>-1.5707963300000001 1.5707963300000001</range>
 							<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
-							<clamped>false</clamped>
+							<clamped>true</clamped>
 							<!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
 							<locked>false</locked>
 							<!--If specified, the coordinate can be prescribed by a function of time. It can be any OpenSim Function with valid second order derivatives.-->
@@ -2549,7 +2513,7 @@
 							<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
 							<range>-1.5707963300000001 1.5707963300000001</range>
 							<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
-							<clamped>false</clamped>
+							<clamped>true</clamped>
 							<!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
 							<locked>false</locked>
 							<!--If specified, the coordinate can be prescribed by a function of time. It can be any OpenSim Function with valid second order derivatives.-->
@@ -2670,7 +2634,7 @@
 							<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
 							<range>-1.5707963300000001 1.5707963300000001</range>
 							<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
-							<clamped>false</clamped>
+							<clamped>true</clamped>
 							<!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
 							<locked>false</locked>
 							<!--If specified, the coordinate can be prescribed by a function of time. It can be any OpenSim Function with valid second order derivatives.-->
@@ -2791,7 +2755,7 @@
 							<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
 							<range>-2.0943950999999998 2.0943950999999998</range>
 							<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
-							<clamped>false</clamped>
+							<clamped>true</clamped>
 							<!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
 							<locked>false</locked>
 							<!--If specified, the coordinate can be prescribed by a function of time. It can be any OpenSim Function with valid second order derivatives.-->
@@ -2805,7 +2769,7 @@
 							<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
 							<range>-2.0943950999999998 2.0943950999999998</range>
 							<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
-							<clamped>false</clamped>
+							<clamped>true</clamped>
 							<!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
 							<locked>false</locked>
 							<!--If specified, the coordinate can be prescribed by a function of time. It can be any OpenSim Function with valid second order derivatives.-->
@@ -2819,7 +2783,7 @@
 							<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
 							<range>-2.0943950999999998 2.0943950999999998</range>
 							<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
-							<clamped>false</clamped>
+							<clamped>true</clamped>
 							<!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
 							<locked>false</locked>
 							<!--If specified, the coordinate can be prescribed by a function of time. It can be any OpenSim Function with valid second order derivatives.-->
@@ -2940,7 +2904,7 @@
 							<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
 							<range>-2.0943950999999998 0.17453293</range>
 							<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
-							<clamped>false</clamped>
+							<clamped>true</clamped>
 							<!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
 							<locked>false</locked>
 							<!--If specified, the coordinate can be prescribed by a function of time. It can be any OpenSim Function with valid second order derivatives.-->
@@ -3063,7 +3027,7 @@
 							<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
 							<range>-1.0471975499999999 1.0471975499999999</range>
 							<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
-							<clamped>false</clamped>
+							<clamped>true</clamped>
 							<!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
 							<locked>false</locked>
 							<!--If specified, the coordinate can be prescribed by a function of time. It can be any OpenSim Function with valid second order derivatives.-->
@@ -3184,7 +3148,7 @@
 							<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
 							<range>-1.5707963300000001 1.5707963300000001</range>
 							<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
-							<clamped>false</clamped>
+							<clamped>true</clamped>
 							<!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
 							<locked>false</locked>
 							<!--If specified, the coordinate can be prescribed by a function of time. It can be any OpenSim Function with valid second order derivatives.-->
@@ -3305,7 +3269,7 @@
 							<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
 							<range>-1.0471975499999999 1.0471975499999999</range>
 							<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
-							<clamped>false</clamped>
+							<clamped>true</clamped>
 							<!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
 							<locked>false</locked>
 							<!--If specified, the coordinate can be prescribed by a function of time. It can be any OpenSim Function with valid second order derivatives.-->
@@ -3426,7 +3390,7 @@
 							<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
 							<range>-1.5707963300000001 1.5707963300000001</range>
 							<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
-							<clamped>false</clamped>
+							<clamped>true</clamped>
 							<!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
 							<locked>false</locked>
 							<!--If specified, the coordinate can be prescribed by a function of time. It can be any OpenSim Function with valid second order derivatives.-->
@@ -3440,7 +3404,7 @@
 							<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
 							<range>-1.5707963300000001 1.5707963300000001</range>
 							<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
-							<clamped>false</clamped>
+							<clamped>true</clamped>
 							<!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
 							<locked>false</locked>
 							<!--If specified, the coordinate can be prescribed by a function of time. It can be any OpenSim Function with valid second order derivatives.-->
@@ -3454,7 +3418,7 @@
 							<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
 							<range>-1.5707963300000001 1.5707963300000001</range>
 							<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
-							<clamped>false</clamped>
+							<clamped>true</clamped>
 							<!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
 							<locked>false</locked>
 							<!--If specified, the coordinate can be prescribed by a function of time. It can be any OpenSim Function with valid second order derivatives.-->
@@ -3560,17 +3524,6 @@
 						</TransformAxis>
 					</SpatialTransform>
 				</CustomJoint>
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
 				<CustomJoint name="scapulothoracic_r">
 					<!--Path to a Component that satisfies the Socket 'parent_frame' of type PhysicalFrame (description: The parent frame for the joint.).-->
 					<socket_parent_frame>torso_offset</socket_parent_frame>
@@ -3584,7 +3537,7 @@
 							<!--The speed value of this coordinate before any value has been set. Rotational coordinate value is in rad/s and Translational in m/s.-->
 							<default_speed_value>0</default_speed_value>
 							<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
-							<range>-0.78539816339 0.78539816339</range>
+							<range>-0.78539816339000001 0.78539816339000001</range>
 							<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
 							<clamped>true</clamped>
 							<!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
@@ -3600,7 +3553,7 @@
 							<!--The speed value of this coordinate before any value has been set. Rotational coordinate value is in rad/s and Translational in m/s.-->
 							<default_speed_value>0</default_speed_value>
 							<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
-							<range>-0.78539816339 0.78539816339</range>
+							<range>-0.78539816339000001 0.78539816339000001</range>
 							<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
 							<clamped>true</clamped>
 							<!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
@@ -3616,7 +3569,7 @@
 							<!--The speed value of this coordinate before any value has been set. Rotational coordinate value is in rad/s and Translational in m/s.-->
 							<default_speed_value>0</default_speed_value>
 							<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
-							<range>-0.78539816339 0.78539816339</range>
+							<range>-0.78539816339000001 0.78539816339000001</range>
 							<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
 							<clamped>true</clamped>
 							<!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
@@ -3640,7 +3593,7 @@
 							<!--Path to a Component that satisfies the Socket 'parent' of type C (description: The parent frame to this frame.).-->
 							<socket_parent>/bodyset/torso</socket_parent>
 							<!--Translational offset (in meters) of this frame's origin from the parent frame's origin, expressed in the parent frame.-->
-							<translation>0.02 0.4000000000000001 0.15</translation>
+							<translation>0.02 0.40000000000000008 0.14999999999999999</translation>
 							<!--Orientation offset (in radians) of this frame in its parent frame, expressed as a frame-fixed x-y-z rotation sequence.-->
 							<orientation>0 0 0</orientation>
 						</PhysicalOffsetFrame>
@@ -3726,8 +3679,6 @@
 						</TransformAxis>
 					</SpatialTransform>
 				</CustomJoint>
-				
-				
 				<CustomJoint name="scapulothoracic_l">
 					<!--Path to a Component that satisfies the Socket 'parent_frame' of type PhysicalFrame (description: The parent frame for the joint.).-->
 					<socket_parent_frame>torso_offset</socket_parent_frame>
@@ -3741,7 +3692,7 @@
 							<!--The speed value of this coordinate before any value has been set. Rotational coordinate value is in rad/s and Translational in m/s.-->
 							<default_speed_value>0</default_speed_value>
 							<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
-							<range>-0.78539816339 0.78539816339</range>
+							<range>-0.78539816339000001 0.78539816339000001</range>
 							<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
 							<clamped>true</clamped>
 							<!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
@@ -3757,7 +3708,7 @@
 							<!--The speed value of this coordinate before any value has been set. Rotational coordinate value is in rad/s and Translational in m/s.-->
 							<default_speed_value>0</default_speed_value>
 							<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
-							<range>-0.78539816339 0.78539816339</range>
+							<range>-0.78539816339000001 0.78539816339000001</range>
 							<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
 							<clamped>true</clamped>
 							<!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
@@ -3773,7 +3724,7 @@
 							<!--The speed value of this coordinate before any value has been set. Rotational coordinate value is in rad/s and Translational in m/s.-->
 							<default_speed_value>0</default_speed_value>
 							<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
-							<range>-0.78539816339 0.78539816339</range>
+							<range>-0.78539816339000001 0.78539816339000001</range>
 							<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
 							<clamped>true</clamped>
 							<!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
@@ -3797,7 +3748,7 @@
 							<!--Path to a Component that satisfies the Socket 'parent' of type C (description: The parent frame to this frame.).-->
 							<socket_parent>/bodyset/torso</socket_parent>
 							<!--Translational offset (in meters) of this frame's origin from the parent frame's origin, expressed in the parent frame.-->
-							<translation>0.02 0.4000000000000001 -0.15</translation>
+							<translation>0.02 0.40000000000000008 -0.14999999999999999</translation>
 							<!--Orientation offset (in radians) of this frame in its parent frame, expressed as a frame-fixed x-y-z rotation sequence.-->
 							<orientation>0 0 0</orientation>
 						</PhysicalOffsetFrame>
@@ -3883,69 +3834,28 @@
 						</TransformAxis>
 					</SpatialTransform>
 				</CustomJoint>
-				
-				
-				
-				
-			
-					<CustomJoint name="sternoclavicular_r">
-						<!--Path to a Component that satisfies the Socket 'parent_frame' of type PhysicalFrame (description: The parent frame for the joint.).-->
-						<socket_parent_frame>torso_offset</socket_parent_frame>
-						<!--Path to a Component that satisfies the Socket 'child_frame' of type PhysicalFrame (description: The child frame for the joint.).-->
-						<socket_child_frame>clavicle_r_offset</socket_child_frame>
-						<!--Location of the joint in the parent body specified in the parent reference frame. Default is (0,0,0).-->
-						<location_in_parent>0 0 0</location_in_parent>
-						<!--Orientation of the joint in the parent body specified in the parent reference frame. Euler XYZ body-fixed rotation angles are used to express the orientation. Default is (0,0,0).-->
-						<orientation_in_parent>0 0 0</orientation_in_parent>
-						<!--Location of the joint in the child body specified in the child reference frame. For SIMM models, this vector is always the zero vector (i.e., the body reference frame coincides with the joint). -->
-						<location>0 0 0</location>
-						<!--Orientation of the joint in the owing body specified in the owning body reference frame.  Euler XYZ body-fixed rotation angles are used to express the orientation. -->
-						<orientation>0 0 0</orientation>
-						<!--Set holding the generalized coordinates (q's) that parmeterize this joint.-->
-						<CoordinateSet>
-							<objects>
-								<Coordinate name="clav_prot_r">
-									<!--Coordinate can describe rotational, translational, or coupled motion. Defaults to rotational.-->
-									<motion_type>rotational</motion_type>
-									<!--The value of this coordinate before any value has been set. Rotational coordinate value is in radians and Translational in meters.-->
-									<default_value>0</default_value>
-									<!--The speed value of this coordinate before any value has been set. Rotational coordinate value is in rad/s and Translational in m/s.-->
-									<default_speed_value>0</default_speed_value>
-									<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
-									<range>-0.78539816339 0.78539816339</range>
-									<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
-									<clamped>true</clamped>
-									<!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
-									<locked>false</locked>
-									<!--If specified, the coordinate can be prescribed by a function of time. It can be any OpenSim Function with valid second order derivatives.-->
-									<prescribed_function />
-									<!--Flag indicating whether or not the values of the coordinates should be prescribed according to the function above. It is ignored if the no prescribed function is specified.-->
-									<prescribed>false</prescribed>
-								</Coordinate>
-								<Coordinate name="clav_elev_r">
-									<!--Coordinate can describe rotational, translational, or coupled motion. Defaults to rotational.-->
-									<motion_type>rotational</motion_type>
-									<!--The value of this coordinate before any value has been set. Rotational coordinate value is in radians and Translational in meters.-->
-									<default_value>0</default_value>
-									<!--The speed value of this coordinate before any value has been set. Rotational coordinate value is in rad/s and Translational in m/s.-->
-									<default_speed_value>0</default_speed_value>
-									<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
-									<range>-0.78539816339 0.78539816339</range>
-									<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
-									<clamped>true</clamped>
-									<!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
-									<locked>false</locked>
-									<!--If specified, the coordinate can be prescribed by a function of time. It can be any OpenSim Function with valid second order derivatives.-->
-									<prescribed_function />
-									<!--Flag indicating whether or not the values of the coordinates should be prescribed according to the function above. It is ignored if the no prescribed function is specified.-->
-									<prescribed>false</prescribed>
-								</Coordinate>
-							</objects>
-							<groups />
-						</CoordinateSet>
-						<!--Whether the joint transform defines parent->child or child->parent.-->
-						<reverse>false</reverse>
-						<frames>
+				<CustomJoint name="sternoclavicular_r">
+					<!--Path to a Component that satisfies the Socket 'parent_frame' of type PhysicalFrame (description: The parent frame for the joint.).-->
+					<socket_parent_frame>torso_offset</socket_parent_frame>
+					<!--Path to a Component that satisfies the Socket 'child_frame' of type PhysicalFrame (description: The child frame for the joint.).-->
+					<socket_child_frame>clavicle_r_offset</socket_child_frame>
+					<!--List containing the generalized coordinates (q's) that parameterize this joint.-->
+					<coordinates>
+						<Coordinate name="clav_prot_r">
+							<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
+							<range>-0.78539816339 0.78539816339</range>
+							<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
+							<clamped>true</clamped>
+						</Coordinate>
+						<Coordinate name="clav_elev_r">
+							<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
+							<range>-0.78539816339 0.78539816339</range>
+							<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
+							<clamped>true</clamped>
+						</Coordinate>
+					</coordinates>
+					<!--Physical offset frames owned by the Joint that are typically used to satisfy the owning Joint's parent and child frame connections (sockets). PhysicalOffsetFrames are often used to describe the fixed transformation from a Body's origin to another location of interest on the Body (e.g., the joint center). When the joint is deleted, so are the PhysicalOffsetFrame components in this list.-->
+					<frames>
 						<PhysicalOffsetFrame name="torso_offset">
 							<!--The geometry used to display the axes of this Frame.-->
 							<FrameGeometry name="frame_geometry">
@@ -3957,9 +3867,9 @@
 							<!--Path to a Component that satisfies the Socket 'parent' of type C (description: The parent frame to this frame.).-->
 							<socket_parent>/bodyset/torso</socket_parent>
 							<!--Translational offset (in meters) of this frame's origin from the parent frame's origin, expressed in the parent frame.-->
-							<translation>0.015 0.38 0.015</translation>
+							<translation>0.014999999999999999 0.38 0.014999999999999999</translation>
 							<!--Orientation offset (in radians) of this frame in its parent frame, expressed as a frame-fixed x-y-z rotation sequence.-->
-							<orientation>-0.15 -0.10 0</orientation>
+							<orientation>-0.14999999999999999 -0.10000000000000001 0</orientation>
 						</PhysicalOffsetFrame>
 						<PhysicalOffsetFrame name="clavicle_r_offset">
 							<!--The geometry used to display the axes of this Frame.-->
@@ -3977,145 +3887,94 @@
 							<orientation>0 0 0</orientation>
 						</PhysicalOffsetFrame>
 					</frames>
-						<!--Defines how the child body moves with respect to the parent as a function of the generalized coordinates.-->
-						<SpatialTransform>
-							<!--3 Axes for rotations are listed first.-->
-							<TransformAxis name="rotation1">
-								<!--Names of the coordinates that serve as the independent variables         of the transform function.-->
-								<coordinates>clav_prot_r</coordinates>
-								<!--Rotation or translation axis for the transform.-->
-								<axis>0.0153 0.9892987 -0.14509996</axis>
-								<!--Transform function of the generalized coordinates used to        represent the amount of transformation along a specified axis.-->
-								<function>
-									<LinearFunction>
-										<coefficients> 1 0</coefficients>
-									</LinearFunction>
-								</function>
-							</TransformAxis>
-							<TransformAxis name="rotation2">
-								<!--Names of the coordinates that serve as the independent variables         of the transform function.-->
-								<coordinates>clav_elev_r</coordinates>
-								<!--Rotation or translation axis for the transform.-->
-								<axis>-0.99447254 0 -0.10499695</axis>
-								<!--Transform function of the generalized coordinates used to        represent the amount of transformation along a specified axis.-->
-								<function>
-									<LinearFunction>
-										<coefficients> 1 0</coefficients>
-									</LinearFunction>
-								</function>
-							</TransformAxis>
-							<TransformAxis name="rotation3">
-								<!--Names of the coordinates that serve as the independent variables         of the transform function.-->
-								<coordinates></coordinates>
-								<!--Rotation or translation axis for the transform.-->
-								<axis>-0.0292 0.0202 0.1201</axis>
-								<!--Transform function of the generalized coordinates used to        represent the amount of transformation along a specified axis.-->
-								<function>
-									<Constant>
-										<value>0</value>
-									</Constant>
-								</function>
-							</TransformAxis>
-							<!--3 Axes for translations are listed next.-->
-							<TransformAxis name="translation1">
-								<!--Names of the coordinates that serve as the independent variables         of the transform function.-->
-								<coordinates></coordinates>
-								<!--Rotation or translation axis for the transform.-->
-								<axis>1 0 0</axis>
-								<!--Transform function of the generalized coordinates used to        represent the amount of transformation along a specified axis.-->
-								<function>
-									<Constant>
-										<value>0</value>
-									</Constant>
-								</function>
-							</TransformAxis>
-							<TransformAxis name="translation2">
-								<!--Names of the coordinates that serve as the independent variables         of the transform function.-->
-								<coordinates></coordinates>
-								<!--Rotation or translation axis for the transform.-->
-								<axis>0 1 0</axis>
-								<!--Transform function of the generalized coordinates used to        represent the amount of transformation along a specified axis.-->
-								<function>
-									<Constant>
-										<value>0</value>
-									</Constant>
-								</function>
-							</TransformAxis>
-							<TransformAxis name="translation3">
-								<!--Names of the coordinates that serve as the independent variables         of the transform function.-->
-								<coordinates></coordinates>
-								<!--Rotation or translation axis for the transform.-->
-								<axis>0 0 1</axis>
-								<!--Transform function of the generalized coordinates used to        represent the amount of transformation along a specified axis.-->
-								<function>
-									<Constant>
-										<value>0</value>
-									</Constant>
-								</function>
-							</TransformAxis>
-						</SpatialTransform>
-					</CustomJoint>
-				
-
-
-					<CustomJoint name="sternoclavicular_l">
-						<!--Path to a Component that satisfies the Socket 'parent_frame' of type PhysicalFrame (description: The parent frame for the joint.).-->
-						<socket_parent_frame>torso_offset</socket_parent_frame>
-						<!--Path to a Component that satisfies the Socket 'child_frame' of type PhysicalFrame (description: The child frame for the joint.).-->
-						<socket_child_frame>clavicle_l_offset</socket_child_frame>
-						<!--Location of the joint in the parent body specified in the parent reference frame. Default is (0,0,0).-->
-						<location_in_parent>0 0 0</location_in_parent>
-						<!--Orientation of the joint in the parent body specified in the parent reference frame. Euler XYZ body-fixed rotation angles are used to express the orientation. Default is (0,0,0).-->
-						<orientation_in_parent>0 0 0</orientation_in_parent>
-						<!--Location of the joint in the child body specified in the child reference frame. For SIMM models, this vector is always the zero vector (i.e., the body reference frame coincides with the joint). -->
-						<location>0 0 0</location>
-						<!--Orientation of the joint in the owing body specified in the owning body reference frame.  Euler XYZ body-fixed rotation angles are used to express the orientation. -->
-						<orientation>0 0 0</orientation>
-						<!--Set holding the generalized coordinates (q's) that parmeterize this joint.-->
-						<CoordinateSet>
-							<objects>
-								<Coordinate name="clav_prot_l">
-									<!--Coordinate can describe rotational, translational, or coupled motion. Defaults to rotational.-->
-									<motion_type>rotational</motion_type>
-									<!--The value of this coordinate before any value has been set. Rotational coordinate value is in radians and Translational in meters.-->
-									<default_value>0</default_value>
-									<!--The speed value of this coordinate before any value has been set. Rotational coordinate value is in rad/s and Translational in m/s.-->
-									<default_speed_value>0</default_speed_value>
-									<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
-									<range>-0.78539816339 0.78539816339</range>
-									<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
-									<clamped>true</clamped>
-									<!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
-									<locked>false</locked>
-									<!--If specified, the coordinate can be prescribed by a function of time. It can be any OpenSim Function with valid second order derivatives.-->
-									<prescribed_function />
-									<!--Flag indicating whether or not the values of the coordinates should be prescribed according to the function above. It is ignored if the no prescribed function is specified.-->
-									<prescribed>false</prescribed>
-								</Coordinate>
-								<Coordinate name="clav_elev_l">
-									<!--Coordinate can describe rotational, translational, or coupled motion. Defaults to rotational.-->
-									<motion_type>rotational</motion_type>
-									<!--The value of this coordinate before any value has been set. Rotational coordinate value is in radians and Translational in meters.-->
-									<default_value>0</default_value>
-									<!--The speed value of this coordinate before any value has been set. Rotational coordinate value is in rad/s and Translational in m/s.-->
-									<default_speed_value>0</default_speed_value>
-									<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
-									<range>-0.78539816339 0.78539816339</range>
-									<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
-									<clamped>true</clamped>
-									<!--Flag indicating whether or not the values of the coordinates should be constrained to the current (e.g. default) value, above.-->
-									<locked>false</locked>
-									<!--If specified, the coordinate can be prescribed by a function of time. It can be any OpenSim Function with valid second order derivatives.-->
-									<prescribed_function />
-									<!--Flag indicating whether or not the values of the coordinates should be prescribed according to the function above. It is ignored if the no prescribed function is specified.-->
-									<prescribed>false</prescribed>
-								</Coordinate>
-							</objects>
-							<groups />
-						</CoordinateSet>
-						<!--Whether the joint transform defines parent->child or child->parent.-->
-						<reverse>false</reverse>
-						<frames>
+					<!--Defines how the child body moves with respect to the parent as a function of the generalized coordinates.-->
+					<SpatialTransform>
+						<!--3 Axes for rotations are listed first.-->
+						<TransformAxis name="rotation1">
+							<!--Names of the coordinates that serve as the independent variables         of the transform function.-->
+							<coordinates>clav_prot_r</coordinates>
+							<!--Rotation or translation axis for the transform.-->
+							<axis>0.015299999999999999 0.98929869999999998 -0.14509996</axis>
+							<!--Transform function of the generalized coordinates used to        represent the amount of displacement along a specified axis.-->
+							<LinearFunction name="function">
+								<coefficients> 1 0</coefficients>
+							</LinearFunction>
+						</TransformAxis>
+						<TransformAxis name="rotation2">
+							<!--Names of the coordinates that serve as the independent variables         of the transform function.-->
+							<coordinates>clav_elev_r</coordinates>
+							<!--Rotation or translation axis for the transform.-->
+							<axis>-0.99447253999999996 0 -0.10499695000000001</axis>
+							<!--Transform function of the generalized coordinates used to        represent the amount of displacement along a specified axis.-->
+							<LinearFunction name="function">
+								<coefficients> 1 0</coefficients>
+							</LinearFunction>
+						</TransformAxis>
+						<TransformAxis name="rotation3">
+							<!--Names of the coordinates that serve as the independent variables         of the transform function.-->
+							<coordinates></coordinates>
+							<!--Rotation or translation axis for the transform.-->
+							<axis>-0.0292 0.020199999999999999 0.1201</axis>
+							<!--Transform function of the generalized coordinates used to        represent the amount of displacement along a specified axis.-->
+							<Constant name="function">
+								<value>0</value>
+							</Constant>
+						</TransformAxis>
+						<!--3 Axes for translations are listed next.-->
+						<TransformAxis name="translation1">
+							<!--Names of the coordinates that serve as the independent variables         of the transform function.-->
+							<coordinates></coordinates>
+							<!--Rotation or translation axis for the transform.-->
+							<axis>1 0 0</axis>
+							<!--Transform function of the generalized coordinates used to        represent the amount of displacement along a specified axis.-->
+							<Constant name="function">
+								<value>0</value>
+							</Constant>
+						</TransformAxis>
+						<TransformAxis name="translation2">
+							<!--Names of the coordinates that serve as the independent variables         of the transform function.-->
+							<coordinates></coordinates>
+							<!--Rotation or translation axis for the transform.-->
+							<axis>0 1 0</axis>
+							<!--Transform function of the generalized coordinates used to        represent the amount of displacement along a specified axis.-->
+							<Constant name="function">
+								<value>0</value>
+							</Constant>
+						</TransformAxis>
+						<TransformAxis name="translation3">
+							<!--Names of the coordinates that serve as the independent variables         of the transform function.-->
+							<coordinates></coordinates>
+							<!--Rotation or translation axis for the transform.-->
+							<axis>0 0 1</axis>
+							<!--Transform function of the generalized coordinates used to        represent the amount of displacement along a specified axis.-->
+							<Constant name="function">
+								<value>0</value>
+							</Constant>
+						</TransformAxis>
+					</SpatialTransform>
+				</CustomJoint>
+				<CustomJoint name="sternoclavicular_l">
+					<!--Path to a Component that satisfies the Socket 'parent_frame' of type PhysicalFrame (description: The parent frame for the joint.).-->
+					<socket_parent_frame>torso_offset</socket_parent_frame>
+					<!--Path to a Component that satisfies the Socket 'child_frame' of type PhysicalFrame (description: The child frame for the joint.).-->
+					<socket_child_frame>clavicle_l_offset</socket_child_frame>
+					<!--List containing the generalized coordinates (q's) that parameterize this joint.-->
+					<coordinates>
+						<Coordinate name="clav_prot_l">
+							<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
+							<range>-0.78539816339 0.78539816339</range>
+							<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
+							<clamped>true</clamped>
+						</Coordinate>
+						<Coordinate name="clav_elev_l">
+							<!--The minimum and maximum values that the coordinate can range between. Rotational coordinate range in radians and Translational in meters.-->
+							<range>-0.78539816339 0.78539816339</range>
+							<!--Flag indicating whether or not the values of the coordinates should be limited to the range, above.-->
+							<clamped>true</clamped>
+						</Coordinate>
+					</coordinates>
+					<!--Physical offset frames owned by the Joint that are typically used to satisfy the owning Joint's parent and child frame connections (sockets). PhysicalOffsetFrames are often used to describe the fixed transformation from a Body's origin to another location of interest on the Body (e.g., the joint center). When the joint is deleted, so are the PhysicalOffsetFrame components in this list.-->
+					<frames>
 						<PhysicalOffsetFrame name="torso_offset">
 							<!--The geometry used to display the axes of this Frame.-->
 							<FrameGeometry name="frame_geometry">
@@ -4127,9 +3986,9 @@
 							<!--Path to a Component that satisfies the Socket 'parent' of type C (description: The parent frame to this frame.).-->
 							<socket_parent>/bodyset/torso</socket_parent>
 							<!--Translational offset (in meters) of this frame's origin from the parent frame's origin, expressed in the parent frame.-->
-							<translation>0.015 0.38 -0.015</translation>
+							<translation>0.014999999999999999 0.38 -0.014999999999999999</translation>
 							<!--Orientation offset (in radians) of this frame in its parent frame, expressed as a frame-fixed x-y-z rotation sequence.-->
-							<orientation>0.15 0.10 0</orientation>
+							<orientation>0.14999999999999999 0.10000000000000001 0</orientation>
 						</PhysicalOffsetFrame>
 						<PhysicalOffsetFrame name="clavicle_l_offset">
 							<!--The geometry used to display the axes of this Frame.-->
@@ -4147,100 +4006,72 @@
 							<orientation>0 0 0</orientation>
 						</PhysicalOffsetFrame>
 					</frames>
-						<!--Defines how the child body moves with respect to the parent as a function of the generalized coordinates.-->
-						<SpatialTransform>
-							<!--3 Axes for rotations are listed first.-->
-							<TransformAxis name="rotation1">
-								<!--Names of the coordinates that serve as the independent variables         of the transform function.-->
-								<coordinates>clav_prot_l</coordinates>
-								<!--Rotation or translation axis for the transform.-->
-								<axis>0.0153 0.9892987 -0.14509996</axis>
-								<!--Transform function of the generalized coordinates used to        represent the amount of transformation along a specified axis.-->
-								<function>
-									<LinearFunction>
-										<coefficients> 1 0</coefficients>
-									</LinearFunction>
-								</function>
-							</TransformAxis>
-							<TransformAxis name="rotation2">
-								<!--Names of the coordinates that serve as the independent variables         of the transform function.-->
-								<coordinates>clav_elev_l</coordinates>
-								<!--Rotation or translation axis for the transform.-->
-								<axis>-0.99447254 0 -0.10499695</axis>
-								<!--Transform function of the generalized coordinates used to        represent the amount of transformation along a specified axis.-->
-								<function>
-									<LinearFunction>
-										<coefficients> 1 0</coefficients>
-									</LinearFunction>
-								</function>
-							</TransformAxis>
-							<TransformAxis name="rotation3">
-								<!--Names of the coordinates that serve as the independent variables         of the transform function.-->
-								<coordinates></coordinates>
-								<!--Rotation or translation axis for the transform.-->
-								<axis>-0.0292 0.0202 0.1201</axis>
-								<!--Transform function of the generalized coordinates used to        represent the amount of transformation along a specified axis.-->
-								<function>
-									<Constant>
-										<value>0</value>
-									</Constant>
-								</function>
-							</TransformAxis>
-							<!--3 Axes for translations are listed next.-->
-							<TransformAxis name="translation1">
-								<!--Names of the coordinates that serve as the independent variables         of the transform function.-->
-								<coordinates></coordinates>
-								<!--Rotation or translation axis for the transform.-->
-								<axis>1 0 0</axis>
-								<!--Transform function of the generalized coordinates used to        represent the amount of transformation along a specified axis.-->
-								<function>
-									<Constant>
-										<value>0</value>
-									</Constant>
-								</function>
-							</TransformAxis>
-							<TransformAxis name="translation2">
-								<!--Names of the coordinates that serve as the independent variables         of the transform function.-->
-								<coordinates></coordinates>
-								<!--Rotation or translation axis for the transform.-->
-								<axis>0 1 0</axis>
-								<!--Transform function of the generalized coordinates used to        represent the amount of transformation along a specified axis.-->
-								<function>
-									<Constant>
-										<value>0</value>
-									</Constant>
-								</function>
-							</TransformAxis>
-							<TransformAxis name="translation3">
-								<!--Names of the coordinates that serve as the independent variables         of the transform function.-->
-								<coordinates></coordinates>
-								<!--Rotation or translation axis for the transform.-->
-								<axis>0 0 1</axis>
-								<!--Transform function of the generalized coordinates used to        represent the amount of transformation along a specified axis.-->
-								<function>
-									<Constant>
-										<value>0</value>
-									</Constant>
-								</function>
-							</TransformAxis>
-						</SpatialTransform>
-					</CustomJoint>
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
+					<!--Defines how the child body moves with respect to the parent as a function of the generalized coordinates.-->
+					<SpatialTransform>
+						<!--3 Axes for rotations are listed first.-->
+						<TransformAxis name="rotation1">
+							<!--Names of the coordinates that serve as the independent variables         of the transform function.-->
+							<coordinates>clav_prot_l</coordinates>
+							<!--Rotation or translation axis for the transform.-->
+							<axis>0.015299999999999999 0.98929869999999998 -0.14509996</axis>
+							<!--Transform function of the generalized coordinates used to        represent the amount of displacement along a specified axis.-->
+							<LinearFunction name="function">
+								<coefficients> 1 0</coefficients>
+							</LinearFunction>
+						</TransformAxis>
+						<TransformAxis name="rotation2">
+							<!--Names of the coordinates that serve as the independent variables         of the transform function.-->
+							<coordinates>clav_elev_l</coordinates>
+							<!--Rotation or translation axis for the transform.-->
+							<axis>-0.99447253999999996 0 -0.10499695000000001</axis>
+							<!--Transform function of the generalized coordinates used to        represent the amount of displacement along a specified axis.-->
+							<LinearFunction name="function">
+								<coefficients> 1 0</coefficients>
+							</LinearFunction>
+						</TransformAxis>
+						<TransformAxis name="rotation3">
+							<!--Names of the coordinates that serve as the independent variables         of the transform function.-->
+							<coordinates></coordinates>
+							<!--Rotation or translation axis for the transform.-->
+							<axis>-0.0292 0.020199999999999999 0.1201</axis>
+							<!--Transform function of the generalized coordinates used to        represent the amount of displacement along a specified axis.-->
+							<Constant name="function">
+								<value>0</value>
+							</Constant>
+						</TransformAxis>
+						<!--3 Axes for translations are listed next.-->
+						<TransformAxis name="translation1">
+							<!--Names of the coordinates that serve as the independent variables         of the transform function.-->
+							<coordinates></coordinates>
+							<!--Rotation or translation axis for the transform.-->
+							<axis>1 0 0</axis>
+							<!--Transform function of the generalized coordinates used to        represent the amount of displacement along a specified axis.-->
+							<Constant name="function">
+								<value>0</value>
+							</Constant>
+						</TransformAxis>
+						<TransformAxis name="translation2">
+							<!--Names of the coordinates that serve as the independent variables         of the transform function.-->
+							<coordinates></coordinates>
+							<!--Rotation or translation axis for the transform.-->
+							<axis>0 1 0</axis>
+							<!--Transform function of the generalized coordinates used to        represent the amount of displacement along a specified axis.-->
+							<Constant name="function">
+								<value>0</value>
+							</Constant>
+						</TransformAxis>
+						<TransformAxis name="translation3">
+							<!--Names of the coordinates that serve as the independent variables         of the transform function.-->
+							<coordinates></coordinates>
+							<!--Rotation or translation axis for the transform.-->
+							<axis>0 0 1</axis>
+							<!--Transform function of the generalized coordinates used to        represent the amount of displacement along a specified axis.-->
+							<Constant name="function">
+								<value>0</value>
+							</Constant>
+						</TransformAxis>
+					</SpatialTransform>
+				</CustomJoint>
 				<CustomJoint name="neck">
 					<!--Path to a Component that satisfies the Socket 'parent_frame' of type PhysicalFrame (description: The parent frame for the joint.).-->
 					<socket_parent_frame>torso_offset</socket_parent_frame>
@@ -4397,7 +4228,6 @@
 					</SpatialTransform>
 				</CustomJoint>
 				<CustomJoint name="acromial_r">
-					<parent_body>scapula_r</parent_body>
 					<!--Path to a Component that satisfies the Socket 'parent_frame' of type PhysicalFrame (description: The parent frame for the joint.).-->
 					<socket_parent_frame>scapula_r_offset</socket_parent_frame>
 					<!--Path to a Component that satisfies the Socket 'child_frame' of type PhysicalFrame (description: The child frame for the joint.).-->
@@ -4466,7 +4296,7 @@
 							<!--Path to a Component that satisfies the Socket 'parent' of type C (description: The parent frame to this frame.).-->
 							<socket_parent>/bodyset/scapula_r</socket_parent>
 							<!--Translational offset (in meters) of this frame's origin from the parent frame's origin, expressed in the parent frame.-->
-							<translation>-0.018 -0.025 0.02</translation>
+							<translation>-0.017999999999999999 -0.025000000000000001 0.02</translation>
 							<!--Orientation offset (in radians) of this frame in its parent frame, expressed as a frame-fixed x-y-z rotation sequence.-->
 							<orientation>0 0 0</orientation>
 						</PhysicalOffsetFrame>
@@ -4811,7 +4641,7 @@
 							<!--Path to a Component that satisfies the Socket 'parent' of type C (description: The parent frame to this frame.).-->
 							<socket_parent>/bodyset/scapula_l</socket_parent>
 							<!--Translational offset (in meters) of this frame's origin from the parent frame's origin, expressed in the parent frame.-->
-							<translation>-0.018 -0.025 -0.02</translation>
+							<translation>-0.017999999999999999 -0.025000000000000001 -0.02</translation>
 							<!--Orientation offset (in radians) of this frame in its parent frame, expressed as a frame-fixed x-y-z rotation sequence.-->
 							<orientation>0 0 0</orientation>
 						</PhysicalOffsetFrame>
@@ -5098,27 +4928,23 @@
 		<ConstraintSet name="constraintset">
 			<objects>
 				<PointConstraint name="AC_r">
-					<!--Flag indicating whether the constraint is disabled or not. Disabled means that the constraint is not active in subsequent dynamics realization-->
-					<isDisabled>false</isDisabled>
-					<!--Specify first of two bodies connected together by the constraint.-->
+					<!--Path to a Component that satisfies the Socket 'body_1' of type PhysicalFrame (description: A frame fixed to the first body participating in the constraint.).-->
 					<socket_body_1>/bodyset/clavicle_r</socket_body_1>
-					<!--Specify second of two bodies connected together by the constraint.-->
+					<!--Path to a Component that satisfies the Socket 'body_2' of type PhysicalFrame (description: A frame fixed to the second body participating in the constraint.).-->
 					<socket_body_2>/bodyset/scapula_r</socket_body_2>
-					<!--Location of the point in first body specified in body1 reference frame.-->
-					<location_body_1>-0.02924 0.02024 0.11705</location_body_1>
-					<!--Location of the point in second body specified in body2 reference frame.-->
+					<!--Location of the point in first body specified in body_1 reference frame.-->
+					<location_body_1>-0.029239999999999999 0.020240000000000001 0.11705</location_body_1>
+					<!--Location of the point in second body specified in body_2 reference frame.-->
 					<location_body_2>-0.01357 0.00011 -0.01523</location_body_2>
 				</PointConstraint>
 				<PointConstraint name="AC_l">
-					<!--Flag indicating whether the constraint is disabled or not. Disabled means that the constraint is not active in subsequent dynamics realization-->
-					<isDisabled>false</isDisabled>
-					<!--Specify first of two bodies connected together by the constraint.-->
+					<!--Path to a Component that satisfies the Socket 'body_1' of type PhysicalFrame (description: A frame fixed to the first body participating in the constraint.).-->
 					<socket_body_1>/bodyset/clavicle_l</socket_body_1>
-					<!--Specify second of two bodies connected together by the constraint.-->
+					<!--Path to a Component that satisfies the Socket 'body_2' of type PhysicalFrame (description: A frame fixed to the second body participating in the constraint.).-->
 					<socket_body_2>/bodyset/scapula_l</socket_body_2>
-					<!--Location of the point in first body specified in body1 reference frame.-->
-					<location_body_1>-0.02924 0.02024 -0.11705</location_body_1>
-					<!--Location of the point in second body specified in body2 reference frame.-->
+					<!--Location of the point in first body specified in body_1 reference frame.-->
+					<location_body_1>-0.029239999999999999 0.020240000000000001 -0.11705</location_body_1>
+					<!--Location of the point in second body specified in body_2 reference frame.-->
 					<location_body_2>-0.01357 0.00011 0.01523</location_body_2>
 				</PointConstraint>
 			</objects>
