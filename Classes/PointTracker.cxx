@@ -106,21 +106,29 @@ SimTK::Vec3 PointTracker::calculatePointRotation(const SimTK::State* s, OpenSim:
 	SimTK::Rotation mirroredRotation = bodyWrtRefBodyRot * mirroringRotation;
 	// Now we have calculated the mirrored rotation w.r.t. coordinates of the reference body.
 
-	/*SimTK::Rotation deg90AboutX; SimTK::Rotation deg180AboutZ;
+	SimTK::Rotation mirroredRotationWrtKuka;
+	// we must rotate the OpenSim coordinate system -90 degrees about X to match the coordinate axes with the KUKA coordinate system
+	SimTK::Rotation deg90AboutX;
 	deg90AboutX.setRotationFromAngleAboutX(-1.570796326794897);
-	deg180AboutZ.setRotationFromAngleAboutZ(3.14159265358979323);
-	SimTK::Rotation mirroredRotationWrtKuka = deg180AboutZ*(deg90AboutX*mirroredRotation);*/
-
-	// get quaternion orientations of the IMU in base and on the body as rotation matrices
-	SimTK::Rotation referenceBaseRotation(getReferenceBaseRotation());
-	SimTK::Rotation referenceBodyRotation(getReferenceBodyRotation());
-	// calculate the rotation from the orientation of the IMU on the body to the orientation of the IMU on the base of the robot arm
-	// X * BODY = BASE
-	// X = BASE * ~BODY
-	SimTK::Rotation bodyToBase(referenceBaseRotation * referenceBodyRotation.invert());
-	// rotate mirroredRotation
-	SimTK::Rotation mirroredRotationWrtKuka = bodyToBase * mirroredRotation;
-	
+	if (getReferenceBaseRotation().isNaN()) // if reference base rotation has not been defined
+	{
+		// we assume that KUKA coordinate system is facing opposite the patient's base segment's coordinate system
+		SimTK::Rotation deg180AboutZ;
+		deg180AboutZ.setRotationFromAngleAboutZ(3.14159265358979323);
+		mirroredRotationWrtKuka = deg180AboutZ*(deg90AboutX*mirroredRotation);
+	}
+	else
+	{
+		// get quaternion orientations of the IMU in base and on the body as rotation matrices
+		SimTK::Rotation referenceBaseRotation(getReferenceBaseRotation());
+		SimTK::Rotation referenceBodyRotation(getReferenceBodyRotation());
+		// calculate the rotation from the orientation of the IMU on the body to the orientation of the IMU on the base of the robot arm
+		// X * BODY = BASE
+		// X = BASE * ~BODY
+		SimTK::Rotation bodyToBase(referenceBaseRotation * referenceBodyRotation.invert());
+		// rotate mirroredRotation to correct for the difference between orientation on the base of the robot arm and current orientation of the base segment (and 90 degrees to match OpenSim coordinate system to KUKA)
+		mirroredRotationWrtKuka = bodyToBase * (deg90AboutX*mirroredRotation);
+	}
 
 	// convert the 3x3 rotation matrix into body fixed XYZ euler angles
 	//return mirroredRotation.convertRotationToBodyFixedXYZ();
