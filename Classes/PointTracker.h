@@ -4,6 +4,7 @@
 
 #include <OpenSim.h>
 #include <vector>
+#include <deque>
 #include <DecorationGeneratorLive.h>
 
 namespace OpenSimLive {
@@ -30,6 +31,9 @@ namespace OpenSimLive {
 		bool getPointTrackerEnabled() { return pointTrackerEnabled_; }
 		void createDecorationGenerator() { decGen_ = new OpenSimLive::DecorationGeneratorLive(); }
 		void setVisualize(bool setting) { visualize_ = setting; }
+		void setPointTrackerCurrentTime(double time) { timeSeriesCurrentTime_ = time; }
+		bool getSavePointTrackerResults() { return savePointTrackerResults_; }
+		void savePointTrackerOutputToFile(std::string& rootDir, std::string& resultsDir);
 
 		// PROTECTED VARIABLES
 		OpenSimLive::DecorationGeneratorLive* decGen_;
@@ -51,6 +55,10 @@ namespace OpenSimLive {
 		bool visualize_ = false;
 		SimTK::Quaternion_<SimTK::Real> referenceBaseRotation_;
 		SimTK::Quaternion_<SimTK::Real> referenceBodyRotation_;
+		bool savePointTrackerResults_ = false;
+		double timeSeriesCurrentTime_;
+		std::vector<double> timeSeriesTimeVector_;
+		std::vector<std::vector<double>> timeSeriesDepData_;
 
 	}; // end of class
 }

@@ -294,6 +294,7 @@ void IMUInverseKinematicsToolLive::updatePointTracker() {
     //model_.realizePosition(s_);
     model_.updMultibodySystem().realize(s_, SimTK::Stage::Position); // Required to advance (or move back) system to a stage where we can use pointTracker
     // Run PointTracker functions
+    setPointTrackerCurrentTime(time_);
     std::vector<double> trackerResults = runTracker(&s_, &model_, getPointTrackerBodyName(), getPointTrackerReferenceBodyName());
     // Save the results to a private variable
     setPointTrackerPositionsAndOrientations(trackerResults);
@@ -321,6 +322,10 @@ void IMUInverseKinematicsToolLive::reportToFile() {
     // Results written to file, clear in case we run again
     ikReporter_->clearTable(); 
 
+    if (getSavePointTrackerResults()) {
+        savePointTrackerOutputToFile(OpenSimLiveRootDirectory_, resultsDirectoryName);
+    }
+    
 }
 
 

@@ -50,6 +50,12 @@ std::vector<double> PointTracker::runTracker(const SimTK::State* s, OpenSim::Mod
 
 	// Save the calculated results in a vector and return it
 	std::vector<double> positionsAndRotations = { pointLocation[0], pointLocation[1], pointLocation[2], mirroredEuler[0], mirroredEuler[1], mirroredEuler[2] };
+	
+	if (savePointTrackerResults_) {
+		timeSeriesTimeVector_.push_back(timeSeriesCurrentTime_);
+		timeSeriesDepData_.push_back(positionsAndRotations);
+	}
+
 	return positionsAndRotations;
 }
 
@@ -210,3 +216,20 @@ void PointTracker::addStationToBody(const std::string& bodyName, const SimTK::Ve
 	// Write the modified file into .osim
 	calibratedModelFile.writeToFile(modelFile);
 }
+
+
+void PointTracker::savePointTrackerOutputToFile(std::string& rootDir, std::string& resultsDir) {
+	std::vector<std::string> labels = { "pos_X", "pos_Y", "pos_Z", "Eul_X", "Eul_Y", "Eul_Z" };
+	SimTK::Matrix_<SimTK::Real> timeSeriesMatrix(timeSeriesDepData_.size(), 6);
+	for (unsigned int i = 0; i < timeSeriesDepData_.size(); ++i) { // iteration through rows
+		for (unsigned int j = 0; j < 6; ++j) { // iteration throughs columns
+			timeSeriesMatrix.set(i, j, timeSeriesDepData_.at(i).at(j));
+
+		}
+	}
+	OpenSim::TimeSeriesTable_<double> outputTimeSeries(timeSeriesTimeVector_, timeSeriesMatrix, labels);
+	OpenSim::STOFileAdapter_<double>::write(outputTimeSeries, rootDir + "/" + resultsDir + "/" + "PointTrackerOutput.sto");
+}
+
+
+
