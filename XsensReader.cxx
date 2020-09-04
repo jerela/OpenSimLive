@@ -80,6 +80,7 @@ void ConnectToDataStream() {
 	bool continuousMode = false; // IK is calculated continuously while this is true
 	bool sendMode = false; // data is sent to client with each IK step while this is true
 	bool getDataKeyHit = false; // tells if the key that initiates a single IK calculation is hit
+	bool referenceBaseRotationKeyHit = false; // tells if the key that initiates the fetching of the current rotation of the base IMU is hit
 	bool calibrateModelKeyHit = false; // tells if the key that initiates model calibration is hit
 	bool startContinuousModeKeyHit = false; // tells if the key that starts continuous mode is hit
 	bool stopContinuousModeKeyHit = false; // tells if the key that pauses continuous mode is hit
@@ -91,6 +92,7 @@ void ConnectToDataStream() {
 	bool resetClockOnContinuousMode = ("true" == ConfigReader("MainConfiguration.xml", "reset_clock_on_continuous_mode")); // if true, clock will be reset to zero when entering continuous mode; if false, the clock will be set to zero at calibration
 	bool enableMirrorTherapy = (ConfigReader("MainConfiguration.xml", "station_parent_body") != "none"); // if "none", then set to false
 	unsigned int maxThreads = stoi(ConfigReader("MainConfiguration.xml", "threads")); // get the maximum number of concurrent threads for multithreading
+	std::string stationReferenceBody = ConfigReader("MainConfiguration.xml", "station_reference_body"); // get the name of the reference body used in mirror therapy
 
 	// initialize the object that handles multithreading
 	OpenSimLive::ThreadPoolContainer threadPoolContainer(maxThreads);
@@ -125,7 +127,7 @@ void ConnectToDataStream() {
 		
 		
 
-	std::cout << "Entering data streaming and IK loop. Press C to calibrate model, Z to calculate IK once, N to enter continuous mode, M to exit continuous mode, V to enter send mode, B to exit send mode and X to quit." << std::endl;
+	std::cout << "Entering data streaming and IK loop. Press C to calibrate model, Z to calculate IK once, N to enter continuous mode, M to exit continuous mode, V to enter send mode, B to exit send mode, , to save base reference orientation and X to quit." << std::endl;
 
 	do
 	{
@@ -135,6 +137,36 @@ void ConnectToDataStream() {
 			eulerData = xsensDataReader.GetEulerData(eulerData);
 		// update the boolean value to see if new data is available since orientation data was last retrieved
 		bool newDataAvailable = xsensDataReader.GetNewDataAvailable();
+
+		// if user hits the key to save the current orientation of the station reference body IMU when it is placed against the mounting surface of the robot arm
+		if (referenceBaseRotationKeyHit)
+		{
+			if (stationReferenceBody == "none")
+			{
+				std::cout << "Reference base rotation cannot be calculated because station reference body has not been defined in XML configuration!" << std::endl;
+				break;
+			}
+			OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
+			for (unsigned int i = 0; i < quaternionTimeSeriesTable.getNumColumns(); ++i)
+			{
+				if (stationReferenceBody + "_imu" == quaternionTimeSeriesTable.getColumnLabel(i))
+				{
+					SimTK::Quaternion_<SimTK::Real> quat = quaternionTimeSeriesTable.getMatrixBlock(0, i, 1, 1)[0][0];
+					std::cout << "Captured reference body IMU orientation: " << quat << std::endl;
+					// NEXT: pass it on to PointTracker, or IMUIKTool that inherits PointTracker, and use it at the end of PointTracker rotation calculations
+					IKTool.setReferenceBaseRotation(quat);
+					/*
+					1. base IMU asetetaan robotin tasoa vasten siten päin, miten se olisi lantiolla, jos koehenkilö painaisi selkänsä
+					tasoa vasten
+					2. painetaan näppäimistöltä referensointinappulaa, jolloin XsensDataReaderilta otetaan talteen senhetkinen
+					orientaatio kvaternioina tai rotaatiomatriiseina
+					3. myöhemmin tätä orientaatiota verrataan kunkin ajanhetkiseen orientaatioon, josta lasketaan matriisi, jolla
+					PointTrackerin rotaatiota kerrotaan jotta saadaan rotaatio robotilla
+					*/
+				}
+			}
+			referenceBaseRotationKeyHit = false;
+		}
 
 		// if user hits the calibration key and new data is available
 		if (newDataAvailable && calibrateModelKeyHit) {
@@ -147,7 +179,6 @@ void ConnectToDataStream() {
 			// reset the keyhit so that we won't re-enter this if-statement before hitting the key again
 			calibrateModelKeyHit = false;
 			// give IKTool the necessary inputs and run it
-			//IKTool.deleteHeapVariables();
 			IKTool.setModelFile(calibratedModelFile); // the model to perform IK on
 			IKTool.setQuaternion(quaternionTimeSeriesTable); // the orientations of IMUs
 			IKTool.setSensorToOpenSimRotations(sensorToOpenSimRotations);
@@ -170,6 +201,16 @@ void ConnectToDataStream() {
 		// if user hits the single IK calculation key, new data is available and the model has been calibrated
 		if (newDataAvailable && getDataKeyHit && !calibratedModelFile.empty())
 		{
+			OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
+			for (unsigned int i = 0; i < quaternionTimeSeriesTable.getNumColumns(); ++i)
+			{
+				if (stationReferenceBody + "_imu" == quaternionTimeSeriesTable.getColumnLabel(i))
+				{
+					SimTK::Quaternion_<SimTK::Real> quat = quaternionTimeSeriesTable.getMatrixBlock(0, i, 1, 1)[0][0];
+					// NEXT: pass it on to PointTracker, or IMUIKTool that inherits PointTracker, and use it at the end of PointTracker rotation calculations
+					IKTool.setReferenceBodyRotation(quat);
+				}
+			}
 			// use high resolution clock to count time since the IMU measurement began
 			clockNow = std::chrono::high_resolution_clock::now();
 			clockDuration = clockNow - clockStart; // time since calibration
@@ -179,6 +220,16 @@ void ConnectToDataStream() {
 
 		// if new data is available and continuous mode has been switched on
 		if (newDataAvailable && continuousMode) {
+			OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
+			for (unsigned int i = 0; i < quaternionTimeSeriesTable.getNumColumns(); ++i)
+			{
+				if (stationReferenceBody + "_imu" == quaternionTimeSeriesTable.getColumnLabel(i))
+				{
+					SimTK::Quaternion_<SimTK::Real> quat = quaternionTimeSeriesTable.getMatrixBlock(0, i, 1, 1)[0][0];
+					// NEXT: pass it on to PointTracker, or IMUIKTool that inherits PointTracker, and use it at the end of PointTracker rotation calculations
+					IKTool.setReferenceBodyRotation(quat);
+				}
+			}
 			// use high resolution clock to count time since the IMU measurement began
 			clockNow = std::chrono::high_resolution_clock::now();
 			// calculate the duration since the beginning of counting
@@ -231,6 +282,7 @@ void ConnectToDataStream() {
 			stopContinuousModeKeyHit = (hitKey == 'M');
 			startSendModeKeyHit = (hitKey == 'V');
 			stopSendModeKeyHit = (hitKey == 'B');
+			referenceBaseRotationKeyHit = (hitKey == ',');
 		}
 			
 	} while (mainDataLoop);
