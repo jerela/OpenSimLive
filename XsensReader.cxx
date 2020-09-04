@@ -153,7 +153,7 @@ void ConnectToDataStream() {
 				if (stationReferenceBody + "_imu" == quaternionTimeSeriesTable.getColumnLabel(i))
 				{
 					SimTK::Quaternion_<SimTK::Real> quat = quaternionTimeSeriesTable.getMatrixBlock(0, i, 1, 1)[0][0];
-					std::cout << "Captured reference body IMU orientation: " << quat << std::endl;
+					std::cout << "Captured reference body IMU orientation in quaternions: " << quat << std::endl;
 					// NEXT: pass it on to PointTracker, or IMUIKTool that inherits PointTracker, and use it at the end of PointTracker rotation calculations
 					IKTool.setReferenceBaseRotation(quat);
 					/*
