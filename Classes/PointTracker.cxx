@@ -224,7 +224,7 @@ void PointTracker::savePointTrackerOutputToFile(std::string& rootDir, std::strin
 	for (unsigned int i = 0; i < timeSeriesDepData_.size(); ++i) { // iteration through rows
 		for (unsigned int j = 0; j < 6; ++j) { // iteration throughs columns
 			timeSeriesMatrix.set(i, j, timeSeriesDepData_.at(i).at(j));
-
+			std::cout << timeSeriesDepData_.at(i).at(j) << std::endl;
 		}
 	}
 	OpenSim::TimeSeriesTable_<double> outputTimeSeries(timeSeriesTimeVector_, timeSeriesMatrix, labels);
