@@ -141,6 +141,7 @@ void ConnectToDataStream() {
 		// if user hits the key to save the current orientation of the station reference body IMU when it is placed against the mounting surface of the robot arm
 		if (referenceBaseRotationKeyHit)
 		{
+			std::cout << "Setting reference base rotation..." << std::endl;
 			if (stationReferenceBody == "none")
 			{
 				std::cout << "Reference base rotation cannot be calculated because station reference body has not been defined in XML configuration!" << std::endl;
