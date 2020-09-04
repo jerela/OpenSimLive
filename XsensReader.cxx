@@ -303,6 +303,7 @@ void ConnectToDataStream() {
 	// when exiting, save acquired data to file
 	if (IKTool.get_report_errors())
 	{
+		IKTool.setSavePointTrackerResults(enableMirrorTherapy);
 		std::cout << "Reporting IK to file..." << std::endl;
 		IKTool.reportToFile();
 	}
