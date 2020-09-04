@@ -127,7 +127,7 @@ void ConnectToDataStream() {
 		
 		
 
-	std::cout << "Entering data streaming and IK loop. Press C to calibrate model, Z to calculate IK once, N to enter continuous mode, M to exit continuous mode, V to enter send mode, B to exit send mode, , to save base reference orientation and X to quit." << std::endl;
+	std::cout << "Entering data streaming and IK loop. Press C to calibrate model, Z to calculate IK once, N to enter continuous mode, M to exit continuous mode, V to enter send mode, B to exit send mode, L to save base reference orientation and X to quit." << std::endl;
 
 	do
 	{
@@ -282,7 +282,7 @@ void ConnectToDataStream() {
 			stopContinuousModeKeyHit = (hitKey == 'M');
 			startSendModeKeyHit = (hitKey == 'V');
 			stopSendModeKeyHit = (hitKey == 'B');
-			referenceBaseRotationKeyHit = (hitKey == ',');
+			referenceBaseRotationKeyHit = (hitKey == 'L');
 		}
 			
 	} while (mainDataLoop);
