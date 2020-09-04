@@ -217,17 +217,21 @@ void PointTracker::addStationToBody(const std::string& bodyName, const SimTK::Ve
 	calibratedModelFile.writeToFile(modelFile);
 }
 
-
+// This function creates a TimeSeriesTable that contains the time points and the corresponding PointTracker outputs (that are broadcasted to client), and saves that TimeSeriesTable to file for later examination.
 void PointTracker::savePointTrackerOutputToFile(std::string& rootDir, std::string& resultsDir) {
+	// name the column labels
 	std::vector<std::string> labels = { "pos_X", "pos_Y", "pos_Z", "Eul_X", "Eul_Y", "Eul_Z" };
+	// create a matrix of appropriate size
 	SimTK::Matrix_<SimTK::Real> timeSeriesMatrix(timeSeriesDepData_.size(), 6);
+	// fill the matrix with values (this is likely slow because we're using vectors, but that might not matter because this is done at the end of the program, not during IK)
 	for (unsigned int i = 0; i < timeSeriesDepData_.size(); ++i) { // iteration through rows
 		for (unsigned int j = 0; j < 6; ++j) { // iteration throughs columns
 			timeSeriesMatrix.set(i, j, timeSeriesDepData_.at(i).at(j));
-			std::cout << timeSeriesDepData_.at(i).at(j) << std::endl;
 		}
 	}
+	// construct the TimeSeriesTable
 	OpenSim::TimeSeriesTable_<double> outputTimeSeries(timeSeriesTimeVector_, timeSeriesMatrix, labels);
+	// write it to file as PointTrackerOutput.sto
 	OpenSim::STOFileAdapter_<double>::write(outputTimeSeries, rootDir + "/" + resultsDir + "/" + "PointTrackerOutput.sto");
 }
 

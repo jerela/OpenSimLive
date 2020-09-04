@@ -106,6 +106,7 @@ void ConnectToDataStream() {
 
 	OpenSimLive::IMUInverseKinematicsToolLive IKTool; // object that calculates IK
 	IKTool.setReportErrors(saveIKResults);
+	IKTool.setSavePointTrackerResults(enableMirrorTherapy);
 
 	// get the sensor to opensim rotations for IMUInverseKinematicsToolLive
 	SimTK::Vec3 sensorToOpenSimRotations = get_sensor_to_opensim_rotations();
@@ -296,14 +297,13 @@ void ConnectToDataStream() {
 		// send a packet that exceeds the limits of the rotation values, indicating this cannot be a legitimate packet and shutting client down on the Java side
 		double socketShutdownArray[6] = { 500, 500, 500, 500, 500, 500 };
 		myLink.SendDoubles(socketShutdownArray, 6);
-		// close socket conection
+		// close socket connection
 		myLink.Close();
 	}
 
 	// when exiting, save acquired data to file
 	if (IKTool.get_report_errors())
 	{
-		IKTool.setSavePointTrackerResults(enableMirrorTherapy);
 		std::cout << "Reporting IK to file..." << std::endl;
 		IKTool.reportToFile();
 	}

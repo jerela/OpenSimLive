@@ -54,12 +54,12 @@ namespace OpenSimLive {
 		std::string bodyName_ = "";
 		bool pointTrackerEnabled_ = true;
 		bool visualize_ = false;
-		SimTK::Quaternion_<SimTK::Real> referenceBaseRotation_;
-		SimTK::Quaternion_<SimTK::Real> referenceBodyRotation_;
-		bool savePointTrackerResults_ = false;
-		double timeSeriesCurrentTime_;
-		std::vector<double> timeSeriesTimeVector_;
-		std::vector<std::vector<double>> timeSeriesDepData_;
+		SimTK::Quaternion_<SimTK::Real> referenceBaseRotation_; // quaternion rotation of the IMU that is now on station_reference_body, but was on the base of the robot arm when this variable was saved 
+		SimTK::Quaternion_<SimTK::Real> referenceBodyRotation_; // quaternion rotation of that IMU on station_reference_body whenever IK is calculated
+		bool savePointTrackerResults_ = false; // whether to save PointTracker output to file 
+		double timeSeriesCurrentTime_; // current time, obtained from IMUInverseKinematicsToolLive if savePOintTrackerResults_ is true
+		std::vector<double> timeSeriesTimeVector_; // simply a vector containing the time points of IK
+		std::vector<std::vector<double>> timeSeriesDepData_; // a vector that will contain the outputs of PointTracker (mirrored point locations and rotations)
 
 	}; // end of class
 }
