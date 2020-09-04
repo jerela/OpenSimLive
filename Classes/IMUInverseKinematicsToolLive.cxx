@@ -323,6 +323,7 @@ void IMUInverseKinematicsToolLive::reportToFile() {
     ikReporter_->clearTable(); 
 
     if (getSavePointTrackerResults()) {
+        std::cout << "Writing PointTracker output to file..." << std::endl;
         savePointTrackerOutputToFile(OpenSimLiveRootDirectory_, resultsDirectoryName);
     }
     

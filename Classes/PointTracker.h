@@ -25,6 +25,7 @@ namespace OpenSimLive {
 		// Get the current orientation of the sensor on the reference body (placed where the robot arm is mounted when this method is called) and save it as a quaternion to a variable.
 		void setReferenceBaseRotation(SimTK::Quaternion_<SimTK::Real> quatVector) { referenceBaseRotation_ = quatVector; }
 		void setReferenceBodyRotation(SimTK::Quaternion_<SimTK::Real> quatVector) { referenceBodyRotation_ = quatVector; }
+		void setSavePointTrackerResults(bool setting) { savePointTrackerResults_ = setting; }
 
 	protected:
 		// PROTECTED METHODS
