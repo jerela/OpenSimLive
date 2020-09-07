@@ -21,26 +21,20 @@ void DecorationGeneratorLive::generateDecorations(const SimTK::State& state, Sim
 	// set the sphere's location in its coordinate system
 	sphere.setTransform(transform_);
 	// put the sphere into an array
-	
+	geomArray[0] = sphere;
+
 	// let's also create an arrow from the pelvis, pointing like the mirrored rotation of the body
 	SimTK::DecorativeLine arrow(SimTK::Vec3(0, 0, 0), SimTK::Vec3(1, 0, 0));
 	arrow.setColor({ 0,0,1 });
 	arrow.setBodyId(referenceBodyId_);
 	arrow.setPoint1(SimTK::Vec3(0, 0, 0));
-	arrow.setPoint2(SimTK::Vec3(1, 1, 1));
+	arrow.setPoint2(SimTK::Vec3(0, -1, 0));
 	arrow.setOpacity(0.5);
 	arrow.setLineThickness(10);
 	arrow.setTransform(arrowDir_);
 	geomArray[0] = arrow;
 
-	SimTK::DecorativeCylinder cylinder(0.5, 0.5);
-	cylinder.setBodyId(referenceBodyId_);
-	cylinder.setOpacity(0.5);
-	cylinder.setColor({ 0,0,1 });
-	cylinder.setTransform(arrowDir_);
-	geomArray[1] = cylinder;
 
-	geomArray[2] = sphere;
 
 
 	// save the array as the resulting geometry to be shown
