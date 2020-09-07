@@ -9,7 +9,7 @@ DecorationGeneratorLive::~DecorationGeneratorLive() {}
 
 void DecorationGeneratorLive::generateDecorations(const SimTK::State& state, SimTK::Array_<SimTK::DecorativeGeometry>& geometry) {
 	// create an array to hold the decorative sphere
-	SimTK::Array_<SimTK::DecorativeGeometry> geomArray(1);
+	SimTK::Array_<SimTK::DecorativeGeometry> geomArray(2);
 	// create the decorative sphere
 	SimTK::DecorativeSphere sphere(0.02);
 	// make the sphere blue
@@ -22,6 +22,16 @@ void DecorationGeneratorLive::generateDecorations(const SimTK::State& state, Sim
 	sphere.setTransform(transform_);
 	// put the sphere into an array
 	geomArray[0] = sphere;
-	// save it as the resulting geometry to be shown
+
+	// let's also create an arrow from the pelvis, pointing like the mirrored rotation of the body
+	SimTK::DecorativeArrow arrow(SimTK::Vec3(0, 0, 0), SimTK::Vec3(1, 0, 0), 1.0);
+	arrow.setColor({ 0,0,1 });
+	arrow.setBodyId(referenceBodyId_);
+	arrow.setTransform(arrowDir_);
+	geomArray[1] = arrow;
+
+	// save the array as the resulting geometry to be shown
 	geometry = geomArray;
+
+
 }

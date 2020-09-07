@@ -44,6 +44,7 @@ std::vector<double> PointTracker::runTracker(const SimTK::State* s, OpenSim::Mod
 	// calculate and set transform for decoration generator
 	if (visualize_)
 	{
+		// position for sphere
 		SimTK::Transform_<SimTK::Real> mirroredTransform({ pointLocation[0], pointLocation[1], pointLocation[2] });
 		decGen_->setTransformInReferenceBody(mirroredTransform);
 	}
@@ -104,13 +105,17 @@ SimTK::Vec3 PointTracker::calculatePointRotation(const SimTK::State* s, OpenSim:
 	SimTK::Rotation mirroringBodyRotation = body->getRotationInGround(*s);
 	SimTK::Rotation referenceBodyRotation = referenceBody->getRotationInGround(*s);
 	// calculate the rotation of the body with respect to the reference body's coordinate system
-	SimTK::Rotation bodyWrtRefBodyRot = referenceBodyRotation.invert()* mirroringBodyRotation;
+	SimTK::Rotation bodyWrtRefBodyRot = referenceBodyRotation.invert() * mirroringBodyRotation;
 	// create a rotation of 180 degrees around a suitable axis, then transpose/invert it (same thing because we are working with rotation matrices)
 	SimTK::Rotation mirroringRotation;
 	mirroringRotation.setRotationFromAngleAboutAxis(3.14159265358979323, SimTK::CoordinateAxis(axisIndex)).transpose();
 	// rotate the rotation of the body w.r.t. reference body coordinate system by the rotation we created
-	SimTK::Rotation mirroredRotation = bodyWrtRefBodyRot * mirroringRotation;
+	SimTK::Rotation mirroredRotation = mirroringRotation * bodyWrtRefBodyRot;
 	// Now we have calculated the mirrored rotation w.r.t. coordinates of the reference body.
+
+	// rotation for arrow
+	SimTK::Transform_<SimTK::Real> mirroredArrowDirection(mirroredRotation);
+	decGen_->setArrowDirection(mirroredArrowDirection);
 
 	SimTK::Rotation mirroredRotationWrtKuka;
 	// we must rotate the OpenSim coordinate system -90 degrees about X to match the coordinate axes with the KUKA coordinate system
