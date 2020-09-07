@@ -294,7 +294,7 @@ void IMUInverseKinematicsToolLive::updatePointTracker() {
     //model_.realizePosition(s_);
     model_.updMultibodySystem().realize(s_, SimTK::Stage::Position); // Required to advance (or move back) system to a stage where we can use pointTracker
     // give time to PointTracker only if we need it
-    if (getSavePointTrackerResults) {
+    if (getSavePointTrackerResults()) {
         setPointTrackerCurrentTime(time_);
     }
     // Run PointTracker functions
