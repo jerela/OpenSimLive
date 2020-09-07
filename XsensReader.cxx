@@ -41,9 +41,24 @@ void concurrentIK(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, std::chrono
 }
 
 // Runs IK and related shenanigans
-void RunIKProcedure(OpenSimLive::XsensDataReader& xsensDataReader, std::vector<XsQuaternion>& quaternionData, OpenSimLive::IMUInverseKinematicsToolLive& IKTool, std::chrono::duration<double>& clockDuration, const bool print_roll_pitch_yaw, const bool enableMirrorTherapy, bool sendMode, const std::vector<XsEuler>& eulerData, Server& myLink, OpenSimLive::ThreadPoolContainer& threadPoolContainer) {
+void RunIKProcedure(OpenSimLive::XsensDataReader& xsensDataReader, std::vector<XsQuaternion>& quaternionData, OpenSimLive::IMUInverseKinematicsToolLive& IKTool, std::chrono::duration<double>& clockDuration, const bool print_roll_pitch_yaw, const bool enableMirrorTherapy, bool sendMode, const std::vector<XsEuler>& eulerData, Server& myLink, OpenSimLive::ThreadPoolContainer& threadPoolContainer, std::string& stationReferenceBody) {
 	// fill a time series table with quaternion orientations of the IMUs
 	OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
+
+	// get the orientation of station_reference_body and pass it to PointTracker through IKTool
+	if (IKTool.getSavePointTrackerResults())
+	{
+		for (unsigned int i = 0; i < quatTable.getNumColumns(); ++i)
+		{
+			if (stationReferenceBody + "_imu" == quatTable.getColumnLabel(i))
+			{
+				SimTK::Quaternion_<SimTK::Real> quat = quatTable.getMatrixBlock(0, i, 1, 1)[0][0];
+				// NEXT: pass it on to PointTracker, or IMUIKTool that inherits PointTracker, and use it at the end of PointTracker rotation calculations
+				IKTool.setReferenceBodyRotation(quat);
+			}
+		}
+	}
+
 	// give the necessary inputs to IKTool
 	IKTool.setQuaternion(quatTable);
 
@@ -203,35 +218,15 @@ void ConnectToDataStream() {
 		// if user hits the single IK calculation key, new data is available and the model has been calibrated
 		if (newDataAvailable && getDataKeyHit && !calibratedModelFile.empty())
 		{
-			OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
-			for (unsigned int i = 0; i < quaternionTimeSeriesTable.getNumColumns(); ++i)
-			{
-				if (stationReferenceBody + "_imu" == quaternionTimeSeriesTable.getColumnLabel(i))
-				{
-					SimTK::Quaternion_<SimTK::Real> quat = quaternionTimeSeriesTable.getMatrixBlock(0, i, 1, 1)[0][0];
-					// NEXT: pass it on to PointTracker, or IMUIKTool that inherits PointTracker, and use it at the end of PointTracker rotation calculations
-					IKTool.setReferenceBodyRotation(quat);
-				}
-			}
 			// use high resolution clock to count time since the IMU measurement began
 			clockNow = std::chrono::high_resolution_clock::now();
 			clockDuration = clockNow - clockStart; // time since calibration
-			RunIKProcedure(xsensDataReader, quaternionData, IKTool, clockDuration, print_roll_pitch_yaw, enableMirrorTherapy, sendMode, eulerData, myLink, threadPoolContainer);
+			RunIKProcedure(xsensDataReader, quaternionData, IKTool, clockDuration, print_roll_pitch_yaw, enableMirrorTherapy, sendMode, eulerData, myLink, threadPoolContainer, stationReferenceBody);
 			getDataKeyHit = false;
 		}
 
 		// if new data is available and continuous mode has been switched on
 		if (newDataAvailable && continuousMode) {
-			OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
-			for (unsigned int i = 0; i < quaternionTimeSeriesTable.getNumColumns(); ++i)
-			{
-				if (stationReferenceBody + "_imu" == quaternionTimeSeriesTable.getColumnLabel(i))
-				{
-					SimTK::Quaternion_<SimTK::Real> quat = quaternionTimeSeriesTable.getMatrixBlock(0, i, 1, 1)[0][0];
-					// NEXT: pass it on to PointTracker, or IMUIKTool that inherits PointTracker, and use it at the end of PointTracker rotation calculations
-					IKTool.setReferenceBodyRotation(quat);
-				}
-			}
 			// use high resolution clock to count time since the IMU measurement began
 			clockNow = std::chrono::high_resolution_clock::now();
 			// calculate the duration since the beginning of counting
@@ -242,8 +237,7 @@ void ConnectToDataStream() {
 			if (prevDuration.count()*1000 > continuousModeMsDelay) {
 				// set current time as the time IK was previously calculated for the following iterations of the while-loop
 				clockPrev = clockNow;
-
-				RunIKProcedure(xsensDataReader, quaternionData, IKTool, clockDuration, print_roll_pitch_yaw, enableMirrorTherapy, sendMode, eulerData, myLink, threadPoolContainer);
+				RunIKProcedure(xsensDataReader, quaternionData, IKTool, clockDuration, print_roll_pitch_yaw, enableMirrorTherapy, sendMode, eulerData, myLink, threadPoolContainer, stationReferenceBody);
 			}
 		}
 

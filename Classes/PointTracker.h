@@ -26,6 +26,7 @@ namespace OpenSimLive {
 		void setReferenceBaseRotation(SimTK::Quaternion_<SimTK::Real> quatVector) { referenceBaseRotation_ = quatVector; }
 		void setReferenceBodyRotation(SimTK::Quaternion_<SimTK::Real> quatVector) { referenceBodyRotation_ = quatVector; }
 		void setSavePointTrackerResults(bool setting) { savePointTrackerResults_ = setting; }
+		bool getSavePointTrackerResults() { return savePointTrackerResults_; }
 
 	protected:
 		// PROTECTED METHODS
@@ -33,7 +34,6 @@ namespace OpenSimLive {
 		void createDecorationGenerator() { decGen_ = new OpenSimLive::DecorationGeneratorLive(); }
 		void setVisualize(bool setting) { visualize_ = setting; }
 		void setPointTrackerCurrentTime(double time) { timeSeriesCurrentTime_ = time; }
-		bool getSavePointTrackerResults() { return savePointTrackerResults_; }
 		void savePointTrackerOutputToFile(std::string& rootDir, std::string& resultsDir);
 
 		// PROTECTED VARIABLES

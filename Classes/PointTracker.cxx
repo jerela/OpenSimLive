@@ -139,7 +139,7 @@ SimTK::Vec3 PointTracker::calculatePointRotation(const SimTK::State* s, OpenSim:
 	// convert the 3x3 rotation matrix into body fixed XYZ euler angles
 	//return mirroredRotation.convertRotationToBodyFixedXYZ();
 	//return mirroredRotation.convertThreeAxesRotationToThreeAngles(SimTK::BodyRotationSequence, SimTK::XAxis, SimTK::YAxis, SimTK::ZAxis);
-	return mirroredRotationWrtKuka.convertThreeAxesRotationToThreeAngles(SimTK::BodyRotationSequence, SimTK::XAxis, SimTK::YAxis, SimTK::ZAxis);
+	return mirroredRotationWrtKuka.convertThreeAxesRotationToThreeAngles(SimTK::BodyOrSpaceType::BodyRotationSequence, SimTK::ZAxis, SimTK::YAxis, SimTK::XAxis);
 }
 
 // This function reflects a point with respect to an axis by multiplying the element corresponding to that axis by -1
