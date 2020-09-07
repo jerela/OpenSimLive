@@ -24,9 +24,13 @@ void DecorationGeneratorLive::generateDecorations(const SimTK::State& state, Sim
 	geomArray[0] = sphere;
 
 	// let's also create an arrow from the pelvis, pointing like the mirrored rotation of the body
-	SimTK::DecorativeArrow arrow(SimTK::Vec3(0, 0, 0), SimTK::Vec3(1, 0, 0), 1.0);
+	SimTK::DecorativeArrow arrow(SimTK::Vec3(0, 0, 0), SimTK::Vec3(1, 0, 0), 100);
 	arrow.setColor({ 0,0,1 });
 	arrow.setBodyId(referenceBodyId_);
+	arrow.setStartPoint(SimTK::Vec3(0, 0, 0));
+	arrow.setStartPoint(SimTK::Vec3(1, 1, 1));
+	arrow.setOpacity(0.5);
+	arrow.setLineThickness(10);
 	arrow.setTransform(arrowDir_);
 	geomArray[1] = arrow;
 
