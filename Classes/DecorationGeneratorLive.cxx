@@ -9,7 +9,7 @@ DecorationGeneratorLive::~DecorationGeneratorLive() {}
 
 void DecorationGeneratorLive::generateDecorations(const SimTK::State& state, SimTK::Array_<SimTK::DecorativeGeometry>& geometry) {
 	// create an array to hold the decorative sphere
-	SimTK::Array_<SimTK::DecorativeGeometry> geomArray(3);
+	SimTK::Array_<SimTK::DecorativeGeometry> geomArray(2);
 	// create the decorative sphere
 	SimTK::DecorativeSphere sphere(0.02);
 	// make the sphere blue
@@ -31,8 +31,9 @@ void DecorationGeneratorLive::generateDecorations(const SimTK::State& state, Sim
 	arrow.setPoint2(SimTK::Vec3(0, -1, 0));
 	arrow.setOpacity(0.5);
 	arrow.setLineThickness(10);
-	arrow.setTransform(arrowDir_);
-	geomArray[0] = arrow;
+	//arrow.setTransform(arrowDir_);
+	arrow.setTransform(transform_);
+	geomArray[1] = arrow;
 
 
 

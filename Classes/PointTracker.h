@@ -60,6 +60,7 @@ namespace OpenSimLive {
 		double timeSeriesCurrentTime_; // current time, obtained from IMUInverseKinematicsToolLive if savePOintTrackerResults_ is true
 		std::vector<double> timeSeriesTimeVector_; // simply a vector containing the time points of IK
 		std::vector<std::vector<double>> timeSeriesDepData_; // a vector that will contain the outputs of PointTracker (mirrored point locations and rotations)
+		SimTK::Rotation mirroredRotation_;
 
 	}; // end of class
 }

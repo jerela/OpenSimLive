@@ -53,7 +53,7 @@ int XsensDataReader::findClosestUpdateRate(const XsIntArray& supportedUpdateRate
 	return closestUpdateRate;
 }
 
-void XsensDataReader::InitiateStartupPhase() {
+bool XsensDataReader::InitiateStartupPhase() {
 
 	//const int desiredUpdateRate = 75; // use 75 Hz update rate for MTWs
 	//const int desiredRadioChannel = 19; // use radio channel 19 for wireless master
@@ -89,7 +89,9 @@ void XsensDataReader::InitiateStartupPhase() {
 		}
 		if (wirelessMasterPort == detectedDevices.end())
 		{
-			throw std::runtime_error("No wireless masters found!");
+			//throw std::runtime_error("No wireless masters found!");
+			std::cout << "Failed to find wireless masters, trying again..." << std::endl;
+			return 0;
 		}
 		std::cout << "Wireless master found @ " << *wirelessMasterPort << std::endl;
 
@@ -248,6 +250,7 @@ void XsensDataReader::InitiateStartupPhase() {
 		std::cout << "An unknown fatal error has occured. Aborting." << std::endl;
 		std::cout << "****ABORT****" << std::endl;
 	}
+	return 1;
 }
 		
 

@@ -45,8 +45,11 @@ std::vector<double> PointTracker::runTracker(const SimTK::State* s, OpenSim::Mod
 	if (visualize_)
 	{
 		// position for sphere
-		SimTK::Transform_<SimTK::Real> mirroredTransform({ pointLocation[0], pointLocation[1], pointLocation[2] });
+		//SimTK::Transform_<SimTK::Real> mirroredTransform({ pointLocation[0], pointLocation[1], pointLocation[2] });
+		SimTK::Transform_<SimTK::Real> mirroredTransform(mirroredRotation_, { pointLocation[0], pointLocation[1], pointLocation[2] });
 		decGen_->setTransformInReferenceBody(mirroredTransform);
+
+		
 	}
 
 	// Save the calculated results in a vector and return it
@@ -107,15 +110,23 @@ SimTK::Vec3 PointTracker::calculatePointRotation(const SimTK::State* s, OpenSim:
 	// calculate the rotation of the body with respect to the reference body's coordinate system
 	SimTK::Rotation bodyWrtRefBodyRot = referenceBodyRotation.invert() * mirroringBodyRotation;
 	// create a rotation of 180 degrees around a suitable axis, then transpose/invert it (same thing because we are working with rotation matrices)
-	SimTK::Rotation mirroringRotation;
-	mirroringRotation.setRotationFromAngleAboutAxis(3.14159265358979323, SimTK::CoordinateAxis(axisIndex)).transpose();
+	//SimTK::Rotation mirroringRotation;
+	//mirroringRotation.setRotationFromAngleAboutAxis(3.14159265358979323, SimTK::CoordinateAxis(axisIndex));
 	// rotate the rotation of the body w.r.t. reference body coordinate system by the rotation we created
-	SimTK::Rotation mirroredRotation = mirroringRotation * bodyWrtRefBodyRot;
+	//SimTK::Rotation mirroredRotation = mirroringRotation * bodyWrtRefBodyRot;
+	SimTK::Rotation mirroredRotation = bodyWrtRefBodyRot;
+	mirroredRotation.set(2, 0, -bodyWrtRefBodyRot.get(2, 0));
+	mirroredRotation.set(2, 1, -bodyWrtRefBodyRot.get(2, 1));
+	mirroredRotation.set(2, 2, -bodyWrtRefBodyRot.get(2, 2));
+	//std::cout << "Body rotation w.r.t. pelvis:\n" << bodyWrtRefBodyRot << std::endl;
+	//std::cout << "Mirroring rotation w.r.t. pelvis:\n" << mirroringRotation << std::endl;
+	//std::cout << "Mirrored rotation:\n" << mirroredRotation << std::endl;
 	// Now we have calculated the mirrored rotation w.r.t. coordinates of the reference body.
 
-	// rotation for arrow
-	SimTK::Transform_<SimTK::Real> mirroredArrowDirection(mirroredRotation);
-	decGen_->setArrowDirection(mirroredArrowDirection);
+	// rotation for line in decoration generator
+	mirroredRotation_ = mirroredRotation;
+	//SimTK::Transform_<SimTK::Real> mirroredLineDirection(mirroredRotation);
+	//decGen_->setArrowDirection(mirroredLineDirection);
 
 	SimTK::Rotation mirroredRotationWrtKuka;
 	// we must rotate the OpenSim coordinate system -90 degrees about X to match the coordinate axes with the KUKA coordinate system
@@ -234,10 +245,18 @@ void PointTracker::savePointTrackerOutputToFile(std::string& rootDir, std::strin
 			timeSeriesMatrix.set(i, j, timeSeriesDepData_.at(i).at(j));
 		}
 	}
-	// construct the TimeSeriesTable
-	OpenSim::TimeSeriesTable_<double> outputTimeSeries(timeSeriesTimeVector_, timeSeriesMatrix, labels);
-	// write it to file as PointTrackerOutput.sto
-	OpenSim::STOFileAdapter_<double>::write(outputTimeSeries, rootDir + "/" + resultsDir + "/" + "PointTrackerOutput.sto");
+	try {
+		// construct the TimeSeriesTable
+		OpenSim::TimeSeriesTable_<double> outputTimeSeries(timeSeriesTimeVector_, timeSeriesMatrix, labels);
+		// write it to file as PointTrackerOutput.sto
+		OpenSim::STOFileAdapter_<double>::write(outputTimeSeries, rootDir + "/" + resultsDir + "/" + "PointTrackerOutput.sto");
+	}
+	catch (std::exception& e) {
+		std::cout << "Exception in savePointTrackerOutputToFile: " << e.what() << std::endl;
+	}
+	catch (...) {
+		std::cout << "Unknown exception in savePointTrackerOutputToFile!" << std::endl;
+	}
 }
 
 

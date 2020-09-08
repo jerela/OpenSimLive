@@ -85,8 +85,9 @@ void ConnectToDataStream() {
 	OpenSimLive::XsensDataReader xsensDataReader;
 	int desiredUpdateRate = stoi(ConfigReader("MainConfiguration.xml", "desired_update_rate"));
 	xsensDataReader.SetDesiredUpdateRate(desiredUpdateRate);
-	xsensDataReader.InitiateStartupPhase();
-
+	
+	while (!xsensDataReader.InitiateStartupPhase()) {}
+	
 	std::vector<XsEuler> eulerData(xsensDataReader.GetMtwCallbacks().size()); // Room to store euler data for each mtw
 	std::vector<XsQuaternion> quaternionData(xsensDataReader.GetMtwCallbacks().size()); // for data in quaternion form
 		

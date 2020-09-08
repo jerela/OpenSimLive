@@ -150,7 +150,15 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
         model_.updVisualizer().updSimbodyVisualizer().setMode(SimTK::Visualizer::Mode::PassThrough); // try RealTime mode instead for better FPS?
         model_.updVisualizer().updSimbodyVisualizer().setDesiredFrameRate(60);
         // prepare to visualize the mirrored point
-        startDecorationGenerator();
+        try {
+            startDecorationGenerator();
+        }
+        catch (std::exception& e) {
+            std::cout << "Error: " << e.what() << std::endl;
+        }
+        catch (...) {
+            std::cout << "Error in starting decoration generator." << std::endl;
+        }
         // visualize actually
         model_.getVisualizer().show(s_);
         model_.getVisualizer().getSimbodyVisualizer().setShowSimTime(true);
@@ -216,7 +224,9 @@ std::mutex m;
 
 // This function calculates the joint angle values for a new state s0, then updates state s with those values and redraws the visualization.
 void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults) {
-    
+    // this may prevent time_ getting updated mid-IK by another thread, resulting in PointTracker from that IK to get the time from the more recent IK from another thread
+    double time = time_;
+
     // Convert to OpenSim Frame
     const SimTK::Vec3& rotations = get_sensor_to_opensim_rotations();
     SimTK::Rotation sensorToOpenSim = SimTK::Rotation(SimTK::BodyOrSpaceType::SpaceRotationSequence, rotations[0], SimTK::XAxis, rotations[1], SimTK::YAxis, rotations[2], SimTK::ZAxis);
@@ -249,7 +259,7 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
     //updateJointAngleVariable(s_, model_);
 
     // update the time to be shown in the visualization and so that when we realize the report, the correct timestamp is used for the joint angle values
-    s_.updTime() = time_;
+    s_.updTime() = time;
     // now insert q into the original visualized state and show them
     if (visualizeResults) {
         try {
@@ -280,6 +290,10 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
 
     if (getPointTrackerEnabled() == true) {
         concurrentIKMutex.lock();
+        // give time to PointTracker only if we need it
+        if (getSavePointTrackerResults()) {
+            setPointTrackerCurrentTime(time);
+        }
         updatePointTracker();
         concurrentIKMutex.unlock();
     }
@@ -293,10 +307,6 @@ void IMUInverseKinematicsToolLive::updatePointTracker() {
     //s_.advanceSystemToStage(SimTK::Stage::Position);
     //model_.realizePosition(s_);
     model_.updMultibodySystem().realize(s_, SimTK::Stage::Position); // Required to advance (or move back) system to a stage where we can use pointTracker
-    // give time to PointTracker only if we need it
-    if (getSavePointTrackerResults()) {
-        setPointTrackerCurrentTime(time_);
-    }
     // Run PointTracker functions
     std::vector<double> trackerResults = runTracker(&s_, &model_, getPointTrackerBodyName(), getPointTrackerReferenceBodyName());
     // Save the results to a private variable

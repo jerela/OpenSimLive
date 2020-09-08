@@ -11,3 +11,4 @@ Config/Geometry/README.md
 Config/Geometry/vtpbinary2ascii.py
 Config/gait2392_scaled.osim
 Config/IMUPlacerSetup.xml
+OpenSimLive-results/PointTrackerOutput.sto
