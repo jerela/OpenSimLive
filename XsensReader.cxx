@@ -33,6 +33,7 @@ struct VariableManager {
 	std::chrono::duration<double> prevDuration;
 }; // struct dataHolder ends
 
+// This function prints roll, pitch and yaw values of the Xsens sensors in case we want to see them.
 void printRollPitchYaw(std::vector<MtwCallback*> mtwCallbacks, const std::vector<XsEuler>& eulerData) {
 	for (size_t i = 0; i < mtwCallbacks.size(); ++i)
 	{
@@ -44,7 +45,7 @@ void printRollPitchYaw(std::vector<MtwCallback*> mtwCallbacks, const std::vector
 	}
 }
 
-// IK for multithreading
+// IK for multithreading, each thread runs this function separately
 void concurrentIK(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, const VariableManager& vm, Server& myLink) {
 	IKTool.setTime(vm.clockDuration.count());
 	// calculate the IK and update the visualization
@@ -61,7 +62,7 @@ void concurrentIK(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, const Varia
 	}
 }
 
-// Runs IK and related shenanigans
+// Runs IK and related shenanigans; this function is not yet multithreaded, but it contains the statement to begin multithreading
 void RunIKProcedure(OpenSimLive::XsensDataReader& xsensDataReader, std::vector<XsQuaternion>& quaternionData, OpenSimLive::IMUInverseKinematicsToolLive& IKTool, const std::vector<XsEuler>& eulerData, Server& myLink, OpenSimLive::ThreadPoolContainer& threadPoolContainer, const VariableManager& vm) {
 	// fill a time series table with quaternion orientations of the IMUs
 	OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
@@ -69,12 +70,13 @@ void RunIKProcedure(OpenSimLive::XsensDataReader& xsensDataReader, std::vector<X
 	// get the orientation of station_reference_body and pass it to PointTracker through IKTool
 	if (IKTool.getSavePointTrackerResults())
 	{
-		for (unsigned int i = 0; i < quatTable.getNumColumns(); ++i)
+		for (unsigned int i = 0; i < quatTable.getNumColumns(); ++i) // iterate through the quaternions of all IMUs
 		{
-			if (vm.stationReferenceBody + "_imu" == quatTable.getColumnLabel(i))
+			if (vm.stationReferenceBody + "_imu" == quatTable.getColumnLabel(i)) // if we find the data of the IMU on station_reference_body
 			{
+				// get the quaternion orientation of that IMU
 				SimTK::Quaternion_<SimTK::Real> quat = quatTable.getMatrixBlock(0, i, 1, 1)[0][0];
-				// NEXT: pass it on to PointTracker, or IMUIKTool that inherits PointTracker, and use it at the end of PointTracker rotation calculations
+				// pass it on to IKTool that inherits PointTracker, and use it at the end of PointTracker rotation calculations
 				IKTool.setReferenceBodyRotation(quat);
 			}
 		}
@@ -83,6 +85,7 @@ void RunIKProcedure(OpenSimLive::XsensDataReader& xsensDataReader, std::vector<X
 	// give the necessary inputs to IKTool
 	IKTool.setQuaternion(quatTable);
 
+	// Send a function to be multithreaded
 	threadPoolContainer.offerFuture(concurrentIK, std::ref(IKTool), std::ref(vm), std::ref(myLink));
 
 	if (vm.print_roll_pitch_yaw)
@@ -121,21 +124,25 @@ void ConnectToDataStream() {
 	// initialize the object that handles multithreading
 	OpenSimLive::ThreadPoolContainer threadPoolContainer(vm.maxThreads);
 
+	// get the current times
 	vm.clockStart = std::chrono::high_resolution_clock::now();
 	vm.clockNow = vm.clockStart;
 	vm.clockPrev = vm.clockStart;
 
 	OpenSimLive::IMUInverseKinematicsToolLive IKTool; // object that calculates IK
+	// whether IKTool writes IK orientations into a .mot file when program finishes
 	IKTool.setReportErrors(vm.saveIKResults);
+	// whether PointTracker (through IKTool) writes calculated mirrored positions and rotations into a .sto file when program finishes
 	IKTool.setSavePointTrackerResults(vm.enableMirrorTherapy);
 
 	// get the sensor to opensim rotations for IMUInverseKinematicsToolLive
 	SimTK::Vec3 sensorToOpenSimRotations = get_sensor_to_opensim_rotations();
 		
 	// SOCKET COMMUNICATION
-	bool bResult = false;
+	bool bResult = false; // tells us if creating the server object succeeded or not
 	int port = std::stoi(ConfigReader("MainConfiguration.xml", "socket_port"));
 	int dataport = -1; // datagram port, not in use
+	// try to create a new server object
 	Server myLink(port, dataport, &bResult);
 	if (!bResult)
 	{
@@ -164,13 +171,14 @@ void ConnectToDataStream() {
 		if (referenceBaseRotationKeyHit)
 		{
 			std::cout << "Setting reference base rotation..." << std::endl;
-			if (vm.stationReferenceBody == "none")
+			if (vm.stationReferenceBody == "none") // if station_reference_body has not been defined in the XML configuration file
 			{
 				std::cout << "Reference base rotation cannot be calculated because station reference body has not been defined in XML configuration!" << std::endl;
 				break;
 			}
 			OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
-			for (unsigned int i = 0; i < quaternionTimeSeriesTable.getNumColumns(); ++i)
+			bool foundReferenceBodyIMUOrientation = false;
+			for (unsigned int i = 0; i < quaternionTimeSeriesTable.getNumColumns(); ++i) // iterate through the quaternion time series table to find the desired IMU data
 			{
 				if (vm.stationReferenceBody + "_imu" == quaternionTimeSeriesTable.getColumnLabel(i))
 				{
@@ -178,8 +186,11 @@ void ConnectToDataStream() {
 					std::cout << "Captured reference body IMU orientation in quaternions: " << quat << std::endl;
 					// NEXT: pass it on to PointTracker, or IMUIKTool that inherits PointTracker, and use it at the end of PointTracker rotation calculations
 					IKTool.setReferenceBaseRotation(quat);
+					foundReferenceBodyIMUOrientation = true;
 				}
 			}
+			if (!foundReferenceBodyIMUOrientation)
+				std::cout << "Orientation not found! Make sure an IMU is measuring the orientation of station_reference_body." << std::endl;
 			referenceBaseRotationKeyHit = false;
 		}
 

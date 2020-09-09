@@ -1,3 +1,4 @@
+// This class defines the geometry objects that are drawn in addition to the musculoskeletal model in the visualization window.
 #pragma once
 
 #include <OpenSim.h>

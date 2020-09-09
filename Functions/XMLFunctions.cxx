@@ -87,7 +87,7 @@ std::string sensorIdToLabel(const std::string& id, const std::string& mappingsFi
 OpenSim::TimeSeriesTable_<SimTK::Quaternion> fillQuaternionTable(std::vector<MtwCallback*>& mtwCallbacks, std::vector<XsQuaternion>& quaternionVector)
 {
 	// get the number of active sensors
-	int numberOfSensors = mtwCallbacks.size();
+	unsigned int numberOfSensors = mtwCallbacks.size();
 
 	// declare a vector for the sensor names in the OpenSim model
 	std::vector<std::string> sensorNameVector;

@@ -23,23 +23,24 @@ void DecorationGeneratorLive::generateDecorations(const SimTK::State& state, Sim
 	// put the sphere into an array
 	geomArray[0] = sphere;
 
-	// let's also create an arrow from the pelvis, pointing like the mirrored rotation of the body
+	// let's also create a line from the pelvis, pointing along the mirrored rotation of the body
 	SimTK::DecorativeLine arrow(SimTK::Vec3(0, 0, 0), SimTK::Vec3(1, 0, 0));
+	// set it to blue
 	arrow.setColor({ 0,0,1 });
+	// set its coordinate system to that of the reference body
 	arrow.setBodyId(referenceBodyId_);
+	// set it to point directly downwards initially, like arms in the anatomical position
 	arrow.setPoint1(SimTK::Vec3(0, 0, 0));
 	arrow.setPoint2(SimTK::Vec3(0, -1, 0));
+	// make it 50% transparent
 	arrow.setOpacity(0.5);
+	// make it thick enough for us to clearly see it in the visualization window
 	arrow.setLineThickness(10);
-	//arrow.setTransform(arrowDir_);
+	// set its position and orientation
 	arrow.setTransform(transform_);
+	// put it in the array of geometry objects that are drawn
 	geomArray[1] = arrow;
-
-
-
 
 	// save the array as the resulting geometry to be shown
 	geometry = geomArray;
-
-
 }

@@ -38,18 +38,12 @@ std::vector<double> PointTracker::runTracker(const SimTK::State* s, OpenSim::Mod
 	// Reflect the location of the station in another body's reference frame with respect to an axis
 	reflectWithRespectToAxis(pointLocation, 2); // 0 for x, 1 for y, 2 for z
 
-	//std::cout << "Original point location in reference frame: " << pointLocation << std::endl;
-	//std::cout << "Mirrored point location in reference frame: " << reflectedPointLocation << std::endl;
-
 	// calculate and set transform for decoration generator
 	if (visualize_)
 	{
 		// position for sphere
-		//SimTK::Transform_<SimTK::Real> mirroredTransform({ pointLocation[0], pointLocation[1], pointLocation[2] });
 		SimTK::Transform_<SimTK::Real> mirroredTransform(mirroredRotation_, { pointLocation[0], pointLocation[1], pointLocation[2] });
-		decGen_->setTransformInReferenceBody(mirroredTransform);
-
-		
+		decGen_->setTransformInReferenceBody(mirroredTransform);		
 	}
 
 	// Save the calculated results in a vector and return it
@@ -109,25 +103,18 @@ SimTK::Vec3 PointTracker::calculatePointRotation(const SimTK::State* s, OpenSim:
 	SimTK::Rotation referenceBodyRotation = referenceBody->getRotationInGround(*s);
 	// calculate the rotation of the body with respect to the reference body's coordinate system
 	SimTK::Rotation bodyWrtRefBodyRot = referenceBodyRotation.invert() * mirroringBodyRotation;
-	// create a rotation of 180 degrees around a suitable axis, then transpose/invert it (same thing because we are working with rotation matrices)
-	//SimTK::Rotation mirroringRotation;
-	//mirroringRotation.setRotationFromAngleAboutAxis(3.14159265358979323, SimTK::CoordinateAxis(axisIndex));
-	// rotate the rotation of the body w.r.t. reference body coordinate system by the rotation we created
-	//SimTK::Rotation mirroredRotation = mirroringRotation * bodyWrtRefBodyRot;
+	// create a new rotation that we mirror w.r.t. the xy-plane of OpenSim coordinate system
 	SimTK::Rotation mirroredRotation = bodyWrtRefBodyRot;
 	mirroredRotation.set(2, 0, -bodyWrtRefBodyRot.get(2, 0));
 	mirroredRotation.set(2, 1, -bodyWrtRefBodyRot.get(2, 1));
 	mirroredRotation.set(2, 2, -bodyWrtRefBodyRot.get(2, 2));
-	//std::cout << "Body rotation w.r.t. pelvis:\n" << bodyWrtRefBodyRot << std::endl;
-	//std::cout << "Mirroring rotation w.r.t. pelvis:\n" << mirroringRotation << std::endl;
-	//std::cout << "Mirrored rotation:\n" << mirroredRotation << std::endl;
 	// Now we have calculated the mirrored rotation w.r.t. coordinates of the reference body.
 
-	// rotation for line in decoration generator
+	// set rotation for line in decoration generator
 	mirroredRotation_ = mirroredRotation;
-	//SimTK::Transform_<SimTK::Real> mirroredLineDirection(mirroredRotation);
-	//decGen_->setArrowDirection(mirroredLineDirection);
 
+	// Now that we have the mirrored rotation w.r.t. to the OpenSim coordinate system, we have to rotate it so that it's in the KUKA coordinate system
+	// create a rotation matrix to hold the rotation in KUKA coordinate system
 	SimTK::Rotation mirroredRotationWrtKuka;
 	// we must rotate the OpenSim coordinate system -90 degrees about X to match the coordinate axes with the KUKA coordinate system
 	SimTK::Rotation deg90AboutX;
@@ -152,9 +139,7 @@ SimTK::Vec3 PointTracker::calculatePointRotation(const SimTK::State* s, OpenSim:
 		mirroredRotationWrtKuka = bodyToBase * (deg90AboutX*mirroredRotation);
 	}
 
-	// convert the 3x3 rotation matrix into body fixed XYZ euler angles
-	//return mirroredRotation.convertRotationToBodyFixedXYZ();
-	//return mirroredRotation.convertThreeAxesRotationToThreeAngles(SimTK::BodyRotationSequence, SimTK::XAxis, SimTK::YAxis, SimTK::ZAxis);
+	// convert the 3x3 rotation matrix into body fixed ZYX euler angles
 	return mirroredRotationWrtKuka.convertThreeAxesRotationToThreeAngles(SimTK::BodyOrSpaceType::BodyRotationSequence, SimTK::ZAxis, SimTK::YAxis, SimTK::XAxis);
 }
 
@@ -242,7 +227,7 @@ void PointTracker::savePointTrackerOutputToFile(std::string& rootDir, std::strin
 	// fill the matrix with values (this is likely slow because we're using vectors, but that might not matter because this is done at the end of the program, not during IK)
 	for (unsigned int i = 0; i < timeSeriesDepData_.size(); ++i) { // iteration through rows
 		for (unsigned int j = 0; j < 6; ++j) { // iteration throughs columns
-			timeSeriesMatrix.set(i, j, timeSeriesDepData_.at(i).at(j));
+			timeSeriesMatrix.set(i, j, timeSeriesDepData_.at(i).at(j)); // populate the matrix
 		}
 		//timeSeriesTimeVector_[i] = i; // temporary fix to disable time but prevent crashing in the TimeSeriesTable construction step
 	}
@@ -255,10 +240,10 @@ void PointTracker::savePointTrackerOutputToFile(std::string& rootDir, std::strin
 		OpenSim::STOFileAdapter_<double>::write(outputTimeSeries, rootDir + "/" + resultsDir + "/" + "PointTrackerOutput.sto");
 	}
 	catch (std::exception& e) {
-		std::cout << "Exception in savePointTrackerOutputToFile: " << e.what() << std::endl;
+		std::cout << "Exception in PointTracker::savePointTrackerOutputToFile: " << e.what() << std::endl;
 	}
 	catch (...) {
-		std::cout << "Unknown exception in savePointTrackerOutputToFile!" << std::endl;
+		std::cout << "Unknown exception in PointTracker::savePointTrackerOutputToFile!" << std::endl;
 	}
 }
 
