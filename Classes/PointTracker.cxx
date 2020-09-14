@@ -52,7 +52,9 @@ std::vector<double> PointTracker::runTracker(const SimTK::State* s, OpenSim::Mod
 	if (!getReferenceBaseRotation().isNaN()) {
 		// get quaternion orientations of the IMU in base and on station reference body as rotation matrices
 		SimTK::Rotation referenceBaseRotation(getReferenceBaseRotation());
+		std::cout << "Reference base rotation: " << referenceBaseRotation << std::endl;
 		SimTK::Rotation referenceBodyRotation(getReferenceBodyRotation());
+		std::cout << "Reference body rotation: " << referenceBodyRotation << std::endl;
 		// calculate the rotation from the orientation of the IMU on the station reference body to the orientation of the IMU on the base of the robot arm
 		// X * BODY = BASE
 		// X = BASE * ~BODY

@@ -70,6 +70,7 @@ void RunIKProcedure(OpenSimLive::XsensDataReader& xsensDataReader, std::vector<X
 	// get the orientation of station_reference_body and pass it to PointTracker through IKTool
 	if (IKTool.getSavePointTrackerResults())
 	{
+		bool foundBodyIMUOrientation = false;
 		for (unsigned int i = 0; i < quatTable.getNumColumns(); ++i) // iterate through the quaternions of all IMUs
 		{
 			if (vm.stationReferenceBody + "_imu" == quatTable.getColumnLabel(i)) // if we find the data of the IMU on station_reference_body
@@ -78,8 +79,12 @@ void RunIKProcedure(OpenSimLive::XsensDataReader& xsensDataReader, std::vector<X
 				SimTK::Quaternion_<SimTK::Real> quat = quatTable.getMatrixBlock(0, i, 1, 1)[0][0];
 				// pass it on to IKTool that inherits PointTracker, and use it at the end of PointTracker rotation calculations
 				IKTool.setReferenceBodyRotation(quat);
+				foundBodyIMUOrientation = true;
+				break;
 			}
 		}
+		if (!foundBodyIMUOrientation)
+			std::cout << "Base body IMU orientation not found!" << std::endl;
 	}
 
 	// give the necessary inputs to IKTool
@@ -187,6 +192,7 @@ void ConnectToDataStream() {
 					// NEXT: pass it on to PointTracker, or IMUIKTool that inherits PointTracker, and use it at the end of PointTracker rotation calculations
 					IKTool.setReferenceBaseRotation(quat);
 					foundReferenceBodyIMUOrientation = true;
+					break;
 				}
 			}
 			if (!foundReferenceBodyIMUOrientation)
