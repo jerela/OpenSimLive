@@ -58,7 +58,10 @@ std::vector<double> PointTracker::runTracker(const SimTK::State* s, OpenSim::Mod
 		// X = BASE * ~BODY
 		SimTK::Rotation bodyToBase(referenceBaseRotation * referenceBodyRotation.invert());
 		// rotate mirroredRotation to correct for the difference between orientation on the base of the robot arm and current orientation of the station reference body (and 90 degrees to match OpenSim coordinate system to KUKA)
+		std::cout << "Mirrored point location in OpenSim coordinate system before L-correction: " << pointLocation << std::endl;
 		pointLocation = bodyToBase * pointLocation;
+		std::cout << "Mirrored point location in OpenSim coordinate system after L-correction: " << pointLocation << std::endl;
+		std::cout << "Rotation matrix used to rotate point location: " << bodyToBase << std::endl;
 	}
 
 	// Save the calculated results in a vector and return it
