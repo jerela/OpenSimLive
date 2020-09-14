@@ -337,7 +337,15 @@ void IMUInverseKinematicsToolLive::reportToFile() {
 
     if (getSavePointTrackerResults()) {
         std::cout << "Writing PointTracker output to file..." << std::endl;
-        savePointTrackerOutputToFile(OpenSimLiveRootDirectory_, resultsDirectoryName);
+        try {
+            savePointTrackerOutputToFile(OpenSimLiveRootDirectory_, resultsDirectoryName);
+        }
+        catch (std::exception & e) {
+            std::cout << "Error while saving PointTracker output to file: " << e.what() << std::endl;
+        }
+        catch (...) {
+            std::cout << "Unknown error while saving PointTracker output to file!" << std::endl;
+        }
     }
     
 }

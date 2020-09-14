@@ -48,6 +48,19 @@ std::vector<double> PointTracker::runTracker(const SimTK::State* s, OpenSim::Mod
 		decGen_->setTransformInReferenceBody(mirroredTransform);		
 	}
 
+	//
+	if (!getReferenceBaseRotation().isNaN()) {
+		// get quaternion orientations of the IMU in base and on station reference body as rotation matrices
+		SimTK::Rotation referenceBaseRotation(getReferenceBaseRotation());
+		SimTK::Rotation referenceBodyRotation(getReferenceBodyRotation());
+		// calculate the rotation from the orientation of the IMU on the station reference body to the orientation of the IMU on the base of the robot arm
+		// X * BODY = BASE
+		// X = BASE * ~BODY
+		SimTK::Rotation bodyToBase(referenceBaseRotation * referenceBodyRotation.invert());
+		// rotate mirroredRotation to correct for the difference between orientation on the base of the robot arm and current orientation of the station reference body (and 90 degrees to match OpenSim coordinate system to KUKA)
+		pointLocation = bodyToBase * pointLocation;
+	}
+
 	// Save the calculated results in a vector and return it
 	std::vector<double> positionsAndRotations = { pointLocation[0], pointLocation[1], pointLocation[2], mirroredEuler[0], mirroredEuler[1], mirroredEuler[2] };
 	
