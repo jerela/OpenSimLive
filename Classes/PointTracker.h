@@ -28,7 +28,7 @@ namespace OpenSimLive {
 		void setSavePointTrackerResults(bool setting) { savePointTrackerResults_ = setting; }
 		bool getSavePointTrackerResults() { return savePointTrackerResults_; }
 		bool getUseReferenceRotation() { return useReferenceRotation_; }
-		void setUseReferenceRotation(bool setting) { useReferenceRotation_ = useReferenceRotation_; }
+		void setUseReferenceRotation(bool setting) { useReferenceRotation_ = setting; }
 
 	protected:
 		// PROTECTED METHODS
