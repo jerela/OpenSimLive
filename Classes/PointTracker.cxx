@@ -49,7 +49,7 @@ std::vector<double> PointTracker::runTracker(const SimTK::State* s, OpenSim::Mod
 	}
 
 	//
-	if (!getReferenceBaseRotation().isNaN()) {
+	if (getUseReferenceRotation()) {
 		// get quaternion orientations of the IMU in base and on station reference body as rotation matrices
 		SimTK::Rotation referenceBaseRotation(getReferenceBaseRotation());
 		std::cout << "Reference base rotation: " << referenceBaseRotation << std::endl;
@@ -139,7 +139,7 @@ SimTK::Vec3 PointTracker::calculatePointRotation(const SimTK::State* s, OpenSim:
 	// we must rotate the OpenSim coordinate system -90 degrees about X to match the coordinate axes with the KUKA coordinate system
 	SimTK::Rotation deg90AboutX;
 	deg90AboutX.setRotationFromAngleAboutX(-1.570796326794897);
-	if (getReferenceBaseRotation().isNaN()) // if reference base rotation has not been defined
+	if (!getUseReferenceRotation) // if reference base rotation has not been defined
 	{
 		// we assume that KUKA coordinate system is facing opposite the station reference body's coordinate system
 		SimTK::Rotation deg180AboutZ;

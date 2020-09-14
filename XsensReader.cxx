@@ -191,6 +191,7 @@ void ConnectToDataStream() {
 					std::cout << "Captured reference body IMU orientation in quaternions: " << quat << std::endl;
 					// NEXT: pass it on to PointTracker, or IMUIKTool that inherits PointTracker, and use it at the end of PointTracker rotation calculations
 					IKTool.setReferenceBaseRotation(quat);
+					IKTool.setUseReferenceRotation(true);
 					foundReferenceBodyIMUOrientation = true;
 					break;
 				}

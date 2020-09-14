@@ -27,6 +27,7 @@ namespace OpenSimLive {
 		void setReferenceBodyRotation(SimTK::Quaternion_<SimTK::Real> quatVector) { referenceBodyRotation_ = quatVector; }
 		void setSavePointTrackerResults(bool setting) { savePointTrackerResults_ = setting; }
 		bool getSavePointTrackerResults() { return savePointTrackerResults_; }
+		bool getUseReferenceRotation() { return useReferenceRotation_; }
 
 	protected:
 		// PROTECTED METHODS
@@ -54,6 +55,7 @@ namespace OpenSimLive {
 		std::string bodyName_ = "";
 		bool pointTrackerEnabled_ = true;
 		bool visualize_ = false;
+		bool useReferenceRotation_ = false;
 		SimTK::Quaternion_<SimTK::Real> referenceBaseRotation_; // quaternion rotation of the IMU that is now on station_reference_body, but was on the base of the robot arm when this variable was saved 
 		SimTK::Quaternion_<SimTK::Real> referenceBodyRotation_; // quaternion rotation of that IMU on station_reference_body whenever IK is calculated
 		bool savePointTrackerResults_ = false; // whether to save PointTracker output to file 
