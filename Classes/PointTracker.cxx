@@ -1,6 +1,8 @@
 #include <PointTracker.h>
 #include <OpenSim.h>
 #include <vector>
+#include <iostream>
+#include <fstream>
 
 using namespace OpenSimLive;
 
@@ -219,7 +221,7 @@ void PointTracker::addStationToBody(const std::string& bodyName, const SimTK::Ve
 }
 
 // This function creates a TimeSeriesTable that contains the time points and the corresponding PointTracker outputs (that are broadcasted to client), and saves that TimeSeriesTable to file for later examination.
-void PointTracker::savePointTrackerOutputToFile(std::string& rootDir, std::string& resultsDir) {
+/*void PointTracker::savePointTrackerOutputToFile(std::string& rootDir, std::string& resultsDir) {
 	// name the column labels
 	std::vector<std::string> labels = { "pos_X", "pos_Y", "pos_Z", "Eul_X", "Eul_Y", "Eul_Z" };
 	// create a matrix of appropriate size
@@ -245,7 +247,23 @@ void PointTracker::savePointTrackerOutputToFile(std::string& rootDir, std::strin
 	catch (...) {
 		std::cout << "Unknown exception in PointTracker::savePointTrackerOutputToFile!" << std::endl;
 	}
+}*/
+
+// This function creates a TimeSeriesTable that contains the time points and the corresponding PointTracker outputs (that are broadcasted to client), and saves that TimeSeriesTable to file for later examination.
+void PointTracker::savePointTrackerOutputToFile(std::string& rootDir, std::string& resultsDir) {
+	
+	std::ofstream outputFile;
+	outputFile.open(rootDir + " / " + resultsDir + " / " + "PointTrackerOutput.sto");
+	outputFile << "Time series of data sent to client from PointTracker:\n";
+	outputFile << "Time (s) \t Pos_X (m) \t Pos_Y (m) \t Pos_Z (m) \t Euler_X (rad) \t Euler_Y (rad) \t Euler_Z (rad)\n";
+	
+	for (unsigned int i = 0; i < timeSeriesDepData_.size(); ++i) { // iteration through rows
+		outputFile << timeSeriesTimeVector_[i] << "\t" << timeSeriesDepData_[i][0] << "\t" << timeSeriesDepData_[i][1] << "\t" << timeSeriesDepData_[i][2] << "\t" << timeSeriesDepData_[i][3] << "\t" << timeSeriesDepData_[i][4] << "\t" << timeSeriesDepData_[i][5] << "\n";
+	}
+	outputFile.close();
 }
+
+
 
 
 
