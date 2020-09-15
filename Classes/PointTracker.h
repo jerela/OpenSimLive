@@ -43,13 +43,11 @@ namespace OpenSimLive {
 
 	private:
 		// PRIVATE METHODS
+		void calculateBodyToBaseMatrix();
 		SimTK::Vec3 findStationLocationInLocalFrame(OpenSim::Model* model, const std::string& bodyName);
 		SimTK::Vec3 calculatePointLocation(const SimTK::Vec3& localLocation, const SimTK::State& s, const OpenSim::Body* body, const OpenSim::Body* referenceBody);
 		SimTK::Vec3 calculatePointRotation(const SimTK::State* s, OpenSim::Model* model, const int axisIndex, const OpenSim::Body* body, const OpenSim::Body* referenceBody);
 		void reflectWithRespectToAxis(SimTK::Vec3& pointLocation, const int axisIndex);
-		// Return the previously saved orientation of the sensor on the reference body.
-		SimTK::Quaternion_<SimTK::Real> getReferenceBaseRotation() { return referenceBaseRotation_; }
-		SimTK::Quaternion_<SimTK::Real> getReferenceBodyRotation() { return referenceBodyRotation_; }
 		
 		//PRIVATE VARIABLES
 		std::string referenceBodyName_ = "pelvis";
@@ -64,6 +62,7 @@ namespace OpenSimLive {
 		std::vector<double> timeSeriesTimeVector_; // simply a vector containing the time points of IK
 		std::vector<std::vector<double>> timeSeriesDepData_; // a vector that will contain the outputs of PointTracker (mirrored point locations and rotations)
 		SimTK::Rotation mirroredRotation_; // used to pass mirrored rotation to decoration generator
+		SimTK::Rotation bodyToBase_; // base segment (body) to robot base rotation for L-correction
 
 	}; // end of class
 }

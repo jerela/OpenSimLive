@@ -25,6 +25,11 @@ PointTracker::~PointTracker() {
 // This function performs all the necessary calculations to fetch the local position of the station, calculate it in another reference frame (body), mirror the position in that new reference frame, get the original body's orientation, mirror the orientation with respect to an axis and finally return a 6-element vector with mirrored positions and orientations.
 std::vector<double> PointTracker::runTracker(const SimTK::State* s, OpenSim::Model* model, const std::string& bodyName, const std::string& referenceBodyName) {
 
+	// if we use L-correction, calculate body-to-base rotation matrix
+	if (useReferenceRotation_) {
+		calculateBodyToBaseMatrix();
+	}
+
 	// Get the location of the station in its parent body's reference frame
 	SimTK::Vec3 stationLocationLocal(findStationLocationInLocalFrame(model, bodyName));
 		
@@ -48,22 +53,11 @@ std::vector<double> PointTracker::runTracker(const SimTK::State* s, OpenSim::Mod
 		decGen_->setTransformInReferenceBody(mirroredTransform);		
 	}
 
-	//
-	if (getUseReferenceRotation()) {
-		// get quaternion orientations of the IMU in base and on station reference body as rotation matrices
-		SimTK::Rotation referenceBaseRotation(getReferenceBaseRotation());
-		std::cout << "Reference base rotation: " << referenceBaseRotation << std::endl;
-		SimTK::Rotation referenceBodyRotation(getReferenceBodyRotation());
-		std::cout << "Reference body rotation: " << referenceBodyRotation << std::endl;
-		// calculate the rotation from the orientation of the IMU on the station reference body to the orientation of the IMU on the base of the robot arm
-		// X * BODY = BASE
-		// X = BASE * ~BODY
-		SimTK::Rotation bodyToBase(referenceBaseRotation * referenceBodyRotation.invert());
-		// rotate mirroredRotation to correct for the difference between orientation on the base of the robot arm and current orientation of the station reference body (and 90 degrees to match OpenSim coordinate system to KUKA)
+	// rotate points after feeding them to the visualization
+	if (useReferenceRotation_) {
 		std::cout << "Mirrored point location in OpenSim coordinate system before L-correction: " << pointLocation << std::endl;
-		pointLocation = bodyToBase * pointLocation;
+		pointLocation = bodyToBase_ * pointLocation;
 		std::cout << "Mirrored point location in OpenSim coordinate system after L-correction: " << pointLocation << std::endl;
-		std::cout << "Rotation matrix used to rotate point location: " << bodyToBase << std::endl;
 	}
 
 	// Save the calculated results in a vector and return it
@@ -75,6 +69,20 @@ std::vector<double> PointTracker::runTracker(const SimTK::State* s, OpenSim::Mod
 	}
 
 	return positionsAndRotations;
+}
+
+// This function calculates the body-to-base rotation matrix for L-correction.
+void PointTracker::calculateBodyToBaseMatrix() {
+	// get quaternion orientations of the IMU in base and on station reference body as rotation matrices
+	SimTK::Rotation referenceBaseRotation(referenceBaseRotation_);
+	std::cout << "Reference base rotation: " << referenceBaseRotation << std::endl;
+	SimTK::Rotation referenceBodyRotation(referenceBodyRotation_);
+	std::cout << "Reference body rotation: " << referenceBodyRotation << std::endl;
+	// calculate the rotation from the orientation of the IMU on the station reference body to the orientation of the IMU on the base of the robot arm
+	// X * BODY = BASE
+	// X = BASE * ~BODY
+	bodyToBase_ = referenceBaseRotation * referenceBodyRotation.invert();
+	std::cout << "Body to base rotation matrix: " << bodyToBase_ << std::endl;
 }
 
 // This function finds the value of station's XML attribute location and returns it as a SimTK::Vec3 vector
@@ -139,24 +147,18 @@ SimTK::Vec3 PointTracker::calculatePointRotation(const SimTK::State* s, OpenSim:
 	// we must rotate the OpenSim coordinate system -90 degrees about X to match the coordinate axes with the KUKA coordinate system
 	SimTK::Rotation deg90AboutX;
 	deg90AboutX.setRotationFromAngleAboutX(-1.570796326794897);
-	if (!getUseReferenceRotation()) // if reference base rotation has not been defined
+	
+	if (useReferenceRotation_) // if reference base rotation has been defined
 	{
-		// we assume that KUKA coordinate system is facing opposite the station reference body's coordinate system
+		// rotate mirroredRotation to correct for the difference between orientation on the base of the robot arm and current orientation of the station reference body (and 90 degrees to match OpenSim coordinate system to KUKA)
+		mirroredRotationWrtKuka = bodyToBase_ * (deg90AboutX*mirroredRotation);
+	}
+	else // if reference base rotation has not been defined
+	{
+		// we assume that KUKA coordinate system is facing opposite the station reference body's coordinate system (180 degrees about the vertical axis)
 		SimTK::Rotation deg180AboutZ;
 		deg180AboutZ.setRotationFromAngleAboutZ(3.14159265358979323);
-		mirroredRotationWrtKuka = deg180AboutZ*(deg90AboutX*mirroredRotation);
-	}
-	else
-	{
-		// get quaternion orientations of the IMU in base and on station reference body as rotation matrices
-		SimTK::Rotation referenceBaseRotation(getReferenceBaseRotation());
-		SimTK::Rotation referenceBodyRotation(getReferenceBodyRotation());
-		// calculate the rotation from the orientation of the IMU on the station reference body to the orientation of the IMU on the base of the robot arm
-		// X * BODY = BASE
-		// X = BASE * ~BODY
-		SimTK::Rotation bodyToBase(referenceBaseRotation * referenceBodyRotation.invert());
-		// rotate mirroredRotation to correct for the difference between orientation on the base of the robot arm and current orientation of the station reference body (and 90 degrees to match OpenSim coordinate system to KUKA)
-		mirroredRotationWrtKuka = bodyToBase * (deg90AboutX*mirroredRotation);
+		mirroredRotationWrtKuka = deg180AboutZ * (deg90AboutX * mirroredRotation);
 	}
 
 	// convert the 3x3 rotation matrix into body fixed ZYX euler angles
@@ -238,47 +240,27 @@ void PointTracker::addStationToBody(const std::string& bodyName, const SimTK::Ve
 	calibratedModelFile.writeToFile(modelFile);
 }
 
-// This function creates a TimeSeriesTable that contains the time points and the corresponding PointTracker outputs (that are broadcasted to client), and saves that TimeSeriesTable to file for later examination.
-/*void PointTracker::savePointTrackerOutputToFile(std::string& rootDir, std::string& resultsDir) {
-	// name the column labels
-	std::vector<std::string> labels = { "pos_X", "pos_Y", "pos_Z", "Eul_X", "Eul_Y", "Eul_Z" };
-	// create a matrix of appropriate size
-	SimTK::Matrix_<SimTK::Real> timeSeriesMatrix(timeSeriesDepData_.size(), 6);
-	// fill the matrix with values (this is likely slow because we're using vectors, but that might not matter because this is done at the end of the program, not during IK)
-	for (unsigned int i = 0; i < timeSeriesDepData_.size(); ++i) { // iteration through rows
-		for (unsigned int j = 0; j < 6; ++j) { // iteration throughs columns
-			timeSeriesMatrix.set(i, j, timeSeriesDepData_.at(i).at(j)); // populate the matrix
-		}
-		//timeSeriesTimeVector_[i] = i; // temporary fix to disable time but prevent crashing in the TimeSeriesTable construction step
-	}
-
-
-	try {
-		// construct the TimeSeriesTable
-		OpenSim::TimeSeriesTable_<double> outputTimeSeries(timeSeriesTimeVector_, timeSeriesMatrix, labels);
-		// write it to file as PointTrackerOutput.sto
-		OpenSim::STOFileAdapter_<double>::write(outputTimeSeries, rootDir + "/" + resultsDir + "/" + "PointTrackerOutput.sto");
-	}
-	catch (std::exception& e) {
-		std::cout << "Exception in PointTracker::savePointTrackerOutputToFile: " << e.what() << std::endl;
-	}
-	catch (...) {
-		std::cout << "Unknown exception in PointTracker::savePointTrackerOutputToFile!" << std::endl;
-	}
-}*/
-
-// This function creates a TimeSeriesTable that contains the time points and the corresponding PointTracker outputs (that are broadcasted to client), and saves that TimeSeriesTable to file for later examination.
+// This function saves the time points and the corresponding PointTracker outputs (that may be broadcasted to client) to file for later examination.
 void PointTracker::savePointTrackerOutputToFile(std::string& rootDir, std::string& resultsDir) {
 	
+	std::string filePath(rootDir + "/" + resultsDir + "/" + "PointTrackerOutput.txt");
 	std::ofstream outputFile;
-	outputFile.open(rootDir + " / " + resultsDir + " / " + "PointTrackerOutput.sto");
-	outputFile << "Time series of data sent to client from PointTracker:\n";
-	outputFile << "Time (s) \t Pos_X (m) \t Pos_Y (m) \t Pos_Z (m) \t Euler_X (rad) \t Euler_Y (rad) \t Euler_Z (rad)\n";
-	
-	for (unsigned int i = 0; i < timeSeriesDepData_.size(); ++i) { // iteration through rows
-		outputFile << timeSeriesTimeVector_[i] << "\t" << timeSeriesDepData_[i][0] << "\t" << timeSeriesDepData_[i][1] << "\t" << timeSeriesDepData_[i][2] << "\t" << timeSeriesDepData_[i][3] << "\t" << timeSeriesDepData_[i][4] << "\t" << timeSeriesDepData_[i][5] << "\n";
+	// open and set file to discard any contents that existed in the file previously (truncate mode)
+	outputFile.open(filePath, std::ios_base::out|std::ios_base::trunc);
+	if (outputFile.is_open())
+	{
+		outputFile << "Time series of PointTracker output that may have been sent to client:\n";
+		outputFile << "Time (s)\tPos_X (m)\tPos_Y (m)\tPos_Z (m)\tEuler_X (rad)\tEuler_Y (rad)\tEuler_Z (rad)";
+
+		for (unsigned int i = 0; i < timeSeriesDepData_.size(); ++i) { // iteration through rows
+			outputFile << "\n" << timeSeriesTimeVector_[i] << "\t" << timeSeriesDepData_[i][0] << "\t" << timeSeriesDepData_[i][1] << "\t" << timeSeriesDepData_[i][2] << "\t" << timeSeriesDepData_[i][3] << "\t" << timeSeriesDepData_[i][4] << "\t" << timeSeriesDepData_[i][5];
+		}
+		outputFile.close();
+		std::cout << "PointTracker output written to file " << filePath << std::endl;
 	}
-	outputFile.close();
+	else {
+		std::cout << "Failed to open file " << filePath << std::endl;
+	}
 }
 
 

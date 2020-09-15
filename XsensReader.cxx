@@ -67,8 +67,8 @@ void RunIKProcedure(OpenSimLive::XsensDataReader& xsensDataReader, std::vector<X
 	// fill a time series table with quaternion orientations of the IMUs
 	OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
 
-	// get the orientation of station_reference_body and pass it to PointTracker through IKTool
-	if (IKTool.getSavePointTrackerResults())
+	// get the orientation of station_reference_body and pass it to PointTracker through IKTool; MOVE THIS TO CONCURRENTIK TO SPEED UP PROGRAM SLIGHTLY
+	if (IKTool.getUseReferenceRotation())
 	{
 		bool foundBodyIMUOrientation = false;
 		for (unsigned int i = 0; i < quatTable.getNumColumns(); ++i) // iterate through the quaternions of all IMUs
@@ -84,7 +84,10 @@ void RunIKProcedure(OpenSimLive::XsensDataReader& xsensDataReader, std::vector<X
 			}
 		}
 		if (!foundBodyIMUOrientation)
-			std::cout << "Base body IMU orientation not found!" << std::endl;
+		{
+			std::cout << "Base body IMU orientation not found! Disabling feature." << std::endl;
+			IKTool.setUseReferenceRotation(false);
+		}
 	}
 
 	// give the necessary inputs to IKTool
