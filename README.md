@@ -56,6 +56,23 @@ Step by step instructions on how to install this project.
 5. Go to .../OpenSimLive/Config and make sure the .xml files have the right values for your directory paths.
 6. Installation complete. You are ready to run **XsensReader.exe**.
 
+### Running the program
+
+The main mirror therapy program (**XsensReader**) is controlled by keyboard input. Calibrating a model will open a visualization in another window, so make sure you select the command console window as the active window to ensure keyboard input is successfully read.
+
+When the program starts, it will look for active Xsens IMUs. Make sure your IMUs are on and not on standby mode (move them until a red light starts blinking). The program will list all IMUs it can connect to in a numbered order and finding an IMU may take a few seconds. When the program lists all the IMUs you want to use, press Y on your keyboard to continue.
+
+If **station_parent_body** in **Config/MainConfiguration.xml** is set to anything but "none", the program (acting as a server for socket communication) will wait for another program (the client) to connect to it. For testing purposes, you can run **JavaClient/run.bat** at this point to execute a program that receives data from the server. When the connection is made, the main program will automatically continue.
+
+The program should print input instructions in the command window. Pressing L will set a reference orientation for the base segment IMU and pressing C will calibrate the model.
+Setting a reference orientation with L is not necessary, but is used to acknowledge differences in coordinate system rotations between the base body on the model and the rehabilitation robot. When L is pressed, the IMU on the base segment should be facing the same way as the robot's coordinate system. For example, if the robot is mounted on a wall 180 degrees opposite to the patient during the rehabilitation session, then the base segment IMU should first be placed on a surface that is parallel to the base of the robot and in a way that the IMU would be on the patient's base segment if the patient was sitting with their back to the base of the robot. After reference orientation is set, the IMU should be placed back on the patient's base segment and the model should then be calibrated. During inverse kinematics the current position of the base segment IMU is then used to correct the mirrored rotations and positions of the body to be rehabilitated, before they are sent to the client.
+If a reference orientation is not set, during inverse kinematics the program will assume that there is a 180 degree rotation around the vertical axis between coordinate systems of the robot and the base segment of the patient, but position data won't be rotated. Therefore only rotation data is corrected in this case.
+
+To enable sending data to the client, you must press V. Pressing B will disable this feature.
+
+After the model is calibrated, you can enable continuous inverse kinematics and rotation/position mirroring operations with N and disable them with M. The visualization window will show the solved joint angles on the model. If data sending is enabled, the calculated data is automatically sent to the client. You can also press Z to calculate IK and rotation/position mirroring operations at a single time point.
+
+When you are finished, pressing X will quit the program. At this point the program will save IK results, IK errors and calculated mirrored positions and rotations to **IK-live.mot**, **IK-live_orientationErrors.sto** and **PointTrackerOutput.txt**, respectively, in the **Config** folder.
 
 ### Running the tests
 
