@@ -150,14 +150,17 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
         model_.updVisualizer().updSimbodyVisualizer().setMode(SimTK::Visualizer::Mode::PassThrough); // try RealTime mode instead for better FPS?
         model_.updVisualizer().updSimbodyVisualizer().setDesiredFrameRate(60);
         // prepare to visualize the mirrored point
-        try {
-            startDecorationGenerator();
-        }
-        catch (std::exception& e) {
-            std::cout << "Error: " << e.what() << std::endl;
-        }
-        catch (...) {
-            std::cout << "Error in starting decoration generator." << std::endl;
+        if (getPointTrackerEnabled())
+        {
+            try {
+                startDecorationGenerator();
+            }
+            catch (std::exception & e) {
+                std::cout << "Error: " << e.what() << std::endl;
+            }
+            catch (...) {
+                std::cout << "Error in starting decoration generator." << std::endl;
+            }
         }
         // visualize actually
         model_.getVisualizer().show(s_);
