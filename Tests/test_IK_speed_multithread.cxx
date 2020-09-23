@@ -22,8 +22,9 @@ void updateConcurrentIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, s
 	IKTool.setTime(clockDuration.count());
 
 	IKTool.update(false);
-	std::vector<double> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
-	double* mirrorTherapyPacket = &trackerResults[0];
+	std::array<double, 6> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
+	//double* mirrorTherapyPacket = &trackerResults[0];
+	double* mirrorTherapyPacket = trackerResults.data();
 }
 
 void ConnectToDataStream(double inputSeconds, int inputThreads) {

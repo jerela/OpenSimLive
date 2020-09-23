@@ -81,9 +81,10 @@ void ConnectToDataStream(int inputSeconds) {
 		if (enableMirrorTherapy)
 		{
 			// get the data we want to send to Java program
-			std::vector<double> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
+			std::array<double, 6> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
 			// get a double array from the double vector
-			double* mirrorTherapyPacket = &trackerResults[0];
+			//double* mirrorTherapyPacket = &trackerResults[0];
+			double* mirrorTherapyPacket = trackerResults.data();
 		}
 
 		++iteration;

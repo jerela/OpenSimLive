@@ -9,6 +9,7 @@
 #include <OpenSim/Simulation/Model/Point.h>
 #include <OpenSim/Simulation/OrientationsReference.h>
 #include <PointTracker.h>
+#include <array>
 
 namespace OpenSimLive {
 
@@ -30,7 +31,7 @@ namespace OpenSimLive {
 		// PUBLIC METHODS DEFINED HERE
 		bool get_report_errors() { return report_errors; }
 		std::vector<double> getQ() { return q_; }
-		std::vector<double> getPointTrackerPositionsAndOrientations() { return pointTrackerPositionsAndOrientations_; }
+		std::array<double, 6> getPointTrackerPositionsAndOrientations() { return pointTrackerPositionsAndOrientations_; }
 		void setTime(const double time) { time_ = time; }
 		void setQuaternion(const OpenSim::TimeSeriesTable_<SimTK::Quaternion>& newQuat) { quat_ = newQuat; }
 		void setModel(const OpenSim::Model& newModel) { model_ = newModel; }
@@ -56,7 +57,7 @@ namespace OpenSimLive {
 		bool report_errors = true;
 		OpenSim::Model model_; // the OpenSim model that state s_ depicts
 		std::vector<double> q_; // joint angles calculated from IK are stored here
-		std::vector<double> pointTrackerPositionsAndOrientations_;
+		std::array<double, 6> pointTrackerPositionsAndOrientations_;
 		std::string pointTrackerBodyName_ = "";
 		std::string pointTrackerReferenceBodyName_ = "pelvis";
 
@@ -66,7 +67,7 @@ namespace OpenSimLive {
 		OpenSim::TimeSeriesTable_<SimTK::Quaternion> get_quat() { return quat_; }
 		OpenSim::Model get_model() { return model_; }
 		void setQ(const std::vector<double>& q) { q_ = q; }
-		void setPointTrackerPositionsAndOrientations(const std::vector<double>& positionsAndOrientations) { pointTrackerPositionsAndOrientations_ = positionsAndOrientations; }
+		void setPointTrackerPositionsAndOrientations(const std::array<double, 6>& positionsAndOrientations) { pointTrackerPositionsAndOrientations_ = positionsAndOrientations; }
 		std::string getPointTrackerBodyName() { return pointTrackerBodyName_; }
 		std::string getPointTrackerReferenceBodyName() { return pointTrackerReferenceBodyName_; }
 
