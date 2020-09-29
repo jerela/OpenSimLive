@@ -252,6 +252,14 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
     // set the time of state s0
     auto& times = oRefs.getTimes();
     std::unique_lock<std::mutex> concurrentIKMutex(m);
+
+    // check if another thread has already set the time of state s_ to a more advanced time point
+    bool threadExpired = false;
+    if (s_.getTime() > time) {
+        std::cout << "Thread was found to be expired at check 1." << std::endl;
+        threadExpired = true;
+    }
+
     s_.updTime() = times[0];
     concurrentIKMutex.unlock();
     // assemble state s0, solving the initial joint angles in the least squares sense
@@ -263,8 +271,15 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
 
     // update the time to be shown in the visualization and so that when we realize the report, the correct timestamp is used for the joint angle values
     s_.updTime() = time;
+
+    // check if another thread has already set the time of state s_ to a more advanced time point
+    if (s_.getTime() > time) {
+        std::cout << "Thread was found to be expired at check 2." << std::endl;
+        threadExpired = true;
+    }
+
     // now insert q into the original visualized state and show them
-    if (visualizeResults) {
+    if (visualizeResults && !threadExpired) {
         try {
             model_.getVisualizer().show(s_);
         }
@@ -293,11 +308,20 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
 
     if (getPointTrackerEnabled() == true) {
         concurrentIKMutex.lock();
-        // give time to PointTracker only if we need it
-        if (getSavePointTrackerResults()) {
-            setPointTrackerCurrentTime(time);
+
+        // check if another thread has already set the time of state s_ to a more advanced time point
+        if (s_.getTime() > time) {
+            std::cout << "Thread was found to be expired at check 3." << std::endl;
+            threadExpired = true;
         }
-        updatePointTracker();
+
+        if (!threadExpired) {
+            // give time to PointTracker only if we need it
+            if (getSavePointTrackerResults()) {
+                setPointTrackerCurrentTime(time);
+            }
+            updatePointTracker();
+        }
         concurrentIKMutex.unlock();
     }
 
