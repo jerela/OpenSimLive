@@ -256,7 +256,7 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
     // check if another thread has already set the time of state s_ to a more advanced time point
     bool threadExpired = false;
     if (s_.getTime() > time) {
-        std::cout << "Thread was found to be expired at check 1." << std::endl;
+        //std::cout << "Thread was found to be expired at check 1." << std::endl;
         threadExpired = true;
     }
 
@@ -273,12 +273,12 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
     s_.updTime() = time;
 
     // check if another thread has already set the time of state s_ to a more advanced time point
-    if (s_.getTime() > time) {
-        std::cout << "Thread was found to be expired at check 2." << std::endl;
+    /*if (s_.getTime() > time) {
+        //std::cout << "Thread was found to be expired at check 2." << std::endl;
         threadExpired = true;
-    }
+    }*/
 
-    // now insert q into the original visualized state and show them
+    // now insert q into the original visualized state and show them if visualizeResults is true and a younger thread hasn't passed this thread (this thread hasn't expired)
     if (visualizeResults && !threadExpired) {
         try {
             model_.getVisualizer().show(s_);
@@ -311,7 +311,7 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
 
         // check if another thread has already set the time of state s_ to a more advanced time point
         if (s_.getTime() > time) {
-            std::cout << "Thread was found to be expired at check 3." << std::endl;
+            //std::cout << "Thread was found to be expired at check 3." << std::endl;
             threadExpired = true;
         }
 
