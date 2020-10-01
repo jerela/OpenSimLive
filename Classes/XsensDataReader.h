@@ -157,7 +157,7 @@ namespace OpenSimLive {
 		~XsensDataReader();
 
 		// PUBLIC METHODS
-		bool InitiateStartupPhase(); // starts the connection from scratch
+		unsigned int InitiateStartupPhase(); // starts the connection from scratch; returns 0 if unsuccessful, 1 if successful but we quit the program and 2 for successful and we continue the program
 		std::vector<XsQuaternion> XsensDataReader::GetQuaternionData(std::vector<XsQuaternion>& quaternionData); // returns IMU orientations as quaternions
 		std::vector<XsEuler> XsensDataReader::GetEulerData(std::vector<XsEuler>& eulerData); // returns IMU orientations as Euler angles
 		void CloseConnection(); // shuts down the connection

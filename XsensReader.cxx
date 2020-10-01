@@ -115,7 +115,15 @@ void ConnectToDataStream() {
 	int desiredUpdateRate = stoi(ConfigReader("MainConfiguration.xml", "desired_update_rate"));
 	xsensDataReader.SetDesiredUpdateRate(desiredUpdateRate);
 	
-	while (!xsensDataReader.InitiateStartupPhase()) {}
+	unsigned int dataReaderResult = 0;
+	while (dataReaderResult == 0) {
+		dataReaderResult = xsensDataReader.InitiateStartupPhase();
+	}
+	// if InitiateStartupPhase returned 1, we close the program
+	if (dataReaderResult == 1) {
+		xsensDataReader.CloseConnection();
+		return;
+	}
 	
 	std::vector<XsEuler> eulerData(xsensDataReader.GetMtwCallbacks().size()); // Room to store euler data for each mtw
 	std::vector<XsQuaternion> quaternionData(xsensDataReader.GetMtwCallbacks().size()); // for data in quaternion form

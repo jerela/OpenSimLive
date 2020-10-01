@@ -53,7 +53,7 @@ int XsensDataReader::findClosestUpdateRate(const XsIntArray& supportedUpdateRate
 	return closestUpdateRate;
 }
 
-bool XsensDataReader::InitiateStartupPhase() {
+unsigned int XsensDataReader::InitiateStartupPhase() {
 
 	//const int desiredUpdateRate = 75; // use 75 Hz update rate for MTWs
 	//const int desiredRadioChannel = 19; // use radio channel 19 for wireless master
@@ -62,6 +62,9 @@ bool XsensDataReader::InitiateStartupPhase() {
 	//WirelessMasterCallback wirelessMasterCallback;
 	// Callbacks for MTw devices
 	//std::vector<MtwCallback*> mtwCallbacks;
+
+	// returnMode: 1 for quitting the program, 2 for continuing
+	unsigned int returnMode = 0;
 
 	/*
 	STARTUP PHASE
@@ -172,7 +175,7 @@ bool XsensDataReader::InitiateStartupPhase() {
 
 		std::cout << "Waiting for MTw to wirelessly connect...\n" << std::endl;
 
-		bool waitForConnections = true;
+		//bool waitForConnections = true;
 		size_t connectedMTWCount = wirelessMasterCallback_.getWirelessMTWs().size();
 		do
 		{
@@ -183,7 +186,7 @@ bool XsensDataReader::InitiateStartupPhase() {
 				size_t nextCount = wirelessMasterCallback_.getWirelessMTWs().size();
 				if (nextCount != connectedMTWCount)
 				{
-					std::cout << "Number of connected MTws: " << nextCount << ". Press 'Y' to start measurement." << std::endl;
+					std::cout << "Number of connected MTws: " << nextCount << ". Press 'Y' to start measurement or 'N' to disconnect connected MTws." << std::endl;
 					connectedMTWCount = nextCount;
 				}
 				else
@@ -193,9 +196,16 @@ bool XsensDataReader::InitiateStartupPhase() {
 			}
 			if (_kbhit())
 			{
-				waitForConnections = (toupper((char)_getch()) != 'Y');
+				char hitKey = toupper((char)_getch());
+				if (hitKey == 'Y') {
+					returnMode = 2;
+				}
+				else if (hitKey == 'N') {
+					returnMode = 1;
+				}
+				//waitForConnections = (toupper((char)_getch()) != 'Y');
 			}
-		} while (waitForConnections);
+		} while (!returnMode);
 
 
 		// 8. SWITCH DEVICES TO MEASUREMENT MODE: set devices to measurement mode with XsDevice::gotoMeasurement
@@ -250,7 +260,7 @@ bool XsensDataReader::InitiateStartupPhase() {
 		std::cout << "An unknown fatal error has occured. Aborting." << std::endl;
 		std::cout << "****ABORT****" << std::endl;
 	}
-	return 1;
+	return returnMode;
 }
 		
 
