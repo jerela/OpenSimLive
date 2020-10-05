@@ -82,7 +82,7 @@ std::string sensorIdToLabel(const std::string& id, const std::string& mappingsFi
 
 
 
-
+#ifdef USE_XSENS
 // This function fills a TimeSeriesTable with quaternion values for a single time frame.
 OpenSim::TimeSeriesTable_<SimTK::Quaternion> fillQuaternionTable(std::vector<MtwCallback*>& mtwCallbacks, std::vector<XsQuaternion>& quaternionVector)
 {
@@ -126,6 +126,7 @@ OpenSim::TimeSeriesTable_<SimTK::Quaternion> fillQuaternionTable(std::vector<Mtw
 	OpenSim::TimeSeriesTable_<SimTK::Quaternion> outputTable(timeVector, quaternionMatrix, sensorNameVector);
 	return outputTable;
 }
+#endif
 
 // This function calibrates an OpenSim model from setup file, similarly to how MATLAB scripting commands for OpenSense work.
 std::string calibrateModelFromSetupFile(const std::string& IMUPlacerSetupFile, const OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quaternionTimeSeriesTable)

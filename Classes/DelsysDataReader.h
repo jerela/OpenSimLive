@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Simbody.h>
+#include <OpenSim.h>
 #include <Client.h>
 
 

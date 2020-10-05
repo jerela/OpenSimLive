@@ -15,6 +15,18 @@
 
 using namespace OpenSimLive;
 
+// CONSTRUCTOR
+DelsysDataReader::DelsysDataReader() {
+
+}
+
+// DESTRUCTOR
+DelsysDataReader::~DelsysDataReader() {
+	//delete commandPort_;
+	//delete AUXPort_;
+	//delete quatTable_;
+}
+
 // this union is used to convert bytes to float; all its data members share a memory location, meaning that the byte array we save into it can be accessed as a float
 union DelsysDataReader::byteFloater {
 	float f;
@@ -84,14 +96,15 @@ unsigned int DelsysDataReader::correctSensorIndex(const std::vector<unsigned int
 			if (sensorIndices[i] == 17)
 				sensorIndices[i] = 1;
 			// sort sensorindices
-			std::cout << "Element " << std::to_string(i) << " before sorting: " << sensorIndices[i] << std::endl;
+			//std::cout << "Element " << std::to_string(i) << " before sorting: " << sensorIndices[i] << std::endl;
 			std::sort(sensorIndices.begin(), sensorIndices.end());
-			std::cout << "Element " << std::to_string(i) << " after sorting: " << sensorIndices[i] << std::endl;
+			//std::cout << "Element " << std::to_string(i) << " after sorting: " << sensorIndices[i] << std::endl;
 		}
 		// if offset is 17, we've gone through the whole "round" and something is wrong
 		if (offset == 17)
 			break;
 	}
+	std::cout << "Final offset: " << offset << std::endl;
 	return offset;
 }
 
@@ -107,8 +120,8 @@ bool DelsysDataReader::initiateConnection() {
 	//Client commandPort(50040, dataport, ipc, reverse, &bResult);
 	//Client EMGPort(50043, dataport, ipc, reverse, &bResult);
 	//Client AUXPort(50044, dataport, ipc, reverse, &bResult);
-	*commandPort_ = Client(50040, dataport, ipc, reverse, &bResult);
-	*AUXPort_ = Client(50044, dataport, ipc, reverse, &bResult);
+	commandPort_ = new Client(50040, dataport, ipc, reverse, &bResult);
+	AUXPort_ = new Client(50044, dataport, ipc, reverse, &bResult);
 
 	commandPort_->SendString("\r\n\r\n");
 	commandPort_->SendString("BACKWARDS COMPATIBILITY ON\r\n");
@@ -119,7 +132,7 @@ bool DelsysDataReader::initiateConnection() {
 	std::this_thread::sleep_for(std::chrono::milliseconds(500));
 	commandPort_->SendString("START\r\n");
 	commandPort_->SendString("\r\n\r\n");
-	std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+	//std::this_thread::sleep_for(std::chrono::milliseconds(1500));
 	return 1;
 }
 
@@ -129,6 +142,8 @@ bool DelsysDataReader::closeConnection() {
 	commandPort_->SendString("STOP\r\n");
 	std::this_thread::sleep_for(std::chrono::milliseconds(1500));
 	commandPort_->SendString("\r\n\r\n");
+	delete commandPort_;
+	delete AUXPort_;
 	return 1;
 }
 
@@ -202,26 +217,26 @@ void DelsysDataReader::updateQuaternionData()
 
 				// if streak is 16, we assume that we just iterated through quaternion data (4 bytes each for 4 elements of the quaternion)
 				if (streak == 16) {
-					std::cout << "Data found at start index " << std::to_string(streakStartIndex) << std::endl;
+					//std::cout << "Data found at start index " << std::to_string(streakStartIndex) << std::endl;
 
-					// boolean telling us whether data from this sensor was read already
+					// boolean telling us whether data from this sensor was read already in a previous segment of the byte stream
 					bool dataAlreadyRead = false;
 
 					// if streakStartIndex is not found in vector startIndices, push it in it
 					if (std::find(startIndices.begin(), startIndices.end(), streakStartIndex) == startIndices.end())
 						startIndices.push_back(streakStartIndex);
 
-					// if firstStartIndex has not been set, set it
+					// if firstStartIndex has not been set, set it to be streakStartIndex
 					if (firstStartIndex == 0)
 						firstStartIndex = streakStartIndex;
 
-					// calculate the index (1-16) of the Delsys sensor with the assumption that the first quaternion comes from sensor 1; this is not always true and thus we need to offset the index later
+					// calculate the index (1-16) of the Delsys sensor with the assumption that the first quaternion that is read comes from sensor 1; this is not always true and thus we calculate an integer offset later
 					int sensorIndex = ((streakStartIndex - firstStartIndex + dataGap) / dataGap) % 16;
 					// if sensorIndex is not found in vector sensorIndices, push it in it
 					if (std::find(sensorIndices.begin(), sensorIndices.end(), sensorIndex) == sensorIndices.end())
 						sensorIndices.push_back(sensorIndex);
 					else
-						dataAlreadyRead = true;
+						dataAlreadyRead = true; // if it was already found, we have read data for this sensor previously in the same byte segment
 
 
 					// read data and store it as a quaternion only if it hasn't already been stored
@@ -255,21 +270,30 @@ void DelsysDataReader::updateQuaternionData()
 					std::cout << "WARNING: NONZERO DATA STREAK IS " << std::to_string(streak) << std::endl;
 				}
 			}
-			std::cout << "Number of unique quaternions read from received bytes: " << nSensors << "\n" << std::endl;
 
-			unsigned int offset = correctSensorIndex(sensorLabels, std::ref(sensorIndices));
-
-			std::vector<std::string> tableLabels = getSegmentLabelsForNumberLabels(sensorIndices);
-
-			SimTK::Matrix_<SimTK::Quaternion> quatMatrix(1, quatVector.size());
-			for (unsigned int m = 0; m < quatVector.size(); ++m) {
-				quatMatrix.set(0, m, quatVector[m]);
+			if (nSensors == 0) {
+				success = false;
 			}
+			else {
+				std::cout << "Number of unique quaternions read from received bytes: " << nSensors << "\n" << std::endl;
 
-			std::vector<double> timeVector{ 0 };
+				unsigned int offset = correctSensorIndex(sensorLabels, std::ref(sensorIndices));
 
-			OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(timeVector, quatMatrix, tableLabels);
-			*quatTable_ = quatTable;
+				std::vector<std::string> tableLabels = getSegmentLabelsForNumberLabels(sensorIndices);
+
+				SimTK::Matrix_<SimTK::Quaternion> quatMatrix(1, quatVector.size());
+				for (unsigned int m = 0; m < quatVector.size(); ++m) {
+					quatMatrix.set(0, m, quatVector[m]);
+				}
+
+				std::vector<double> timeVector = { 0 };
+
+				//OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(timeVector, quatMatrix, tableLabels);
+				if (quatTable_ != NULL)
+					delete quatTable_;
+				quatTable_ = new OpenSim::TimeSeriesTable_<SimTK::Quaternion>(timeVector, quatMatrix, tableLabels);
+			}
+			
 
 		} // if statement for successful data retrieval ends
 

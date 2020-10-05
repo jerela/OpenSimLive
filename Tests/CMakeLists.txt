@@ -98,7 +98,8 @@ add_executable(test_Delsys
 			   "${TEST_DELSYS_SOURCES}")
 
 target_link_libraries(test_Delsys PRIVATE "${OPENSIM_LIBRARY}"
-						PRIVATE "${SIMBODY_LIBRARY}")
+						PRIVATE "${SIMBODY_LIBRARY}"
+						PRIVATE "ws2_32.lib")
 						
 target_include_directories(test_Delsys PRIVATE
 						"${INCLUDE_CLASSES_PATH}"
