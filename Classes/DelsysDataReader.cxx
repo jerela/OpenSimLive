@@ -56,14 +56,9 @@ float DelsysDataReader::convertBytesToFloat(char b1, char b2, char b3, char b4, 
 
 // Takes the number indices of found sensors as input and returns the labels of corresponding IMUs on the skeletal model.
 std::vector<std::string> DelsysDataReader::getSegmentLabelsForNumberLabels(std::vector<unsigned int> sensorIndices) {
-	/*unsigned int nSensors = std::stoi(ConfigReader("DelsysMappings.xml", "number_of_active_sensors"));
+	// declare the vector of string labels
 	std::vector<std::string> labels;
-	for (unsigned int i = 0; i < nSensors; ++i) {
-		labels.push_back(ConfigReader("DelsysMappings.xml", "sensor_" + std::to_string(i) + "_label"));
-	}
-	return labels;*/
-
-	std::vector<std::string> labels;
+	// iterate through all integers in the sensorIndices vector
 	for (auto i : sensorIndices) {
 		labels.push_back(ConfigReader("DelsysMappings.xml", "sensor_" + std::to_string(i) + "_label"));
 	}
@@ -85,7 +80,6 @@ unsigned int DelsysDataReader::correctSensorIndex(const std::vector<unsigned int
 
 	unsigned int numberOfIndices = sensorIndices.size();
 	unsigned int offset = 0;
-	std::cout << "Entered correctSensorIndex()" << std::endl;
 	while (sensorIndices != sensorLabels) {
 		++offset;
 		// iterate through all elements in sensorIndices
@@ -104,7 +98,7 @@ unsigned int DelsysDataReader::correctSensorIndex(const std::vector<unsigned int
 		if (offset == 17)
 			break;
 	}
-	std::cout << "Final offset: " << offset << std::endl;
+	//std::cout << "Final offset: " << offset << std::endl;
 	return offset;
 }
 
@@ -180,7 +174,7 @@ void DelsysDataReader::updateQuaternionData()
 	// initialize array for holding bytes that are read from Trigno SDK
 	char receivedBytes[6400];
 
-	std::cout << "Entering loop." << std::endl;
+	//std::cout << "Entering loop." << std::endl;
 
 	bool loop = true;
 	bool success = false;
@@ -197,7 +191,7 @@ void DelsysDataReader::updateQuaternionData()
 			// starting index of a streak
 			int streakStartIndex = 0;
 			// starting index of the first streak
-			int firstStartIndex = 0;
+			int firstStartIndex = -1;
 			// iterate through whole data (6400 byte values)
 			for (unsigned int k = 0; k < 6400; ++k) {
 
@@ -227,17 +221,24 @@ void DelsysDataReader::updateQuaternionData()
 						startIndices.push_back(streakStartIndex);
 
 					// if firstStartIndex has not been set, set it to be streakStartIndex
-					if (firstStartIndex == 0)
+					if (firstStartIndex == -1)
 						firstStartIndex = streakStartIndex;
 
 					// calculate the index (1-16) of the Delsys sensor with the assumption that the first quaternion that is read comes from sensor 1; this is not always true and thus we calculate an integer offset later
 					int sensorIndex = ((streakStartIndex - firstStartIndex + dataGap) / dataGap) % 16;
+					// modulus of 16/16 is 0, therefore if we get 0, we must make that 16
+					if (sensorIndex == 0)
+						sensorIndex = 16;
 					// if sensorIndex is not found in vector sensorIndices, push it in it
 					if (std::find(sensorIndices.begin(), sensorIndices.end(), sensorIndex) == sensorIndices.end())
+					{
+						//std::cout << "Pushing " << sensorIndex << " to sensorIndices." << std::endl;
 						sensorIndices.push_back(sensorIndex);
-					else
+					}
+					else {
+						//std::cout << "Data already read." << std::endl;
 						dataAlreadyRead = true; // if it was already found, we have read data for this sensor previously in the same byte segment
-
+					}
 
 					// read data and store it as a quaternion only if it hasn't already been stored
 					if (!dataAlreadyRead) {
@@ -259,7 +260,7 @@ void DelsysDataReader::updateQuaternionData()
 						// push it in a vector
 						quatVector.push_back(quat);
 
-						std::cout << "Quaternion for sensor " << std::to_string(sensorIndex) << ": [" << quaternion[0] << ", " << quaternion[1] << ", " << quaternion[2] << ", " << quaternion[3] << "]\n" << std::endl;
+						//std::cout << "Quaternion for sensor " << std::to_string(sensorIndex) << ": [" << quaternion[0] << ", " << quaternion[1] << ", " << quaternion[2] << ", " << quaternion[3] << "]\n" << std::endl;
 						nSensors++;
 					}
 
@@ -275,11 +276,16 @@ void DelsysDataReader::updateQuaternionData()
 				success = false;
 			}
 			else {
-				std::cout << "Number of unique quaternions read from received bytes: " << nSensors << "\n" << std::endl;
+				//std::cout << "Number of unique quaternions read from received bytes: " << nSensors << "\n" << std::endl;
 
 				unsigned int offset = correctSensorIndex(sensorLabels, std::ref(sensorIndices));
 
-				std::vector<std::string> tableLabels = getSegmentLabelsForNumberLabels(sensorIndices);
+				/*
+				// if labels_ hasn't been defined yet, do so
+				if (labels_.empty())
+					labels_ = getSegmentLabelsForNumberLabels(sensorIndices);
+					*/
+				std::vector<std::string> labels = getSegmentLabelsForNumberLabels(sensorIndices);
 
 				SimTK::Matrix_<SimTK::Quaternion> quatMatrix(1, quatVector.size());
 				for (unsigned int m = 0; m < quatVector.size(); ++m) {
@@ -291,7 +297,7 @@ void DelsysDataReader::updateQuaternionData()
 				//OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(timeVector, quatMatrix, tableLabels);
 				if (quatTable_ != NULL)
 					delete quatTable_;
-				quatTable_ = new OpenSim::TimeSeriesTable_<SimTK::Quaternion>(timeVector, quatMatrix, tableLabels);
+				quatTable_ = new OpenSim::TimeSeriesTable_<SimTK::Quaternion>(timeVector, quatMatrix, labels);
 			}
 			
 
@@ -309,6 +315,6 @@ void DelsysDataReader::updateQuaternionData()
 
 	} while (!success);
 
-	std::cout << "Loop finished." << std::endl;
+	//std::cout << "Loop finished." << std::endl;
 
 }

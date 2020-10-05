@@ -10,7 +10,9 @@ set(TEST_IK_SPEED_SOURCES
 	"${INCLUDE_CLASSES_PATH}/XsensDataReader.h"
 	"${INCLUDE_CLASSES_PATH}/XsensDataReader.cxx"
 	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctions.h"
-	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctions.cxx")
+	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctions.cxx"
+	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctionsXsens.h"
+	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctionsXsens.cxx")
 
 # add executable based on the source files determined in TEST_IK_SPEED_SOURCES
 add_executable(test_IK_speed test_IK_speed.cxx "${TEST_IK_SPEED_SOURCES}")

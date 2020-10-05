@@ -41,20 +41,8 @@ class Client
 		bool				Close();										// Close the socket
 
 		bool				SendString(char* pStr);							// Send a string to socket
-		bool				SendInts(int* pVals, int iLen);					// Send some integers
-		bool				SendBytes(char* pVals, int iLen);				// Send some bytes
-		bool				SendFloats(float* pVals, int iLen);				// Send some floats
-		bool				SendDoubles(double* pVals, int iLen);			// Send some doubles
-		
-		int					RecvString(char* pStr, int iMax, char chTerm);	// Receive a string
-		int					RecvInts(int* pVals, int iLen);  				// Receive some ints
-		int					RecvFloats(float* pVals, int iLen);  			// Receive some floats
-		int					RecvDoubles(double* pVals, int iLen);  			// Receive some doubles
 		int					RecvBytes(char* pVals, int iLen);  				// Receive some bytes
-				
-		// NOTE: these are not currently implemented!
-		bool				SendDatagram(char *val, int len);
-		int					RecvDatagram(char* pVals, int iLen);  			// Receive a datagram
+		
 
 	protected:		
 		int					m_iPort;							// Port I'm listening on
