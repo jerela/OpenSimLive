@@ -1,8 +1,9 @@
 #pragma once
 
 #include <Simbody.h>
+#include <Client.h>
 
-// ACTUAL XSENSDATAREADER CLASS BEGINS HERE
+
 namespace OpenSimLive {
 
 	class DelsysDataReader {
@@ -14,7 +15,9 @@ namespace OpenSimLive {
 
 		// PUBLIC METHODS
 		bool initiateConnection();
-		int main();
+		bool closeConnection();
+		void updateQuaternionData();
+		OpenSim::TimeSeriesTable_<SimTK::Quaternion> getTimeSeriesTable() { return *quatTable_; }
 		
 	protected:
 			
@@ -28,6 +31,7 @@ namespace OpenSimLive {
 		union byteFloater;
 		Client* commandPort_;
 		Client* AUXPort_;
+		OpenSim::TimeSeriesTable_<SimTK::Quaternion>* quatTable_;
 
 	}; // end of class
 }

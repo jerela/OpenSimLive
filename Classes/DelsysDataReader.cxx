@@ -10,6 +10,7 @@
 #include <array>
 #include <vector>
 #include <OpenSim.h>
+#include <XMLFunctions.h>
 
 
 using namespace OpenSimLive;
@@ -41,9 +42,20 @@ float DelsysDataReader::convertBytesToFloat(char b1, char b2, char b3, char b4, 
 
 
 
-
+// Takes the number indices of found sensors as input and returns the labels of corresponding IMUs on the skeletal model.
 std::vector<std::string> DelsysDataReader::getSegmentLabelsForNumberLabels(std::vector<unsigned int> sensorIndices) {
+	/*unsigned int nSensors = std::stoi(ConfigReader("DelsysMappings.xml", "number_of_active_sensors"));
+	std::vector<std::string> labels;
+	for (unsigned int i = 0; i < nSensors; ++i) {
+		labels.push_back(ConfigReader("DelsysMappings.xml", "sensor_" + std::to_string(i) + "_label"));
+	}
+	return labels;*/
 
+	std::vector<std::string> labels;
+	for (auto i : sensorIndices) {
+		labels.push_back(ConfigReader("DelsysMappings.xml", "sensor_" + std::to_string(i) + "_label"));
+	}
+	return labels;
 }
 
 
@@ -84,6 +96,7 @@ unsigned int DelsysDataReader::correctSensorIndex(const std::vector<unsigned int
 }
 
 
+// This function connects to and commands Delsys SDK to start streaming data.
 bool DelsysDataReader::initiateConnection() {
 	// SOCKET COMMUNICATION
 	bool bResult = false;
@@ -106,19 +119,42 @@ bool DelsysDataReader::initiateConnection() {
 	std::this_thread::sleep_for(std::chrono::milliseconds(500));
 	commandPort_->SendString("START\r\n");
 	commandPort_->SendString("\r\n\r\n");
+	std::this_thread::sleep_for(std::chrono::milliseconds(1500));
 	return 1;
 }
 
 
-int DelsysDataReader::main()
+// This function commands Delsys SDK to stop streaming data.
+bool DelsysDataReader::closeConnection() {
+	commandPort_->SendString("STOP\r\n");
+	std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+	commandPort_->SendString("\r\n\r\n");
+	return 1;
+}
+
+
+// This function reads data from Delsys SDK and calculates a time series table of quaternions based on it.
+void DelsysDataReader::updateQuaternionData()
 {
 
 	int reverse = 0;
 
 	// vector that contains quaternions
 	std::vector<SimTK::Quaternion_<SimTK::Real>> quatVector;
+
 	// vector that contains the labels (numbers 1-16) of the Delsys sensors
-	std::vector<unsigned int> sensorLabels = { 1, 5, 6 };
+	std::vector<unsigned int> sensorLabels;
+	unsigned int nActiveSensors = std::stoi(ConfigReader("DelsysMappings.xml", "number_of_active_sensors"));
+	std::string activeSensorNumbersString = ConfigReader("DelsysMappings.xml", "active_sensors");
+	std::stringstream ss(activeSensorNumbersString);
+	// perhaps this loop could be implemented by checking when stringstream has reached its end rather than separately reading the number of sensors, which is heavier in terms of performance?
+	for (unsigned int i = 0; i < nActiveSensors; ++i) {
+		std::string tempSensorNumber;
+		ss >> tempSensorNumber;
+		sensorLabels.push_back(std::stoi(tempSensorNumber));
+	}
+
+
 	// vector that contains the indices that nonzero byte sequences begin for each quaternion
 	std::vector<unsigned int> startIndices;
 	// vector that contains the indices (with offset) of vectors that we recognize in the data
@@ -126,21 +162,16 @@ int DelsysDataReader::main()
 	// numbers of elements between starting bytes of consecutive sensors
 	unsigned int dataGap = 36;
 
-
-
-	// see SDK user's guide page 8 about byte processing and multiplexing
-
-	std::this_thread::sleep_for(std::chrono::milliseconds(1500));
-
 	// initialize array for holding bytes that are read from Trigno SDK
 	char receivedBytes[6400];
 
 	std::cout << "Entering loop." << std::endl;
 
 	bool loop = true;
+	bool success = false;
 	do {
 		// returns 1 if bytes were successfully read
-		bool success = AUXPort_->RecvBytes(receivedBytes, 6400);
+		success = AUXPort_->RecvBytes(receivedBytes, 6400);
 
 		if (success)
 		{
@@ -224,7 +255,7 @@ int DelsysDataReader::main()
 					std::cout << "WARNING: NONZERO DATA STREAK IS " << std::to_string(streak) << std::endl;
 				}
 			}
-			std::cout << "Numbers of unique quaternions read from received bytes: " << nSensors << "\n" << std::endl;
+			std::cout << "Number of unique quaternions read from received bytes: " << nSensors << "\n" << std::endl;
 
 			unsigned int offset = correctSensorIndex(sensorLabels, std::ref(sensorIndices));
 
@@ -238,27 +269,22 @@ int DelsysDataReader::main()
 			std::vector<double> timeVector{ 0 };
 
 			OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(timeVector, quatMatrix, tableLabels);
+			*quatTable_ = quatTable;
 
-				//sensorIndices.clear();
 		} // if statement for successful data retrieval ends
 
+		/*
 		char hitKey = ' ';
 		if (_kbhit()) // if X key is hit, end loop
 		{
 			hitKey = toupper((char)_getch()); // capitalize the character
 			loop = (hitKey != 'X');
-		}
+		}*/
 
 		//std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-	} while (loop);
+	} while (!success);
 
 	std::cout << "Loop finished." << std::endl;
 
-	commandPort_->SendString("STOP\r\n");
-	std::this_thread::sleep_for(std::chrono::milliseconds(1500));
-	commandPort_->SendString("\r\n\r\n");
-
-
-	return 1;
 }
