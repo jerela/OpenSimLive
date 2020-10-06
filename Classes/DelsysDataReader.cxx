@@ -17,14 +17,29 @@ using namespace OpenSimLive;
 
 // CONSTRUCTOR
 DelsysDataReader::DelsysDataReader() {
+	// read labels from the mappings file
+	labels_ = getLabelsFromFile();
 
+	// get number of active sensors and their indices (1-16) from the mappings file
+	nActiveSensors_ = std::stoi(ConfigReader("DelsysMappings.xml", "number_of_active_sensors"));
+	std::string activeSensorNumbersString = ConfigReader("DelsysMappings.xml", "active_sensors");
+	std::stringstream ss(activeSensorNumbersString);
+	// perhaps this loop could be implemented by checking when stringstream has reached its end rather than separately reading the number of sensors, which is heavier in terms of performance?
+	for (unsigned int i = 0; i < nActiveSensors_; ++i) {
+		std::string tempSensorNumber;
+		ss >> tempSensorNumber;
+		activeSensors_.push_back(std::stoi(tempSensorNumber));
+	}
 }
 
 // DESTRUCTOR
 DelsysDataReader::~DelsysDataReader() {
-	//delete commandPort_;
-	//delete AUXPort_;
-	//delete quatTable_;
+	if (commandPort_ != NULL)
+		delete commandPort_;
+	if (AUXPort_ != NULL)
+		delete AUXPort_;
+	if (quatTable_ != NULL)
+		delete quatTable_;
 }
 
 // this union is used to convert bytes to float; all its data members share a memory location, meaning that the byte array we save into it can be accessed as a float
@@ -53,14 +68,31 @@ float DelsysDataReader::convertBytesToFloat(char b1, char b2, char b3, char b4, 
 
 
 
+// Read all 16 IMU labels from mappings file into a vector.
+std::vector<std::string> DelsysDataReader::getLabelsFromFile() {
+	// declare the vector of string labels
+	std::vector<std::string> labels;
+	// iterate through all integers in the sensorIndices vector
+	for (unsigned int i = 1; i < 17; ++i) {
+		labels.push_back(ConfigReader("DelsysMappings.xml", "sensor_" + std::to_string(i) + "_label"));
+	}
+	return labels;
+}
+
+
 
 // Takes the number indices of found sensors as input and returns the labels of corresponding IMUs on the skeletal model.
-std::vector<std::string> DelsysDataReader::getSegmentLabelsForNumberLabels(std::vector<unsigned int> sensorIndices) {
+std::vector<std::string> DelsysDataReader::getSegmentLabelsForNumberLabels(std::vector<unsigned int> sensorIndices, unsigned int offset) {
 	// declare the vector of string labels
 	std::vector<std::string> labels;
 	// iterate through all integers in the sensorIndices vector
 	for (auto i : sensorIndices) {
-		labels.push_back(ConfigReader("DelsysMappings.xml", "sensor_" + std::to_string(i) + "_label"));
+		// define j as i + the required offset
+		unsigned int j = i + offset;
+		// if we go over bounds, reduce by 16
+		if (j > 16)
+			j = j - 16;
+		labels.push_back(labels_[j-1]);
 	}
 	return labels;
 }
@@ -151,19 +183,6 @@ void DelsysDataReader::updateQuaternionData()
 	// vector that contains quaternions
 	std::vector<SimTK::Quaternion_<SimTK::Real>> quatVector;
 
-	// vector that contains the labels (numbers 1-16) of the Delsys sensors
-	std::vector<unsigned int> sensorLabels;
-	unsigned int nActiveSensors = std::stoi(ConfigReader("DelsysMappings.xml", "number_of_active_sensors"));
-	std::string activeSensorNumbersString = ConfigReader("DelsysMappings.xml", "active_sensors");
-	std::stringstream ss(activeSensorNumbersString);
-	// perhaps this loop could be implemented by checking when stringstream has reached its end rather than separately reading the number of sensors, which is heavier in terms of performance?
-	for (unsigned int i = 0; i < nActiveSensors; ++i) {
-		std::string tempSensorNumber;
-		ss >> tempSensorNumber;
-		sensorLabels.push_back(std::stoi(tempSensorNumber));
-	}
-
-
 	// vector that contains the indices that nonzero byte sequences begin for each quaternion
 	std::vector<unsigned int> startIndices;
 	// vector that contains the indices (with offset) of vectors that we recognize in the data
@@ -174,9 +193,6 @@ void DelsysDataReader::updateQuaternionData()
 	// initialize array for holding bytes that are read from Trigno SDK
 	char receivedBytes[6400];
 
-	//std::cout << "Entering loop." << std::endl;
-
-	bool loop = true;
 	bool success = false;
 	do {
 		// returns 1 if bytes were successfully read
@@ -185,7 +201,7 @@ void DelsysDataReader::updateQuaternionData()
 		if (success)
 		{
 			// number of sensors recognized in the data
-			unsigned int nSensors = 0;
+			unsigned int nDetectedSensors = 0;
 			// number of consecutive nonzero byte values
 			unsigned int streak = 0;
 			// starting index of a streak
@@ -261,7 +277,7 @@ void DelsysDataReader::updateQuaternionData()
 						quatVector.push_back(quat);
 
 						//std::cout << "Quaternion for sensor " << std::to_string(sensorIndex) << ": [" << quaternion[0] << ", " << quaternion[1] << ", " << quaternion[2] << ", " << quaternion[3] << "]\n" << std::endl;
-						nSensors++;
+						nDetectedSensors++;
 					}
 
 
@@ -272,20 +288,18 @@ void DelsysDataReader::updateQuaternionData()
 				}
 			}
 
-			if (nSensors == 0) {
+			if (nDetectedSensors != nActiveSensors_) {
 				success = false;
 			}
 			else {
-				//std::cout << "Number of unique quaternions read from received bytes: " << nSensors << "\n" << std::endl;
+				//std::cout << "Number of unique quaternions read from received bytes: " << nDetectedSensors << "\n" << std::endl;
 
-				unsigned int offset = correctSensorIndex(sensorLabels, std::ref(sensorIndices));
-
-				/*
-				// if labels_ hasn't been defined yet, do so
-				if (labels_.empty())
-					labels_ = getSegmentLabelsForNumberLabels(sensorIndices);
-					*/
-				std::vector<std::string> labels = getSegmentLabelsForNumberLabels(sensorIndices);
+				// modify vector sensorIndices so that the same offset is applied to each of its elements, and the elements are sorted; this is done until sensorIndices == activeSensors_
+				unsigned int offset = correctSensorIndex(activeSensors_, std::ref(sensorIndices));
+				
+				// get labels in the order corrected by offset
+				std::vector<std::string> labels = getSegmentLabelsForNumberLabels(sensorIndices, offset);
+				// getSegmentLabelsForNumberLabels could optionally be called in the constructor, since we know activeSensors_; this would reduce stress on the loop; however then we should ensure that the number of elements in sensorIndices equals the number of elements in activeSensors_
 
 				SimTK::Matrix_<SimTK::Quaternion> quatMatrix(1, quatVector.size());
 				for (unsigned int m = 0; m < quatVector.size(); ++m) {
@@ -303,18 +317,8 @@ void DelsysDataReader::updateQuaternionData()
 
 		} // if statement for successful data retrieval ends
 
-		/*
-		char hitKey = ' ';
-		if (_kbhit()) // if X key is hit, end loop
-		{
-			hitKey = toupper((char)_getch()); // capitalize the character
-			loop = (hitKey != 'X');
-		}*/
-
-		//std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
 	} while (!success);
 
-	//std::cout << "Loop finished." << std::endl;
 
 }

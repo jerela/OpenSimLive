@@ -161,7 +161,7 @@ void ConnectToDataStream() {
 		//bool newDataAvailable = xsensDataReader.GetNewDataAvailable();
 		bool newDataAvailable = true;
 
-		/*
+		
 		// if user hits the key to save the current orientation of the station reference body IMU when it is placed against the mounting surface of the robot arm
 		if (referenceBaseRotationKeyHit)
 		{
@@ -171,7 +171,8 @@ void ConnectToDataStream() {
 				std::cout << "Reference base rotation cannot be calculated because station reference body has not been defined in XML configuration!" << std::endl;
 				break;
 			}
-			OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
+			//OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
+			OpenSim::TimeSeriesTable_<SimTK::Quaternion> quaternionTimeSeriesTable(delsysDataReader.getTimeSeriesTable());
 			bool foundReferenceBodyIMUOrientation = false;
 			for (unsigned int i = 0; i < quaternionTimeSeriesTable.getNumColumns(); ++i) // iterate through the quaternion time series table to find the desired IMU data
 			{
@@ -189,7 +190,7 @@ void ConnectToDataStream() {
 			if (!foundReferenceBodyIMUOrientation)
 				std::cout << "Orientation not found! Make sure an IMU is measuring the orientation of station_reference_body." << std::endl;
 			referenceBaseRotationKeyHit = false;
-		}*/
+		}
 
 		// if user hits the calibration key and new data is available
 		if (newDataAvailable && calibrateModelKeyHit) {
