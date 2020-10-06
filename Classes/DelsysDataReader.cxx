@@ -141,6 +141,7 @@ bool DelsysDataReader::initiateConnection() {
 	int dataport = -1; // datagram port, not in use
 	commandPort_ = std::make_unique<Client>(50040, dataport, ipc, reverse, &bResult);
 	AUXPort_ = std::make_unique<Client>(50044, dataport, ipc, reverse, &bResult);
+	EMGPort_ = std::make_unique<Client>(50043, dataport, ipc, reverse, &bResult);
 
 	commandPort_->SendString("\r\n\r\n");
 	commandPort_->SendString("BACKWARDS COMPATIBILITY ON\r\n");
@@ -320,3 +321,23 @@ void DelsysDataReader::updateQuaternionData()
 	//std::cout << "Finished loop" << std::endl;
 
 }
+
+void DelsysDataReader::updateEMGData() {
+	char receivedBytes[6400];
+
+	/*
+	C++ wrapper for Python's matplotplib: https://github.com/lava/matplotlib-cpp
+	HOWEVER, it is not thread safe.
+	
+	QWT: https://qwt.sourceforge.io/
+
+	ROOT: https://root.cern.ch/
+	
+	The Boost Graph Library: https://www.boost.org/doc/libs/1_43_0/libs/graph/doc/index.html
+	
+	matplotlib and Boost can probably be used in proprietary applications.
+	*/
+
+}
+
+
