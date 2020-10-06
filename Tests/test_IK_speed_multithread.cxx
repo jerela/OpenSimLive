@@ -8,6 +8,7 @@
 #include <ThreadPoolContainer.h>
 #include "conio.h" // for non-ANSI _kbhit() and _getch()
 #include <XMLFunctions.h>
+#include <XMLFunctionsXsens.h>
 #include <thread>
 #include <future>
 #include <mutex>

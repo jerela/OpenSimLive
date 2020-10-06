@@ -7,6 +7,7 @@
 #include <XsensDataReader.h>
 #include "conio.h" // for non-ANSI _kbhit() and _getch()
 #include <XMLFunctions.h>
+#include <XMLFunctionsXsens.h>
 
 const std::string OPENSIMLIVE_ROOT = OPENSIMLIVE_ROOT_PATH;
 

@@ -5,10 +5,9 @@
 #include <IMUPlacerLive.h>
 #include <IMUInverseKinematicsToolLive.h>
 #include <Server.h>
-#include <XsensDataReader.h>
+#include <DelsysDataReader.h>
 #include "conio.h" // for non-ANSI _kbhit() and _getch()
 #include <XMLFunctions.h>
-#include <XMLFunctionsXsens.h>
 #include <ThreadPoolContainer.h>
 
 const std::string OPENSIMLIVE_ROOT = OPENSIMLIVE_ROOT_PATH;
@@ -21,7 +20,6 @@ struct VariableManager {
 	bool sendMode = false; // data is sent to client with each IK step while this is true
 	bool saveIKResults = ("true" == ConfigReader("MainConfiguration.xml", "save_ik_results")); // Boolean that determines if we want to save IK results (joint angles and their errors) to file when the program finishes. This can be very memory-heavy especially with long measurements.
 	int continuousModeMsDelay = std::stoi(ConfigReader("MainConfiguration.xml", "continuous_mode_ms_delay")); // delay between consequent IK calculations in consequent mode, in milliseconds
-	bool print_roll_pitch_yaw = ("true" == ConfigReader("MainConfiguration.xml", "print_roll_pitch_yaw")); // boolean that tells whether to print roll, pitch and yaw of IMUs while calculating IK
 	bool resetClockOnContinuousMode = ("true" == ConfigReader("MainConfiguration.xml", "reset_clock_on_continuous_mode")); // if true, clock will be reset to zero when entering continuous mode; if false, the clock will be set to zero at calibration
 	bool enableMirrorTherapy = (ConfigReader("MainConfiguration.xml", "station_parent_body") != "none"); // if "none", then set to false
 	unsigned int maxThreads = stoi(ConfigReader("MainConfiguration.xml", "threads")); // get the maximum number of concurrent threads for multithreading
@@ -34,17 +32,7 @@ struct VariableManager {
 	std::chrono::duration<double> prevDuration;
 }; // struct dataHolder ends
 
-// This function prints roll, pitch and yaw values of the Xsens sensors in case we want to see them.
-void printRollPitchYaw(std::vector<MtwCallback*> mtwCallbacks, const std::vector<XsEuler>& eulerData) {
-	for (size_t i = 0; i < mtwCallbacks.size(); ++i)
-	{
-		std::cout << "[" << i << "]: ID: " << mtwCallbacks[i]->device().deviceId().toString().toStdString()
-			<< ", Roll: " << std::setw(7) << std::fixed << std::setprecision(2) << eulerData[i].roll()
-			<< ", Pitch: " << std::setw(7) << std::fixed << std::setprecision(2) << eulerData[i].pitch()
-			<< ", Yaw: " << std::setw(7) << std::fixed << std::setprecision(2) << eulerData[i].yaw()
-			<< std::endl;
-	}
-}
+
 
 // IK for multithreading, each thread runs this function separately
 void concurrentIK(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, const VariableManager& vm, Server& myLink) {
@@ -66,9 +54,9 @@ void concurrentIK(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, const Varia
 }
 
 // Runs IK and related shenanigans; this function is not yet multithreaded, but it contains the statement to begin multithreading
-void RunIKProcedure(OpenSimLive::XsensDataReader& xsensDataReader, std::vector<XsQuaternion>& quaternionData, OpenSimLive::IMUInverseKinematicsToolLive& IKTool, const std::vector<XsEuler>& eulerData, Server& myLink, OpenSimLive::ThreadPoolContainer& threadPoolContainer, const VariableManager& vm) {
+void RunIKProcedure(OpenSimLive::DelsysDataReader& delsysDataReader, OpenSimLive::IMUInverseKinematicsToolLive& IKTool, Server& myLink, OpenSimLive::ThreadPoolContainer& threadPoolContainer, const VariableManager& vm) {
 	// fill a time series table with quaternion orientations of the IMUs
-	OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
+	OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(delsysDataReader.getTimeSeriesTable());
 
 	// get the orientation of station_reference_body and pass it to PointTracker through IKTool; MOVE THIS TO CONCURRENTIK TO SPEED UP PROGRAM SLIGHTLY
 	if (IKTool.getUseReferenceRotation())
@@ -99,8 +87,6 @@ void RunIKProcedure(OpenSimLive::XsensDataReader& xsensDataReader, std::vector<X
 	// Send a function to be multithreaded
 	threadPoolContainer.offerFuture(concurrentIK, std::ref(IKTool), std::ref(vm), std::ref(myLink));
 
-	if (vm.print_roll_pitch_yaw)
-		printRollPitchYaw(xsensDataReader.GetMtwCallbacks(), eulerData);
 }
 
 
@@ -111,23 +97,12 @@ void RunIKProcedure(OpenSimLive::XsensDataReader& xsensDataReader, std::vector<X
 
 void ConnectToDataStream() {
 
-	// create Xsens connection object and connect the program to IMUs
-	OpenSimLive::XsensDataReader xsensDataReader;
-	int desiredUpdateRate = stoi(ConfigReader("MainConfiguration.xml", "desired_update_rate"));
-	xsensDataReader.SetDesiredUpdateRate(desiredUpdateRate);
+	// create Delsys connection object
+	OpenSimLive::DelsysDataReader delsysDataReader;
+	while (!delsysDataReader.initiateConnection()) {}
+
 	
-	unsigned int dataReaderResult = 0;
-	while (dataReaderResult == 0) {
-		dataReaderResult = xsensDataReader.InitiateStartupPhase();
-	}
-	// if InitiateStartupPhase returned 1, we close the program
-	if (dataReaderResult == 1) {
-		xsensDataReader.CloseConnection();
-		return;
-	}
-	
-	std::vector<XsEuler> eulerData(xsensDataReader.GetMtwCallbacks().size()); // Room to store euler data for each mtw
-	std::vector<XsQuaternion> quaternionData(xsensDataReader.GetMtwCallbacks().size()); // for data in quaternion form
+	std::vector<SimTK::Quaternion_<SimTK::Real>> quaternionData; // for data in quaternion form
 	
 	// Create a struct to hold a number of variables, and to pass them to functions
 	VariableManager vm;
@@ -180,12 +155,13 @@ void ConnectToDataStream() {
 	do
 	{
 		// get IMU orientation data in quaternions
-		quaternionData = xsensDataReader.GetQuaternionData(quaternionData);
-		if (vm.print_roll_pitch_yaw)
-			eulerData = xsensDataReader.GetEulerData(eulerData);
+		delsysDataReader.updateQuaternionData();
+		//quaternionData = delsysDataReader.getQuaternionData();
 		// update the boolean value to see if new data is available since orientation data was last retrieved
-		bool newDataAvailable = xsensDataReader.GetNewDataAvailable();
+		//bool newDataAvailable = xsensDataReader.GetNewDataAvailable();
+		bool newDataAvailable = true;
 
+		
 		// if user hits the key to save the current orientation of the station reference body IMU when it is placed against the mounting surface of the robot arm
 		if (referenceBaseRotationKeyHit)
 		{
@@ -195,7 +171,8 @@ void ConnectToDataStream() {
 				std::cout << "Reference base rotation cannot be calculated because station reference body has not been defined in XML configuration!" << std::endl;
 				break;
 			}
-			OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
+			//OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
+			OpenSim::TimeSeriesTable_<SimTK::Quaternion> quaternionTimeSeriesTable(delsysDataReader.getTimeSeriesTable());
 			bool foundReferenceBodyIMUOrientation = false;
 			for (unsigned int i = 0; i < quaternionTimeSeriesTable.getNumColumns(); ++i) // iterate through the quaternion time series table to find the desired IMU data
 			{
@@ -220,7 +197,7 @@ void ConnectToDataStream() {
 			// set clock to start from calibration
 			vm.clockStart = std::chrono::high_resolution_clock::now();
 			// fill a timeseriestable with quaternion orientations of IMUs
-			OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
+			OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable(delsysDataReader.getTimeSeriesTable());
 			// calibrate the model and return its file name
 			vm.calibratedModelFile = calibrateModelFromSetupFile(OPENSIMLIVE_ROOT + "/Config/" + ConfigReader("MainConfiguration.xml", "imu_placer_setup_file"), quaternionTimeSeriesTable);
 			// reset the keyhit so that we won't re-enter this if-statement before hitting the key again
@@ -251,7 +228,7 @@ void ConnectToDataStream() {
 			// use high resolution clock to count time since the IMU measurement began
 			vm.clockNow = std::chrono::high_resolution_clock::now();
 			vm.clockDuration = vm.clockNow - vm.clockStart; // time since calibration
-			RunIKProcedure(xsensDataReader, quaternionData, IKTool, eulerData, myLink, threadPoolContainer, vm);
+			RunIKProcedure(delsysDataReader, IKTool, myLink, threadPoolContainer, vm);
 			getDataKeyHit = false;
 		}
 
@@ -267,7 +244,7 @@ void ConnectToDataStream() {
 			if (vm.prevDuration.count()*1000 > vm.continuousModeMsDelay) {
 				// set current time as the time IK was previously calculated for the following iterations of the while-loop
 				vm.clockPrev = vm.clockNow;
-				RunIKProcedure(xsensDataReader, quaternionData, IKTool, eulerData, myLink, threadPoolContainer, vm);
+				RunIKProcedure(delsysDataReader, IKTool, myLink, threadPoolContainer, vm);
 			}
 		}
 
@@ -333,7 +310,7 @@ void ConnectToDataStream() {
 	}
 
 	// close the connection to IMUs
-	xsensDataReader.CloseConnection();
+	delsysDataReader.closeConnection();
 
 	return;
 }

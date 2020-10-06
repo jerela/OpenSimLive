@@ -10,7 +10,9 @@ set(TEST_IK_SPEED_SOURCES
 	"${INCLUDE_CLASSES_PATH}/XsensDataReader.h"
 	"${INCLUDE_CLASSES_PATH}/XsensDataReader.cxx"
 	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctions.h"
-	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctions.cxx")
+	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctions.cxx"
+	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctionsXsens.h"
+	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctionsXsens.cxx")
 
 # add executable based on the source files determined in TEST_IK_SPEED_SOURCES
 add_executable(test_IK_speed test_IK_speed.cxx "${TEST_IK_SPEED_SOURCES}")
@@ -62,4 +64,52 @@ target_include_directories(test_IK_speed_multithread PUBLIC
 						   "${SIMBODY_INCLUDE_PATH}"
 						   "${MTSDK_PATH}"
 						   "${MT_LIB_PATH}"
+						   )						   
+						   
+						   
+						   
+						   
+						   
+						 
+						 
+set(TEST_DELSYS_SOURCES
+	"${INCLUDE_CLASSES_PATH}/IMUPlacerLive.h"
+	"${INCLUDE_CLASSES_PATH}/IMUPlacerLive.cxx"
+	"${INCLUDE_CLASSES_PATH}/IMUInverseKinematicsToolLive.h"
+	"${INCLUDE_CLASSES_PATH}/IMUInverseKinematicsToolLive.cxx"
+	"${INCLUDE_CLASSES_PATH}/PointTracker.h"
+	"${INCLUDE_CLASSES_PATH}/PointTracker.cxx"
+	"${INCLUDE_CLASSES_PATH}/DecorationGeneratorLive.h"
+	"${INCLUDE_CLASSES_PATH}/DecorationGeneratorLive.cxx"
+	"${INCLUDE_CLASSES_PATH}/DelsysDataReader.h"
+	"${INCLUDE_CLASSES_PATH}/DelsysDataReader.cxx"
+	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctions.h"
+	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctions.cxx"
+	"${INCLUDE_CLASSES_PATH}/ThreadPool.h"
+	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.h"
+	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.tpp"
+	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.cxx"
+	"${INCLUDE_CLASSES_PATH}/Server.h"						   
+	"${INCLUDE_CLASSES_PATH}/Server.cpp"						   
+	"${INCLUDE_CLASSES_PATH}/Client.h"						   
+	"${INCLUDE_CLASSES_PATH}/Client.cpp")						   
+						   
+# add executable based on the source files determined in TEST_IK_SPEED_SOURCES
+add_executable(test_Delsys
+			   test_Delsys.cxx
+			   "${TEST_DELSYS_SOURCES}")
+
+target_link_libraries(test_Delsys PRIVATE "${OPENSIM_LIBRARY}"
+						PRIVATE "${SIMBODY_LIBRARY}"
+						PRIVATE "ws2_32.lib")
+						
+target_include_directories(test_Delsys PRIVATE
+						"${INCLUDE_CLASSES_PATH}"
+						"${INCLUDE_FUNCTIONS_PATH}")
+						
+target_include_directories(test_Delsys PUBLIC
+						   "${PROJECT_BINARY_DIR}"
+						   "${OPENSIM_INCLUDE_PATH}"
+						   "${OPENSIM_INCLUDE_PATH_TWO}"
+						   "${SIMBODY_INCLUDE_PATH}"
 						   )						   
