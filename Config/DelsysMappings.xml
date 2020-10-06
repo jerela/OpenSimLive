@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <DelsysMappings>
 	<!--Number of Delsys sensors that are used for IK.-->
-	<number_of_active_sensors>3</number_of_active_sensors>
+	<number_of_active_sensors>5</number_of_active_sensors>
 	<!--Numbers of Delsys sensors that are used for IK.-->
-	<active_sensors>1 3 4</active_sensors>
+	<active_sensors>1 2 3 4 5</active_sensors>
 	<!--Body_imu label for sensor 1-->
 	<sensor_1_label>pelvis_imu</sensor_1_label>
-	<sensor_2_label>pelvis_imu</sensor_2_label>
-	<sensor_3_label>femur_r_imu</sensor_3_label>
-	<sensor_4_label>femur_l_imu</sensor_4_label>
-	<sensor_5_label>pelvis_imu</sensor_5_label>
-	<sensor_6_label>pelvis_imu</sensor_6_label>
-	<sensor_7_label>pelvis_imu</sensor_7_label>
-	<sensor_8_label>pelvis_imu</sensor_8_label>
-	<sensor_9_label>pelvis_imu</sensor_9_label>
+	<sensor_2_label>femur_r_imu</sensor_2_label>
+	<sensor_3_label>femur_l_imu</sensor_3_label>
+	<sensor_4_label>tibia_r_imu</sensor_4_label>
+	<sensor_5_label>tibia_l_imu</sensor_5_label>
+	<sensor_6_label>humerus_r_imu</sensor_6_label>
+	<sensor_7_label>humerus_l_imu</sensor_7_label>
+	<sensor_8_label>radius_r_imu</sensor_8_label>
+	<sensor_9_label>radius_l_imu</sensor_9_label>
 	<sensor_10_label>pelvis_imu</sensor_10_label>
 	<sensor_11_label>pelvis_imu</sensor_11_label>
 	<sensor_12_label>pelvis_imu</sensor_12_label>

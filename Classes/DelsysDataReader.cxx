@@ -11,6 +11,8 @@
 #include <vector>
 #include <OpenSim.h>
 #include <XMLFunctions.h>
+#include <memory> // for std::unique_ptr
+#include <map>
 
 
 using namespace OpenSimLive;
@@ -34,12 +36,12 @@ DelsysDataReader::DelsysDataReader() {
 
 // DESTRUCTOR
 DelsysDataReader::~DelsysDataReader() {
-	if (commandPort_ != NULL)
+/*	if (commandPort_)
 		delete commandPort_;
-	if (AUXPort_ != NULL)
+	if (AUXPort_)
 		delete AUXPort_;
-	if (quatTable_ != NULL)
-		delete quatTable_;
+	if (quatTable_)
+		delete quatTable_;*/
 }
 
 // this union is used to convert bytes to float; all its data members share a memory location, meaning that the byte array we save into it can be accessed as a float
@@ -87,12 +89,16 @@ std::vector<std::string> DelsysDataReader::getSegmentLabelsForNumberLabels(std::
 	std::vector<std::string> labels;
 	// iterate through all integers in the sensorIndices vector
 	for (auto i : sensorIndices) {
+		//std::cout << "i: " << i << std::endl;
 		// define j as i + the required offset
-		unsigned int j = i + offset;
+		//int j = i + offset;
+		//std::cout << "j: " << j << std::endl;
 		// if we go over bounds, reduce by 16
-		if (j > 16)
-			j = j - 16;
-		labels.push_back(labels_[j-1]);
+		//while (j > nActiveSensors_)
+		//	j = j - nActiveSensors_;
+		//std::cout << "j: " << j << std::endl;
+		//j = j - 1;
+		labels.push_back(labels_[i-1]);
 	}
 	return labels;
 }
@@ -146,8 +152,10 @@ bool DelsysDataReader::initiateConnection() {
 	//Client commandPort(50040, dataport, ipc, reverse, &bResult);
 	//Client EMGPort(50043, dataport, ipc, reverse, &bResult);
 	//Client AUXPort(50044, dataport, ipc, reverse, &bResult);
-	commandPort_ = new Client(50040, dataport, ipc, reverse, &bResult);
-	AUXPort_ = new Client(50044, dataport, ipc, reverse, &bResult);
+	//commandPort_ = new Client(50040, dataport, ipc, reverse, &bResult);
+	commandPort_ = std::make_unique<Client>(50040, dataport, ipc, reverse, &bResult);
+	//AUXPort_ = new Client(50044, dataport, ipc, reverse, &bResult);
+	AUXPort_ = std::make_unique<Client>(50044, dataport, ipc, reverse, &bResult);
 
 	commandPort_->SendString("\r\n\r\n");
 	commandPort_->SendString("BACKWARDS COMPATIBILITY ON\r\n");
@@ -168,8 +176,8 @@ bool DelsysDataReader::closeConnection() {
 	commandPort_->SendString("STOP\r\n");
 	std::this_thread::sleep_for(std::chrono::milliseconds(1500));
 	commandPort_->SendString("\r\n\r\n");
-	delete commandPort_;
-	delete AUXPort_;
+	//delete commandPort_;
+	//delete AUXPort_;
 	return 1;
 }
 
@@ -180,13 +188,7 @@ void DelsysDataReader::updateQuaternionData()
 
 	int reverse = 0;
 
-	// vector that contains quaternions
-	std::vector<SimTK::Quaternion_<SimTK::Real>> quatVector;
 
-	// vector that contains the indices that nonzero byte sequences begin for each quaternion
-	std::vector<unsigned int> startIndices;
-	// vector that contains the indices (with offset) of vectors that we recognize in the data
-	std::vector<unsigned int> sensorIndices;
 	// numbers of elements between starting bytes of consecutive sensors
 	unsigned int dataGap = 36;
 
@@ -200,6 +202,12 @@ void DelsysDataReader::updateQuaternionData()
 
 		if (success)
 		{
+			// dictionary/map of quaternions
+			std::map<int, SimTK::Quaternion_<SimTK::Real>> quatMap;
+			// vector that contains the indices that nonzero byte sequences begin for each quaternion
+			std::vector<unsigned int> startIndices;
+			// vector that contains the indices (with offset) of vectors that we recognize in the data
+			std::vector<unsigned int> sensorIndices;
 			// number of sensors recognized in the data
 			unsigned int nDetectedSensors = 0;
 			// number of consecutive nonzero byte values
@@ -273,8 +281,8 @@ void DelsysDataReader::updateQuaternionData()
 						quaternion[3] = convertBytesToFloat(dataBytes[12], dataBytes[13], dataBytes[14], dataBytes[15], reverse);
 						// construct a quaternion out of the float array
 						SimTK::Quaternion_<SimTK::Real> quat(quaternion[0], quaternion[1], quaternion[2], quaternion[3]);
-						// push it in a vector
-						quatVector.push_back(quat);
+						// place the quaternion in a dictionary/map
+						quatMap[sensorIndex] = quat;
 
 						//std::cout << "Quaternion for sensor " << std::to_string(sensorIndex) << ": [" << quaternion[0] << ", " << quaternion[1] << ", " << quaternion[2] << ", " << quaternion[3] << "]\n" << std::endl;
 						nDetectedSensors++;
@@ -297,21 +305,31 @@ void DelsysDataReader::updateQuaternionData()
 				// modify vector sensorIndices so that the same offset is applied to each of its elements, and the elements are sorted; this is done until sensorIndices == activeSensors_
 				unsigned int offset = correctSensorIndex(activeSensors_, std::ref(sensorIndices));
 				
+				//std::cout << "Offset: " << offset << std::endl;
+
 				// get labels in the order corrected by offset
 				std::vector<std::string> labels = getSegmentLabelsForNumberLabels(sensorIndices, offset);
 				// getSegmentLabelsForNumberLabels could optionally be called in the constructor, since we know activeSensors_; this would reduce stress on the loop; however then we should ensure that the number of elements in sensorIndices equals the number of elements in activeSensors_
 
-				SimTK::Matrix_<SimTK::Quaternion> quatMatrix(1, quatVector.size());
-				for (unsigned int m = 0; m < quatVector.size(); ++m) {
-					quatMatrix.set(0, m, quatVector[m]);
+				//std::cout << "Labels with " << labels.size() << " elements: " << labels[0] << ", " << labels[1] << ", " << labels[2] << std::endl;
+
+				
+
+				SimTK::Matrix_<SimTK::Quaternion> quatMatrix(1, nActiveSensors_);
+				for (unsigned int m = 0; m < nActiveSensors_; ++m) {
+					int x = m - offset + 1;
+					if (x < 1)
+						x = x + 16;
+					quatMatrix.set(0, m, quatMap[x]);
 				}
+
+				/*for (unsigned int z = 0; z < nActiveSensors_; ++z) {
+					std::cout << "Quaternion for " << labels[z] << ": " << quatMatrix.get(0,z) << std::endl;
+				}*/
 
 				std::vector<double> timeVector = { 0 };
 
-				//OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(timeVector, quatMatrix, tableLabels);
-				if (quatTable_ != NULL)
-					delete quatTable_;
-				quatTable_ = new OpenSim::TimeSeriesTable_<SimTK::Quaternion>(timeVector, quatMatrix, labels);
+				quatTable_ = std::make_unique<OpenSim::TimeSeriesTable_<SimTK::Quaternion>>(timeVector, quatMatrix, labels);
 			}
 			
 
@@ -319,6 +337,6 @@ void DelsysDataReader::updateQuaternionData()
 
 
 	} while (!success);
-
+	//std::cout << "Finished loop" << std::endl;
 
 }
