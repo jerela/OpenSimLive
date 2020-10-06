@@ -23,9 +23,9 @@ namespace OpenSimLive {
 			
 	private:
 		// PRIVATE METHODS
-		unsigned int correctSensorIndex(const std::vector<unsigned int>& sensorLabels, std::vector<unsigned int>& sensorIndices); // calculate the offset between detected sensor indices and actual sensor index labels
+		unsigned int correctSensorIndex(std::vector<unsigned int>& sensorIndices); // calculate the offset between detected sensor indices and actual sensor index labels
 		float convertBytesToFloat(char b1, char b2, char b3, char b4, int rev); // uses a union data type to convert between floats and bytes
-		std::vector<std::string> getSegmentLabelsForNumberLabels(std::vector<unsigned int> sensorIndices, unsigned int offset); // reads an XML file and returns a vector of string labels that connect the index of each IMU to a body on the model (e.g. IMU label/index '1' -> 'pelvis_imu')
+		std::vector<std::string> getSegmentLabelsForNumberLabels(std::vector<unsigned int> sensorIndices); // reads an XML file and returns a vector of string labels that connect the index of each IMU to a body on the model (e.g. IMU label/index '1' -> 'pelvis_imu')
 		std::vector<std::string> getLabelsFromFile(); // reads all 16 labels from DelsysMappings into a vector
 
 		// PRIVATE VARIABLES

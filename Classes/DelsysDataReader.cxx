@@ -19,29 +19,27 @@ using namespace OpenSimLive;
 
 // CONSTRUCTOR
 DelsysDataReader::DelsysDataReader() {
-	// read labels from the mappings file
+	// read all possible labels from the mappings file, even for sensors that are not currently used
 	labels_ = getLabelsFromFile();
 
 	// get number of active sensors and their indices (1-16) from the mappings file
 	nActiveSensors_ = std::stoi(ConfigReader("DelsysMappings.xml", "number_of_active_sensors"));
 	std::string activeSensorNumbersString = ConfigReader("DelsysMappings.xml", "active_sensors");
+	// stringstream is a simple way to separate the whitespace-separated numbers from the whole string
 	std::stringstream ss(activeSensorNumbersString);
 	// perhaps this loop could be implemented by checking when stringstream has reached its end rather than separately reading the number of sensors, which is heavier in terms of performance?
 	for (unsigned int i = 0; i < nActiveSensors_; ++i) {
 		std::string tempSensorNumber;
+		// write from stringstream to sempSensorNumber
 		ss >> tempSensorNumber;
+		// convert string tempSensorNumber to integer and push it in a vector
 		activeSensors_.push_back(std::stoi(tempSensorNumber));
 	}
 }
 
 // DESTRUCTOR
 DelsysDataReader::~DelsysDataReader() {
-/*	if (commandPort_)
-		delete commandPort_;
-	if (AUXPort_)
-		delete AUXPort_;
-	if (quatTable_)
-		delete quatTable_;*/
+
 }
 
 // this union is used to convert bytes to float; all its data members share a memory location, meaning that the byte array we save into it can be accessed as a float
@@ -52,7 +50,9 @@ union DelsysDataReader::byteFloater {
 
 // Takes four bytes and whether to reverse byte order or not as an input and returns a float.
 float DelsysDataReader::convertBytesToFloat(char b1, char b2, char b3, char b4, int rev) {
+	// create union that can be read/written as both bytes and float
 	byteFloater bytesToFloat;
+	// populate it with bytes with two ways, depending on its endianness
 	if (rev == 0) {
 		bytesToFloat.c[0] = b1;
 		bytesToFloat.c[1] = b2;
@@ -72,9 +72,9 @@ float DelsysDataReader::convertBytesToFloat(char b1, char b2, char b3, char b4, 
 
 // Read all 16 IMU labels from mappings file into a vector.
 std::vector<std::string> DelsysDataReader::getLabelsFromFile() {
-	// declare the vector of string labels
+	// create an empty vector for string labels
 	std::vector<std::string> labels;
-	// iterate through all integers in the sensorIndices vector
+	// iterate through all 16 sensor labels and move them into the vector
 	for (unsigned int i = 1; i < 17; ++i) {
 		labels.push_back(ConfigReader("DelsysMappings.xml", "sensor_" + std::to_string(i) + "_label"));
 	}
@@ -84,20 +84,11 @@ std::vector<std::string> DelsysDataReader::getLabelsFromFile() {
 
 
 // Takes the number indices of found sensors as input and returns the labels of corresponding IMUs on the skeletal model.
-std::vector<std::string> DelsysDataReader::getSegmentLabelsForNumberLabels(std::vector<unsigned int> sensorIndices, unsigned int offset) {
+std::vector<std::string> DelsysDataReader::getSegmentLabelsForNumberLabels(std::vector<unsigned int> sensorIndices) {
 	// declare the vector of string labels
 	std::vector<std::string> labels;
-	// iterate through all integers in the sensorIndices vector
+	// iterate through all integers in the sensorIndices vector and push the corresponding label into the labels vector
 	for (auto i : sensorIndices) {
-		//std::cout << "i: " << i << std::endl;
-		// define j as i + the required offset
-		//int j = i + offset;
-		//std::cout << "j: " << j << std::endl;
-		// if we go over bounds, reduce by 16
-		//while (j > nActiveSensors_)
-		//	j = j - nActiveSensors_;
-		//std::cout << "j: " << j << std::endl;
-		//j = j - 1;
 		labels.push_back(labels_[i-1]);
 	}
 	return labels;
@@ -110,33 +101,33 @@ std::vector<std::string> DelsysDataReader::getSegmentLabelsForNumberLabels(std::
 
 
 
-// This function calculates an index offset to correct the indices of sensors. THIS RELIES ON THE ASSUMPTION THAT SENSOR INDICES ARE ASYMMETRIC; MUST BE FIXED LATER
-unsigned int DelsysDataReader::correctSensorIndex(const std::vector<unsigned int>& sensorLabels, std::vector<unsigned int>& sensorIndices) {
+// This function calculates an index offset to correct the detected indices of sensors.
+unsigned int DelsysDataReader::correctSensorIndex(std::vector<unsigned int>& sensorIndices) {
 
 	// make sure sensorIndices is in ascending order
 	std::sort(sensorIndices.begin(), sensorIndices.end());
-
+	// get the length of sensorIndices
 	unsigned int numberOfIndices = sensorIndices.size();
+	// start with an offset of zero, i.e. no offset
 	unsigned int offset = 0;
-	while (sensorIndices != sensorLabels) {
+	// loop as long as sensorIndices does not match activeSensors_
+	while (sensorIndices != activeSensors_) {
+		// increment offset
 		++offset;
 		// iterate through all elements in sensorIndices
 		for (unsigned int i = 0; i < numberOfIndices; ++i) {
-			// append +1 to sensorIndices
+			// append +1 to the element in sensorIndices
 			sensorIndices[i] = sensorIndices[i] + 1;
 			// turn any 17s into 1s
 			if (sensorIndices[i] == 17)
 				sensorIndices[i] = 1;
 			// sort sensorindices
-			//std::cout << "Element " << std::to_string(i) << " before sorting: " << sensorIndices[i] << std::endl;
 			std::sort(sensorIndices.begin(), sensorIndices.end());
-			//std::cout << "Element " << std::to_string(i) << " after sorting: " << sensorIndices[i] << std::endl;
 		}
 		// if offset is 17, we've gone through the whole "round" and something is wrong
 		if (offset == 17)
 			break;
 	}
-	//std::cout << "Final offset: " << offset << std::endl;
 	return offset;
 }
 
@@ -148,13 +139,7 @@ bool DelsysDataReader::initiateConnection() {
 	const char* ipc = "10.139.24.243";
 	int reverse = 0;
 	int dataport = -1; // datagram port, not in use
-	// see SDK user's guide page 6/7 about ports
-	//Client commandPort(50040, dataport, ipc, reverse, &bResult);
-	//Client EMGPort(50043, dataport, ipc, reverse, &bResult);
-	//Client AUXPort(50044, dataport, ipc, reverse, &bResult);
-	//commandPort_ = new Client(50040, dataport, ipc, reverse, &bResult);
 	commandPort_ = std::make_unique<Client>(50040, dataport, ipc, reverse, &bResult);
-	//AUXPort_ = new Client(50044, dataport, ipc, reverse, &bResult);
 	AUXPort_ = std::make_unique<Client>(50044, dataport, ipc, reverse, &bResult);
 
 	commandPort_->SendString("\r\n\r\n");
@@ -166,7 +151,6 @@ bool DelsysDataReader::initiateConnection() {
 	std::this_thread::sleep_for(std::chrono::milliseconds(500));
 	commandPort_->SendString("START\r\n");
 	commandPort_->SendString("\r\n\r\n");
-	//std::this_thread::sleep_for(std::chrono::milliseconds(1500));
 	return 1;
 }
 
@@ -176,8 +160,6 @@ bool DelsysDataReader::closeConnection() {
 	commandPort_->SendString("STOP\r\n");
 	std::this_thread::sleep_for(std::chrono::milliseconds(1500));
 	commandPort_->SendString("\r\n\r\n");
-	//delete commandPort_;
-	//delete AUXPort_;
 	return 1;
 }
 
@@ -185,16 +167,14 @@ bool DelsysDataReader::closeConnection() {
 // This function reads data from Delsys SDK and calculates a time series table of quaternions based on it.
 void DelsysDataReader::updateQuaternionData()
 {
-
 	int reverse = 0;
 
-
-	// numbers of elements between starting bytes of consecutive sensors
+	// number of elements between starting bytes of consecutive sensors
 	unsigned int dataGap = 36;
 
-	// initialize array for holding bytes that are read from Trigno SDK
+	// initialize array for holding bytes that are read from Trigno Control Utility / Delsys SDK
 	char receivedBytes[6400];
-
+	// whether the recvBytes returns true to indicate we successfully read bytes from Delsys SDK
 	bool success = false;
 	do {
 		// returns 1 if bytes were successfully read
@@ -303,12 +283,12 @@ void DelsysDataReader::updateQuaternionData()
 				//std::cout << "Number of unique quaternions read from received bytes: " << nDetectedSensors << "\n" << std::endl;
 
 				// modify vector sensorIndices so that the same offset is applied to each of its elements, and the elements are sorted; this is done until sensorIndices == activeSensors_
-				unsigned int offset = correctSensorIndex(activeSensors_, std::ref(sensorIndices));
+				unsigned int offset = correctSensorIndex(std::ref(sensorIndices));
 				
 				//std::cout << "Offset: " << offset << std::endl;
 
 				// get labels in the order corrected by offset
-				std::vector<std::string> labels = getSegmentLabelsForNumberLabels(sensorIndices, offset);
+				std::vector<std::string> labels = getSegmentLabelsForNumberLabels(sensorIndices);
 				// getSegmentLabelsForNumberLabels could optionally be called in the constructor, since we know activeSensors_; this would reduce stress on the loop; however then we should ensure that the number of elements in sensorIndices equals the number of elements in activeSensors_
 
 				//std::cout << "Labels with " << labels.size() << " elements: " << labels[0] << ", " << labels[1] << ", " << labels[2] << std::endl;
