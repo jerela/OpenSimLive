@@ -107,5 +107,27 @@ std::string calibrateModelFromSetupFile(const std::string& IMUPlacerSetupFile, c
 	return IMUPlacer.get_output_model_file();
 }
 
+template<typename myType>
+void saveTimeSeriesToTxtFile(std::vector<myType> timeVector, std::vector<myType> dataVector, const std::string& rootDir, const std::string& resultsDir, const std::string& fileName, const std::string& description, const std::string& labels) {
+	std::string filePath(rootDir + "/" + resultsDir + "/" + fileName);
+	std::ofstream outputFile;
+	// open and set file to discard any contents that existed in the file previously (truncate mode)
+	outputFile.open(filePath, std::ios_base::out | std::ios_base::trunc);
+	if (outputFile.is_open())
+	{
+		outputFile << description;
+		outputFile << labels;
 
-
+		for (unsigned int i = 0; i < dataVector.size(); ++i) { // iteration through rows
+			outputFile << "\n" << timeVector[i] << "\t" << dataVector[i];
+		}
+		outputFile.close();
+		std::cout << "Data written to file " << filePath << std::endl;
+	}
+	else {
+		std::cout << "Failed to open file " << filePath << std::endl;
+	}
+}
+template void saveTimeSeriesToTxtFile<int>(std::vector<int> timeVector, std::vector<int> dataVector, const std::string& rootDir, const std::string& resultsDir, const std::string& fileName, const std::string& description, const std::string& labels);
+template void saveTimeSeriesToTxtFile<double>(std::vector<double> timeVector, std::vector<double> dataVector, const std::string& rootDir, const std::string& resultsDir, const std::string& fileName, const std::string& description, const std::string& labels);
+template void saveTimeSeriesToTxtFile<float>(std::vector<float> timeVector, std::vector<float> dataVector, const std::string& rootDir, const std::string& resultsDir, const std::string& fileName, const std::string& description, const std::string& labels);

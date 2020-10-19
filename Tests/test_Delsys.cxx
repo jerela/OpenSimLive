@@ -156,6 +156,8 @@ void ConnectToDataStream() {
 	{
 		// get IMU orientation data in quaternions
 		delsysDataReader.updateQuaternionData();
+		// show EMG data
+		delsysDataReader.updateEMG();
 		//quaternionData = delsysDataReader.getQuaternionData();
 		// update the boolean value to see if new data is available since orientation data was last retrieved
 		//bool newDataAvailable = xsensDataReader.GetNewDataAvailable();

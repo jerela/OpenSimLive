@@ -3,6 +3,7 @@
 #include <OpenSim.h>
 #include <Client.h>
 #include <memory>
+#include <PythonPlotter.h>
 
 namespace OpenSimLive {
 
@@ -23,7 +24,7 @@ namespace OpenSimLive {
 		// returns the value of quatTable_
 		OpenSim::TimeSeriesTable_<SimTK::Quaternion> getTimeSeriesTable() { return *quatTable_; }
 		// reads byte stream from the IMUs and updates the EMG signal into a vector
-		void updateEMGData();
+		void updateEMG();
 		
 	protected:
 			
@@ -49,6 +50,31 @@ namespace OpenSimLive {
 		std::vector<unsigned int> activeSensors_;
 		// number of active sensors
 		unsigned int nActiveSensors_ = 0;
+
+		// PRIVATE METHODS FOR EMG AND PLOTTING
+		// reads byte stream from IMUs and updates the float array of EMG data points (EMGDataPoints_)
+		void updateEMGData();
+		// make PythonPlotter run preparatory Python commands
+		void prepareEMGGraph();
+		// pass updated parameters to PythonPlotter
+		void updateEMGGraph();
+		// save EMG time series as .txt
+		//void saveEMGToFile(const std::string& rootDir, const std::string& resultsDir);
+
+		// PRIVATE VARIABLES FOR EMG AND PLOTTING
+		// unique pointer for PythonPlotter object
+		std::unique_ptr<PythonPlotter> pythonPlotter_;
+		// time point where EMG measurement begins
+		std::chrono::steady_clock::time_point startTime_;
+		// time point that is used together with startTime_ to calculate elapsed time since the beginning of EMG measurement
+		std::chrono::steady_clock::time_point currentTime_;
+		// EMG points are saved here
+		std::vector<float> EMGData_;
+		// tracks elapsed time since the beginning of EMG measurement
+		std::vector<float> timeVector_;
+		// tracks EMG for different sensors from the latest update
+		std::array<float, 16> EMGDataPoints_;
+		bool plotterPrepared_ = false;
 
 	}; // end of class
 }
