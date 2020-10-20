@@ -13,3 +13,4 @@ Config/gait2392_scaled.osim
 Config/IMUPlacerSetup.xml
 OpenSimLive-results/PointTrackerOutput.sto
 OpenSimLive-results/PointTrackerOutput.txt
+Delsys-data/EMGTimeSeries.txt

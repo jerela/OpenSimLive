@@ -44,6 +44,10 @@ void PythonPlotter::prepareGraph() {
 		std::cerr << "Unknown error in PythonPlotter::prepareGraph()" << std::endl;
 	}
 
+	std::string yLimitUpdate = "ax.set_ylim(bottom=" + std::to_string(-YLimit_) + ", top=" + std::to_string(YLimit_) + ")";
+	PyRun_SimpleString(yLimitUpdate.c_str());
+
+
 }
 
 // Append X and Y data points to graph
@@ -53,6 +57,7 @@ void PythonPlotter::updateGraph() {
 	PyRun_SimpleString(yAppend.c_str());
 	std::string xAppend = "x.append(" + std::to_string(XData_) + ")";
 	PyRun_SimpleString(xAppend.c_str());
+	++numDataPoints_;
 
 	// if there would be more than the maximum number of data points (maxSize) on the graph, pop the oldest data point
 	if (numDataPoints_ >= maxSize_) {
@@ -66,8 +71,17 @@ void PythonPlotter::updateGraph() {
 	// feed x and y data to the graph
 	PyRun_SimpleString("line1.set_ydata(y)");
 	PyRun_SimpleString("line1.set_xdata(x)");
+
+	// update y-axis limit if required
+	if (YLimit_ < YData_)
+	{
+		YLimit_ = YData_;
+		std::string yLimitUpdate = "ax.set_ylim(bottom=" + std::to_string(-YLimit_) + ", top=" + std::to_string(YLimit_) + ")";
+		PyRun_SimpleString(yLimitUpdate.c_str());
+	}
+
 	// automatically scale the graph and update the axis limits
-	PyRun_SimpleString("ax.autoscale_view()");
+	PyRun_SimpleString("ax.autoscale_view(scalex=True, scaley=False)");
 	PyRun_SimpleString("ax.relim()");
 	// draw the graph
 	PyRun_SimpleString("fig.canvas.draw()");

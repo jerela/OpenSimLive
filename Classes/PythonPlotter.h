@@ -40,6 +40,8 @@ namespace OpenSimLive {
 		float YData_;
 		// number of data points plotted
 		unsigned int numDataPoints_;
+		// the limit of y-axis values
+		float YLimit_ = 0.002;
 
 	}; // end of class
 }

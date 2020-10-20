@@ -41,6 +41,7 @@ DelsysDataReader::DelsysDataReader() {
 
 // DESTRUCTOR
 DelsysDataReader::~DelsysDataReader() {
+	std::cout << "Saving EMG time series to file..." << std::endl;
 	saveTimeSeriesToTxtFile(timeVector_, EMGData_, OPENSIMLIVE_ROOT, "Delsys-data", "EMGTimeSeries.txt", "Time series of measured electromyographical data:\n", "Time (s)\t Voltage (unit?)");
 }
 
@@ -136,8 +137,8 @@ bool DelsysDataReader::initiateConnection() {
 	int reverse = 0;
 	int dataport = -1; // datagram port, not in use
 	commandPort_ = std::make_unique<Client>(50040, dataport, ipc, reverse, &bResult);
-	AUXPort_ = std::make_unique<Client>(50044, dataport, ipc, reverse, &bResult);
 	EMGPort_ = std::make_unique<Client>(50043, dataport, ipc, reverse, &bResult);
+	AUXPort_ = std::make_unique<Client>(50044, dataport, ipc, reverse, &bResult);
 
 	commandPort_->SendString("\r\n\r\n");
 	commandPort_->SendString("BACKWARDS COMPATIBILITY ON\r\n");
@@ -344,107 +345,27 @@ void DelsysDataReader::updateEMGData() {
 
 		if (success)
 		{
-			// vector that contains the indices that nonzero byte sequences begin for each quaternion
-			std::vector<unsigned int> startIndices;
-			// vector that contains the indices (with offset) of vectors that we recognize in the data
-			std::vector<unsigned int> sensorIndices;
-			// number of sensors recognized in the data
-			unsigned int nDetectedSensors = 0;
-			// number of consecutive nonzero byte values
-			unsigned int streak = 0;
-			// starting index of a streak
-			int streakStartIndex = 0;
-			// starting index of the first streak
-			int firstStartIndex = -1;
-			// iterate through whole data (6400 byte values)
-			for (unsigned int k = 0; k < 6400; ++k) {
-
-				// if the current byte value is nonzero, increment streak; otherwise set streak to zero
-				if (receivedBytes[k] != 0) {
-					if (streak == 0)
-						streakStartIndex = k;
-					++streak;
-				}
-				else {
-					//if (streak > 0)
-					//	std::cout << "Streak was " << std::to_string(streak) << " when it was reset." << std::endl;
-					//if (streak == 0)
-					//	std::cout << "Streak remains zero." << std::endl;
-					streak = 0;
-				}
-
-				// if streak is 4, we assume that we just iterated through an EMG data point (4 bytes for 1 float)
-				if (streak == 4) {
-
-					// reset streak so that we can immediately read another 4 bytes
-					streak = 0;
-
-					//std::cout << "Data found at start index " << std::to_string(streakStartIndex) << std::endl;
-
-					// boolean telling us whether data from this sensor was read already in a previous segment of the byte stream
-					bool dataAlreadyRead = false;
-
-					// if streakStartIndex is not found in vector startIndices, push it in it
-					if (std::find(startIndices.begin(), startIndices.end(), streakStartIndex) == startIndices.end())
-						startIndices.push_back(streakStartIndex);
-
-					// if firstStartIndex has not been set, set it to be streakStartIndex
-					if (firstStartIndex == -1)
-						firstStartIndex = streakStartIndex;
-
-					// calculate the index (1-16) of the Delsys sensor with the assumption that the first EMG data point that is read comes from sensor 1; this is not always true and thus we calculate an integer offset later
-					int sensorIndex = ((streakStartIndex - firstStartIndex) % 4) + 1;
-					// modulus of 4/4 is 0, therefore if we get 0, we must make that 4
-					//if (sensorIndex == 0)
-					//	sensorIndex = 4;
-					// if sensorIndex is not found in vector sensorIndices, push it in it
-					if (std::find(sensorIndices.begin(), sensorIndices.end(), sensorIndex) == sensorIndices.end())
-					{
-						//std::cout << "Pushing " << sensorIndex << " to sensorIndices." << std::endl;
-						sensorIndices.push_back(sensorIndex);
+			// every 4 values: 0, 4, 8, ...
+			for (unsigned int k = 0; k < 64; ++k) {
+				// if we are at the starting index of each 4-byte sequence
+				if (k % 4 == 0) {
+					// array of 4 chars
+					char dataBytes[4];
+					// iterate to 4 and fill dataBytes with nonzero byte values
+					for (unsigned int m = 0; m < 4; ++m) {
+						dataBytes[m] = receivedBytes[k + m];
+						//std::cout << "dataBytes[" << m << "] = " << (int)dataBytes[m] << std::endl;
 					}
-					else {
-						//std::cout << "Data already read." << std::endl;
-						dataAlreadyRead = true; // if it was already found, we have read data for this sensor previously in the same byte segment
-					}
-
-					// read data and store it as a quaternion only if it hasn't already been stored
-					if (!dataAlreadyRead) {
-						// array of 16 chars
-						char dataBytes[4];
-						// iterate to 16 and fill dataBytes with nonzero byte values
-						for (unsigned int m = 0; m < 4; ++m) {
-							dataBytes[m] = receivedBytes[streakStartIndex + m];
-							//std::cout << "dataBytes[" << m << "] = " << (int)dataBytes[m] << std::endl;
-						}
-						// fill EMGDataPoint with float that has been converted from bytes using convertBytesToFloat()
-						float EMGDataPoint = convertBytesToFloat(dataBytes[0], dataBytes[1], dataBytes[2], dataBytes[3], reverse);
-						
-						EMGDataPoints_[(int)sensorIndex - 1] = EMGDataPoint;
-
-						//std::cout << "Quaternion for sensor " << std::to_string(sensorIndex) << ": [" << quaternion[0] << ", " << quaternion[1] << ", " << quaternion[2] << ", " << quaternion[3] << "]\n" << std::endl;
-						nDetectedSensors++;
-					}
-
-
+					// fill EMGDataPoint with float that has been converted from bytes using convertBytesToFloat()
+					float EMGDataPoint = convertBytesToFloat(dataBytes[0], dataBytes[1], dataBytes[2], dataBytes[3], reverse);
+					EMGDataPoints_[floor(k / 4)] = EMGDataPoint;
 				}
-				// if nonzero byte values continue beyond 4 consequent values, something is wrong with the byte stream
-				/*if (streak > 4) {
-					std::cout << "WARNING: NONZERO DATA STREAK IS " << std::to_string(streak) << std::endl;
-				}*/
+				
 			}
-
-			if (nDetectedSensors != nActiveSensors_) {
-				success = false;
-			}
-			else {
-				//std::cout << "Number of unique quaternions read from received bytes: " << nDetectedSensors << "\n" << std::endl;
-
-			}
-
+			
 			// which sensor's EMG readings to plot on the graph
 			unsigned int sensorToPlot = 1;
-			EMGData_.push_back(EMGDataPoints_[sensorIndices[sensorToPlot - 1]]);
+			EMGData_.push_back(EMGDataPoints_[sensorToPlot-1]);
 
 		} // if statement for successful data retrieval ends
 
@@ -460,7 +381,7 @@ void DelsysDataReader::prepareEMGGraph() {
 		pythonPlotter_ = std::make_unique<PythonPlotter>();
 
 		// set the maximum number of data points on the graph
-		pythonPlotter_->setMaxSize(30);
+		pythonPlotter_->setMaxSize(50);
 
 		// get time at the beginning of the plotting
 		startTime_ = std::chrono::high_resolution_clock::now();
@@ -486,13 +407,17 @@ void DelsysDataReader::updateEMGGraph() {
 
 	// get the latest EMG data point
 	updateEMGData();
+
 	float newEMGData = EMGData_.back();
 
+	//std::cout << newEMGData << std::endl;
+
 	// append EMG to y axis and current time in seconds to x axis
-	pythonPlotter_->setData(newEMGData, timeNow / 1000);
+	pythonPlotter_->setData(timeNow, newEMGData);
 
 	// plot the data
 	pythonPlotter_->updateGraph();
+
 }
 
 

@@ -7,5 +7,3 @@ ax = fig.add_subplot(111, autoscale_on="True")
 x = deque([0])
 y = deque([0])
 line1, = ax.plot(x, y, 'r-')
-
-print("text file finished")
