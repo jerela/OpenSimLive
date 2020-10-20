@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <DelsysMappings>
 	<!--Number of Delsys sensors that are used for IK.-->
-	<number_of_active_sensors>1</number_of_active_sensors>
-	<!--Numbers of Delsys sensors that are used for IK.-->
-	<active_sensors>1</active_sensors>
+	<number_of_active_sensors>2</number_of_active_sensors>
+	<!--Number labels of Delsys sensors that are used for IK.-->
+	<active_sensors>1 2</active_sensors>
 	<!--Body_imu label for sensor 1-->
 	<sensor_1_label>pelvis_imu</sensor_1_label>
 	<sensor_2_label>femur_r_imu</sensor_2_label>

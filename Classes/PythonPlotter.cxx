@@ -11,7 +11,6 @@ using namespace OpenSimLive;
 
 // CONSTRUCTOR
 PythonPlotter::PythonPlotter() {
-	prepareGraph();
 }
 
 // DESTRUCTOR
@@ -44,48 +43,71 @@ void PythonPlotter::prepareGraph() {
 		std::cerr << "Unknown error in PythonPlotter::prepareGraph()" << std::endl;
 	}
 
-	std::string yLimitUpdate = "ax.set_ylim(bottom=" + std::to_string(-YLimit_) + ", top=" + std::to_string(YLimit_) + ")";
-	PyRun_SimpleString(yLimitUpdate.c_str());
+	for (unsigned int i = 1; i < numSubPlots_ + 1; ++i) {
+		// create subplots
+		std::string addSubPlot = "plt" + std::to_string(i) + " = fig.add_subplot(" + std::to_string(numSubPlots_) + ", 1, " + std::to_string(i) + ", autoscale_on=\"True\")";
+		PyRun_SimpleString(addSubPlot.c_str());
+		// set initial y-axis limits
+		std::string yLimitUpdate = "plt" + std::to_string(i) + ".set_ylim(bottom=" + std::to_string(-YLimit_) + ", top=" + std::to_string(YLimit_) + ")";
+		PyRun_SimpleString(yLimitUpdate.c_str());
+		// create x and y deques for each subplot
+		std::string createDequeX = "x" + std::to_string(i) + " = deque([0])";
+		std::string createDequeY = "y" + std::to_string(i) + " = deque([0])";
+		PyRun_SimpleString(createDequeX.c_str());
+		PyRun_SimpleString(createDequeY.c_str());
+		std::string plotString = "line" + std::to_string(i) + ", = plt" + std::to_string(i) + ".plot(x" + std::to_string(i) + ", y" + std::to_string(i) + ", 'r-')";
+		PyRun_SimpleString(plotString.c_str());
+	}
+	
 
 
 }
 
 // Append X and Y data points to graph
 void PythonPlotter::updateGraph() {
-	// append data to x and y axes
-	std::string yAppend = "y.append(" + std::to_string(YData_) + ")";
-	PyRun_SimpleString(yAppend.c_str());
-	std::string xAppend = "x.append(" + std::to_string(XData_) + ")";
-	PyRun_SimpleString(xAppend.c_str());
+	for (unsigned int i = 1; i < numSubPlots_ + 1; ++i) {
+
+		// if there would be more than the maximum number of data points (maxSize) on the graph, pop the oldest data point
+		if (numDataPoints_ >= maxSize_) {
+			std::string popXString = "x" + std::to_string(i) + ".popleft()";
+			std::string popYString = "y" + std::to_string(i) + ".popleft()";
+			PyRun_SimpleString(popXString.c_str());
+			PyRun_SimpleString(popYString.c_str());
+		}
+
+		// append data to x and y axes
+		std::string xAppend = "x" + std::to_string(i) + ".append(" + std::to_string(XData_[i - 1]) + ")";
+		std::string yAppend = "y" + std::to_string(i) + ".append(" + std::to_string(YData_[i - 1]) + ")";
+		PyRun_SimpleString(xAppend.c_str());
+		PyRun_SimpleString(yAppend.c_str());
+
+		// feed x and y data to the graph
+		std::string setXDataString = "line" + std::to_string(i) + ".set_xdata(x" + std::to_string(i) + ")";
+		std::string setYDataString = "line" + std::to_string(i) + ".set_ydata(y" + std::to_string(i) + ")";
+		PyRun_SimpleString(setYDataString.c_str());
+		PyRun_SimpleString(setXDataString.c_str());
+
+
+		// update y-axis limit if required
+		if (YLimit_ < YData_[i - 1])
+		{
+			YLimit_ = YData_[i - 1];
+			std::string yLimitUpdate = "plt" + std::to_string(i) + ".set_ylim(bottom=" + std::to_string(-YLimit_) + ", top=" + std::to_string(YLimit_) + ")";
+			PyRun_SimpleString(yLimitUpdate.c_str());
+		}
+
+		// automatically scale the graph and update the axis limits
+		std::string autoScalePlotString = "plt" + std::to_string(i) + ".autoscale_view(scalex=True, scaley=False)";
+		PyRun_SimpleString(autoScalePlotString.c_str());
+		std::string relimString = "plt" + std::to_string(i) + ".relim()";
+		PyRun_SimpleString(relimString.c_str());
+
+		//PyRun_SimpleString("pyplot.text(-0.5, 0.3, 'This is text')");
+		
+	}
 	++numDataPoints_;
-
-	// if there would be more than the maximum number of data points (maxSize) on the graph, pop the oldest data point
-	if (numDataPoints_ >= maxSize_) {
-		PyRun_SimpleString("y.popleft()");
-		PyRun_SimpleString("x.popleft()");
-	}
-
-	//PyRun_SimpleString("print(x)");
-	//PyRun_SimpleString("print(y)");
-
-	// feed x and y data to the graph
-	PyRun_SimpleString("line1.set_ydata(y)");
-	PyRun_SimpleString("line1.set_xdata(x)");
-
-	// update y-axis limit if required
-	if (YLimit_ < YData_)
-	{
-		YLimit_ = YData_;
-		std::string yLimitUpdate = "ax.set_ylim(bottom=" + std::to_string(-YLimit_) + ", top=" + std::to_string(YLimit_) + ")";
-		PyRun_SimpleString(yLimitUpdate.c_str());
-	}
-
-	// automatically scale the graph and update the axis limits
-	PyRun_SimpleString("ax.autoscale_view(scalex=True, scaley=False)");
-	PyRun_SimpleString("ax.relim()");
 	// draw the graph
 	PyRun_SimpleString("fig.canvas.draw()");
-	PyRun_SimpleString("pyplot.text(-0.5, 0.3, 'This is text')");
 	// stop momentarily so the user can see the graph
 	PyRun_SimpleString("pyplot.pause(0.001)");
 }

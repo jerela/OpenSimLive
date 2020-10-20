@@ -52,14 +52,14 @@ namespace OpenSimLive {
 		unsigned int nActiveSensors_ = 0;
 
 		// PRIVATE METHODS FOR EMG AND PLOTTING
-		// reads byte stream from IMUs and updates the float array of EMG data points (EMGDataPoints_)
+		// reads byte stream from IMUs and updates the float array of EMG data points (EMGDataPoints_), argument is the index of the sensor we use to plot EMG data
 		void updateEMGData();
 		// make PythonPlotter run preparatory Python commands
 		void prepareEMGGraph();
 		// pass updated parameters to PythonPlotter
 		void updateEMGGraph();
 		// save EMG time series as .txt
-		//void saveEMGToFile(const std::string& rootDir, const std::string& resultsDir);
+		void saveEMGToFile(const std::string& rootDir, const std::string& resultsDir);
 
 		// PRIVATE VARIABLES FOR EMG AND PLOTTING
 		// unique pointer for PythonPlotter object
@@ -69,11 +69,12 @@ namespace OpenSimLive {
 		// time point that is used together with startTime_ to calculate elapsed time since the beginning of EMG measurement
 		std::chrono::steady_clock::time_point currentTime_;
 		// EMG points are saved here
-		std::vector<float> EMGData_;
+		std::vector<std::array<float, 16>> EMGData_;
 		// tracks elapsed time since the beginning of EMG measurement
 		std::vector<float> timeVector_;
 		// tracks EMG for different sensors from the latest update
-		std::array<float, 16> EMGDataPoints_;
+		std::array<float, 16> EMGDataPoints_ = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+		// if plotterPrepared_ is false, we run prepare functions instead of update functions
 		bool plotterPrepared_ = false;
 
 	}; // end of class
