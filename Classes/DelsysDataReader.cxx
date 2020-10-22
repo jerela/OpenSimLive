@@ -13,7 +13,9 @@
 #include <XMLFunctions.h>
 #include <memory> // for std::unique_ptr
 #include <map>
+#ifdef PYTHON_ENABLED
 #include <PythonPlotter.h>
+#endif
 
 const std::string OPENSIMLIVE_ROOT = OPENSIMLIVE_ROOT_PATH;
 
@@ -42,7 +44,7 @@ DelsysDataReader::DelsysDataReader() {
 // DESTRUCTOR
 DelsysDataReader::~DelsysDataReader() {
 	std::cout << "Saving EMG time series to file..." << std::endl;
-	saveEMGToFile("OPENSIMLIVE_ROOT", "Delsys-data");
+	saveEMGToFile(OPENSIMLIVE_ROOT, "Delsys-data");
 	//saveTimeSeriesToTxtFile(timeVector_, EMGData_, OPENSIMLIVE_ROOT, "Delsys-data", "EMGTimeSeries.txt", "Time series of measured electromyographical data:\n", "Time (s)\t Voltage (unit?)");
 }
 
@@ -316,15 +318,44 @@ void DelsysDataReader::updateQuaternionData()
 
 }
 
+void DelsysDataReader::prepareTime() {
+	// get time at the beginning of the plotting
+	startTime_ = std::chrono::high_resolution_clock::now();
+	currentTime_ = startTime_;
+	EMGPrepared_ = true;
+}
+
+void DelsysDataReader::updateTime() {
+	// get time at each iteration
+	currentTime_ = std::chrono::high_resolution_clock::now();
+	// count how many milliseconds have passed
+	float timeNow = std::chrono::duration<float>(currentTime_ - startTime_).count();
+	// push time to vector for saving to file later
+	timeVector_.push_back(timeNow);
+}
 
 void DelsysDataReader::updateEMG() {
-	if (plotterPrepared_ == false) {
-		prepareEMGGraph();
-		plotterPrepared_ = true;
+	// if plotter is enabled, go through the plotting pipeline
+	if (plotterEnabled_) {
+		if (EMGPrepared_ == false) {
+			prepareEMGGraph();
+			EMGPrepared_ = true;
+		}
+		else {
+			updateEMGGraph();
+		}
 	}
 	else {
-		updateEMGGraph();
+		// otherwise go through steps that do not involve plotting
+		if (EMGPrepared_ == false) {
+			prepareTime();
+		}
+		else {
+			updateTime();
+			updateEMGData();
+		}
 	}
+	
 }
 
 // reads byte stream and updates float vector EMGData_
@@ -361,10 +392,9 @@ void DelsysDataReader::updateEMGData() {
 					if (EMGDataPoint != 0) {
 						++nonzeros;
 						EMGDataPoints_[floor(k / 4)] = EMGDataPoint;
-						std::cout << "nonzero" << std::endl;
 					}
 						
-					std::cout << "k=" << k << ", float=" << EMGDataPoint << std::endl;
+					//std::cout << "k=" << k << ", float=" << EMGDataPoint << std::endl;
 				}
 				if (nonzeros >= nActiveSensors_)
 					success = true;
@@ -373,14 +403,14 @@ void DelsysDataReader::updateEMGData() {
 		} // if statement for successful data retrieval ends
 
 	} while (!success);
-	std::cout << "Finished loop" << std::endl;
+	//std::cout << "Finished loop" << std::endl;
 	
 	// push the desired sensor's EMG readings into another vector
 	EMGData_.push_back(EMGDataPoints_);
 }
 
 void DelsysDataReader::prepareEMGGraph() {
-
+#ifdef PYTHON_ENABLED
 	try {
 		// create new PythonPlotter object on heap memory
 		pythonPlotter_ = std::make_unique<PythonPlotter>();
@@ -391,9 +421,7 @@ void DelsysDataReader::prepareEMGGraph() {
 		// set the maximum number of data points on the graph
 		pythonPlotter_->setMaxSize(50);
 
-		// get time at the beginning of the plotting
-		startTime_ = std::chrono::high_resolution_clock::now();
-		currentTime_ = startTime_;
+		prepareTime();
 
 		// prepare PythonPlotter
 		pythonPlotter_->prepareGraph();
@@ -404,19 +432,15 @@ void DelsysDataReader::prepareEMGGraph() {
 	catch (...) {
 		std::cerr << "Unknown error in DelsysDataReader::prepareEMGGraph()" << std::endl;
 	}
-
+#endif
 }
 
 // updates EMG data by calling updateEMGData, passes relevant parameters to PythonPlotter and plots the data
 void DelsysDataReader::updateEMGGraph() {
-	// get time at each iteration
-	currentTime_ = std::chrono::high_resolution_clock::now();
-	// count how many milliseconds have passed
-	float timeNow = std::chrono::duration<float>(currentTime_ - startTime_).count();
-	// push time to vector for saving to file later
-	timeVector_.push_back(timeNow);
+#ifdef PYTHON_ENABLED
+	updateTime();
 
-	std::array<float, 16> timeArray = { timeNow, timeNow, timeNow, timeNow, timeNow, timeNow, timeNow, timeNow, timeNow, timeNow, timeNow, timeNow, timeNow, timeNow, timeNow, timeNow };
+	std::array<float, 16> timeArray = { timeVector_.back(), timeVector_.back(), timeVector_.back(), timeVector_.back(), timeVector_.back(), timeVector_.back(), timeVector_.back(), timeVector_.back(), timeVector_.back(), timeVector_.back(), timeVector_.back(), timeVector_.back(), timeVector_.back(), timeVector_.back(), timeVector_.back(), timeVector_.back() };
 
 	// get the latest EMG data point
 	updateEMGData();
@@ -428,7 +452,7 @@ void DelsysDataReader::updateEMGGraph() {
 
 	// plot the data
 	pythonPlotter_->updateGraph();
-
+#endif
 }
 
 
@@ -447,7 +471,7 @@ void DelsysDataReader::saveEMGToFile(const std::string& rootDir, const std::stri
 		for (unsigned int i = 0; i < EMGData_.size(); ++i) { // iteration through rows
 			outputFile << "\n" << timeVector_[i];
 			for (unsigned int j = 0; j < 16; ++j) {
-				std::cout << "\t" << EMGData_[i][j];
+				outputFile << "\t" << EMGData_[i][j];
 			}
 		}
 		outputFile.close();

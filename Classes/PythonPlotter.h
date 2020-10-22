@@ -1,3 +1,4 @@
+#ifdef PYTHON_ENABLED
 #pragma once
 
 #include <array>
@@ -43,8 +44,6 @@ namespace OpenSimLive {
 		std::array<float, 16> XData_ = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 		// next y value to append
 		std::array<float,16> YData_ = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
-		// number of data points plotted
-		unsigned int numDataPoints_;
 		// the limit of y-axis values
 		float YLimit_ = 0.002;
 
@@ -52,3 +51,4 @@ namespace OpenSimLive {
 
 	}; // end of class
 }
+#endif

@@ -26,4 +26,6 @@
 	<socket_port>5010</socket_port>
 	<!--Maximum number of concurrent worker threads for multithreading.-->
 	<threads>8</threads>
+	<!--Live EMG plotting requires Python 3 and slows down EMG retrieval.-->
+	<enable_EMG_plotting>true</enable_EMG_plotting>
 </MainConfiguration>

@@ -1,5 +1,5 @@
 // PythonPlotter.cxx
-
+#ifdef PYTHON_ENABLED
 #include <Python.h>
 #include <PythonPlotter.h>
 #include <string>
@@ -51,9 +51,9 @@ void PythonPlotter::prepareGraph() {
 		std::string yLimitUpdate = "plt" + std::to_string(i) + ".set_ylim(bottom=" + std::to_string(-YLimit_) + ", top=" + std::to_string(YLimit_) + ")";
 		PyRun_SimpleString(yLimitUpdate.c_str());
 		// create x and y deques for each subplot
-		std::string createDequeX = "x" + std::to_string(i) + " = deque([0])";
-		std::string createDequeY = "y" + std::to_string(i) + " = deque([0])";
+		std::string createDequeX = "x" + std::to_string(i) + " = deque([0]," + std::to_string(maxSize_) + ")";
 		PyRun_SimpleString(createDequeX.c_str());
+		std::string createDequeY = "y" + std::to_string(i) + " = deque([0]," + std::to_string(maxSize_) + ")";
 		PyRun_SimpleString(createDequeY.c_str());
 		std::string plotString = "line" + std::to_string(i) + ", = plt" + std::to_string(i) + ".plot(x" + std::to_string(i) + ", y" + std::to_string(i) + ", 'r-')";
 		PyRun_SimpleString(plotString.c_str());
@@ -67,25 +67,17 @@ void PythonPlotter::prepareGraph() {
 void PythonPlotter::updateGraph() {
 	for (unsigned int i = 1; i < numSubPlots_ + 1; ++i) {
 
-		// if there would be more than the maximum number of data points (maxSize) on the graph, pop the oldest data point
-		if (numDataPoints_ >= maxSize_) {
-			std::string popXString = "x" + std::to_string(i) + ".popleft()";
-			std::string popYString = "y" + std::to_string(i) + ".popleft()";
-			PyRun_SimpleString(popXString.c_str());
-			PyRun_SimpleString(popYString.c_str());
-		}
-
 		// append data to x and y axes
 		std::string xAppend = "x" + std::to_string(i) + ".append(" + std::to_string(XData_[i - 1]) + ")";
-		std::string yAppend = "y" + std::to_string(i) + ".append(" + std::to_string(YData_[i - 1]) + ")";
 		PyRun_SimpleString(xAppend.c_str());
+		std::string yAppend = "y" + std::to_string(i) + ".append(" + std::to_string(YData_[i - 1]) + ")";
 		PyRun_SimpleString(yAppend.c_str());
 
 		// feed x and y data to the graph
 		std::string setXDataString = "line" + std::to_string(i) + ".set_xdata(x" + std::to_string(i) + ")";
+		PyRun_SimpleString(setXDataString.c_str());
 		std::string setYDataString = "line" + std::to_string(i) + ".set_ydata(y" + std::to_string(i) + ")";
 		PyRun_SimpleString(setYDataString.c_str());
-		PyRun_SimpleString(setXDataString.c_str());
 
 
 		// update y-axis limit if required
@@ -105,10 +97,12 @@ void PythonPlotter::updateGraph() {
 		//PyRun_SimpleString("pyplot.text(-0.5, 0.3, 'This is text')");
 		
 	}
-	++numDataPoints_;
 	// draw the graph
 	PyRun_SimpleString("fig.canvas.draw()");
+//	PyRun_SimpleString("pyplot.show(block=False)");
 	// stop momentarily so the user can see the graph
+	PyRun_SimpleString("print(len(x1))");
+	PyRun_SimpleString("print(len(y1))");
 	PyRun_SimpleString("pyplot.pause(0.001)");
 }
 
@@ -116,3 +110,4 @@ void PythonPlotter::finalizeGraph() {
 	Py_Finalize();
 }
 
+#endif

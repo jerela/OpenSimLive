@@ -3,7 +3,9 @@
 #include <OpenSim.h>
 #include <Client.h>
 #include <memory>
+#ifdef PYTHON_ENABLED
 #include <PythonPlotter.h>
+#endif
 
 namespace OpenSimLive {
 
@@ -25,6 +27,7 @@ namespace OpenSimLive {
 		OpenSim::TimeSeriesTable_<SimTK::Quaternion> getTimeSeriesTable() { return *quatTable_; }
 		// reads byte stream from the IMUs and updates the EMG signal into a vector
 		void updateEMG();
+		void setPlotterEnabled(bool setting) { plotterEnabled_ = setting; }
 		
 	protected:
 			
@@ -60,10 +63,18 @@ namespace OpenSimLive {
 		void updateEMGGraph();
 		// save EMG time series as .txt
 		void saveEMGToFile(const std::string& rootDir, const std::string& resultsDir);
+		// give initial values to startTime_ and currentTime
+		void prepareTime();
+		// update the value of currentTime_
+		void updateTime();
 
 		// PRIVATE VARIABLES FOR EMG AND PLOTTING
+		// enable plotter at all?
+		bool plotterEnabled_ = false;
+		#ifdef PYTHON_ENABLED
 		// unique pointer for PythonPlotter object
 		std::unique_ptr<PythonPlotter> pythonPlotter_;
+		#endif
 		// time point where EMG measurement begins
 		std::chrono::steady_clock::time_point startTime_;
 		// time point that is used together with startTime_ to calculate elapsed time since the beginning of EMG measurement
@@ -74,8 +85,8 @@ namespace OpenSimLive {
 		std::vector<float> timeVector_;
 		// tracks EMG for different sensors from the latest update
 		std::array<float, 16> EMGDataPoints_ = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
-		// if plotterPrepared_ is false, we run prepare functions instead of update functions
-		bool plotterPrepared_ = false;
+		// if EMGPrepared_ is false, we run prepare functions instead of update functions
+		bool EMGPrepared_ = false;
 
 	}; // end of class
 }

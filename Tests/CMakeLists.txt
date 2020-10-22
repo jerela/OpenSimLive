@@ -114,7 +114,7 @@ add_executable(test_Delsys
 
 
 # attempt to find Python path and libs
-find_path(PYTHON_PATH python38.dll PATHS "C:/Users/Jere/AppData/Local/Programs/Python/Python38")
+find_path(PYTHON_PATH python38.dll PATHS "C:/Users/wksadmin/AppData/Local/Programs/Python/Python38")
 find_path(PYTHON_LIB python38.lib PATHS "${PYTHON_PATH}/libs")
 # add and link the executables, libraries and directories for Python only if PYTHON_LIB was found
 if(PYTHON_LIB)
@@ -124,6 +124,8 @@ if(PYTHON_LIB)
 						PRIVATE "${SIMBODY_LIBRARY}"
 						PRIVATE "ws2_32.lib")
 	target_include_directories(test_Delsys PRIVATE "${PYTHON_PATH}/include")
+	# add a preprocessor definition
+	add_definitions(-DPYTHON_ENABLED)
 else()
 	# if Python is not found, inform the user but continue CMake
 	message([STATUS] "Cannot find Python. Removing PYTHON_LIB and PYTHON_PATH from list of CMake variables.")
@@ -132,6 +134,8 @@ else()
 	target_link_libraries(test_Delsys PRIVATE "${OPENSIM_LIBRARY}"
 						PRIVATE "${SIMBODY_LIBRARY}"
 						PRIVATE "ws2_32.lib")
+	# add a preprocessor definition
+	add_definitions(-DPYTHON_DISABLED)
 endif()
 
 

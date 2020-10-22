@@ -9,6 +9,9 @@
 #include "conio.h" // for non-ANSI _kbhit() and _getch()
 #include <XMLFunctions.h>
 #include <ThreadPoolContainer.h>
+#include <mutex>
+
+std::mutex mainMutex;
 
 const std::string OPENSIMLIVE_ROOT = OPENSIMLIVE_ROOT_PATH;
 
@@ -22,6 +25,7 @@ struct VariableManager {
 	int continuousModeMsDelay = std::stoi(ConfigReader("MainConfiguration.xml", "continuous_mode_ms_delay")); // delay between consequent IK calculations in consequent mode, in milliseconds
 	bool resetClockOnContinuousMode = ("true" == ConfigReader("MainConfiguration.xml", "reset_clock_on_continuous_mode")); // if true, clock will be reset to zero when entering continuous mode; if false, the clock will be set to zero at calibration
 	bool enableMirrorTherapy = (ConfigReader("MainConfiguration.xml", "station_parent_body") != "none"); // if "none", then set to false
+	bool enableEMGPlotting = ("true" == ConfigReader("MainConfiguration.xml", "enable_EMG_plotting")); // if true, PythonPlotter will be used to visualize live EMG data, but with extremely low frequency
 	unsigned int maxThreads = stoi(ConfigReader("MainConfiguration.xml", "threads")); // get the maximum number of concurrent threads for multithreading
 	std::string stationReferenceBody = ConfigReader("MainConfiguration.xml", "station_reference_body"); // get the name of the reference body used in mirror therapy
 
@@ -92,7 +96,17 @@ void RunIKProcedure(OpenSimLive::DelsysDataReader& delsysDataReader, OpenSimLive
 
 
 
+void EMGThread(OpenSimLive::DelsysDataReader& delsysDataReader) {
+	std::unique_lock<std::mutex> delsysMutex(mainMutex);
+	delsysDataReader.updateEMG();
+	delsysMutex.unlock();
+}
 
+void orientationThread(OpenSimLive::DelsysDataReader& delsysDataReader) {
+	std::unique_lock<std::mutex> delsysMutex(mainMutex);
+	delsysDataReader.updateQuaternionData();
+	delsysMutex.unlock();
+}
 
 
 void ConnectToDataStream() {
@@ -106,6 +120,9 @@ void ConnectToDataStream() {
 	
 	// Create a struct to hold a number of variables, and to pass them to functions
 	VariableManager vm;
+
+	// enable or disable Python-based EMG plotting
+	delsysDataReader.setPlotterEnabled(vm.enableEMGPlotting);
 
 	bool getDataKeyHit = false; // tells if the key that initiates a single IK calculation is hit
 	bool referenceBaseRotationKeyHit = false; // tells if the key that initiates the fetching of the current rotation of the base IMU is hit
@@ -152,15 +169,17 @@ void ConnectToDataStream() {
 
 	std::cout << "Entering data streaming and IK loop. Press C to calibrate model, Z to calculate IK once, N to enter continuous mode, M to exit continuous mode, V to enter send mode, B to exit send mode, L to save base reference orientation and X to quit." << std::endl;
 
+	// Send a function to be multithreaded
+	//threadPoolContainer.offerFuture(EMGThreadLoop, std::ref(delsysDataReader), std::ref(vm));
+
 	do
 	{
 		// get IMU orientation data in quaternions
-		delsysDataReader.updateQuaternionData();
+		//delsysDataReader.updateQuaternionData();
+		threadPoolContainer.offerFuture(orientationThread, std::ref(delsysDataReader));
 		// show EMG data
-		delsysDataReader.updateEMG();
-		//quaternionData = delsysDataReader.getQuaternionData();
-		// update the boolean value to see if new data is available since orientation data was last retrieved
-		//bool newDataAvailable = xsensDataReader.GetNewDataAvailable();
+		//delsysDataReader.updateEMG();
+		threadPoolContainer.offerFuture(EMGThread, std::ref(delsysDataReader));
 		bool newDataAvailable = true;
 
 		
