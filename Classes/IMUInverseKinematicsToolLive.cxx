@@ -347,34 +347,36 @@ void IMUInverseKinematicsToolLive::updatePointTracker() {
 
 void IMUInverseKinematicsToolLive::reportToFile() {
 
-    auto report = ikReporter_->getTable();
-    // set the name of the results directory and create it
-    std::string resultsDirectoryName = "OpenSimLive-results";
-    OpenSim::IO::makeDir(OpenSimLiveRootDirectory_+ "/" + resultsDirectoryName);
+    // if time equals its initial value 0, then no IK has been performed and there is nothing to save to file, resulting in an exception; therefore we only save to file when time is nonzero
+    if (time_ != 0) {
+        auto report = ikReporter_->getTable();
+        // set the name of the results directory and create it
+        std::string resultsDirectoryName = "OpenSimLive-results";
+        OpenSim::IO::makeDir(OpenSimLiveRootDirectory_ + "/" + resultsDirectoryName);
 
-    // convert joint angles in the report from radians to degrees
-    model_.getSimbodyEngine().convertRadiansToDegrees(report);
-    // set the value for name (not the name of the file) in the .mot file to be created
-    report.updTableMetaData().setValueForKey<string>("name", "IK-live");
-    // write the .mot file to hard drive
-    OpenSim::STOFileAdapter_<double>::write(report, OpenSimLiveRootDirectory_ + "/" + resultsDirectoryName + "/" + "IK-live.mot");
-    OpenSim::STOFileAdapter_<double>::write(*modelOrientationErrors_, OpenSimLiveRootDirectory_ + "/" + resultsDirectoryName + "/" + "IK-live" + "_orientationErrors.sto");
-    // Results written to file, clear in case we run again
-    ikReporter_->clearTable(); 
+        // convert joint angles in the report from radians to degrees
+        model_.getSimbodyEngine().convertRadiansToDegrees(report);
+        // set the value for name (not the name of the file) in the .mot file to be created
+        report.updTableMetaData().setValueForKey<string>("name", "IK-live");
+        // write the .mot file to hard drive
+        OpenSim::STOFileAdapter_<double>::write(report, OpenSimLiveRootDirectory_ + "/" + resultsDirectoryName + "/" + "IK-live.mot");
+        OpenSim::STOFileAdapter_<double>::write(*modelOrientationErrors_, OpenSimLiveRootDirectory_ + "/" + resultsDirectoryName + "/" + "IK-live" + "_orientationErrors.sto");
+        // Results written to file, clear in case we run again
+        ikReporter_->clearTable();
 
-    if (getSavePointTrackerResults()) {
-        std::cout << "Writing PointTracker output to file..." << std::endl;
-        try {
-            savePointTrackerOutputToFile(OpenSimLiveRootDirectory_, resultsDirectoryName);
-        }
-        catch (std::exception & e) {
-            std::cout << "Error while saving PointTracker output to file: " << e.what() << std::endl;
-        }
-        catch (...) {
-            std::cout << "Unknown error while saving PointTracker output to file!" << std::endl;
+        if (getSavePointTrackerResults()) {
+            std::cout << "Writing PointTracker output to file..." << std::endl;
+            try {
+                savePointTrackerOutputToFile(OpenSimLiveRootDirectory_, resultsDirectoryName);
+            }
+            catch (std::exception& e) {
+                std::cout << "Error while saving PointTracker output to file: " << e.what() << std::endl;
+            }
+            catch (...) {
+                std::cout << "Unknown error while saving PointTracker output to file!" << std::endl;
+            }
         }
     }
-    
 }
 
 
