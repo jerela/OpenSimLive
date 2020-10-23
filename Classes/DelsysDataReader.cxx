@@ -48,6 +48,7 @@ DelsysDataReader::~DelsysDataReader() {
 // this union is used to convert bytes to float; all its data members share a memory location, meaning that the byte array we save into it can be accessed as a float
 union DelsysDataReader::byteFloater {
 	float f;
+	// flexible array member; this is not recommended, see if unsigned char c[4] would work better!
 	unsigned char c[0];
 };
 
@@ -325,7 +326,7 @@ void DelsysDataReader::updateTime() {
 	// get time at each iteration
 	currentTime_ = std::chrono::high_resolution_clock::now();
 	// count how many milliseconds have passed
-	float timeNow = std::chrono::duration<float>(currentTime_ - startTime_).count();
+	double timeNow = std::chrono::duration<double>(currentTime_ - startTime_).count();
 	// push time to vector for saving to file later
 	timeVector_.push_back(timeNow);
 }

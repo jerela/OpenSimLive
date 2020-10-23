@@ -46,7 +46,7 @@ namespace OpenSimLive {
 		// next y value to append
 		std::array<float,16> YData_ = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 		// the limit of y-axis values
-		float YLimit_ = 0.002;
+		double YLimit_ = 0.002;
 
 		bool asd_ = true;
 

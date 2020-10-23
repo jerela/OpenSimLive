@@ -71,7 +71,7 @@ namespace OpenSimLive {
 		// EMG points are saved here
 		std::vector<std::array<float, 16>> EMGData_;
 		// tracks elapsed time since the beginning of EMG measurement
-		std::vector<float> timeVector_;
+		std::vector<double> timeVector_;
 		// tracks EMG for different sensors from the latest update
 		std::array<float, 16> EMGDataPoints_ = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
