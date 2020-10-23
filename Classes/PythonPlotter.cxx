@@ -18,6 +18,12 @@ PythonPlotter::~PythonPlotter() {
 	finalizeGraph();
 }
 
+void PythonPlotter::setTime(double time) {
+	float timeFloat = (float)time;
+	std::array<float, 16> timeArray = { timeFloat, timeFloat, timeFloat, timeFloat, timeFloat, timeFloat, timeFloat, timeFloat, timeFloat, timeFloat, timeFloat, timeFloat, timeFloat, timeFloat, timeFloat, timeFloat };
+	setXData(timeArray);
+}
+
 // Run preparatory Python script
 void PythonPlotter::prepareGraph() {
 	try {

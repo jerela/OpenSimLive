@@ -13,9 +13,6 @@
 #include <XMLFunctions.h>
 #include <memory> // for std::unique_ptr
 #include <map>
-#ifdef PYTHON_ENABLED
-#include <PythonPlotter.h>
-#endif
 
 const std::string OPENSIMLIVE_ROOT = OPENSIMLIVE_ROOT_PATH;
 
@@ -322,7 +319,6 @@ void DelsysDataReader::prepareTime() {
 	// get time at the beginning of the plotting
 	startTime_ = std::chrono::high_resolution_clock::now();
 	currentTime_ = startTime_;
-	EMGPrepared_ = true;
 }
 
 void DelsysDataReader::updateTime() {
@@ -334,28 +330,12 @@ void DelsysDataReader::updateTime() {
 	timeVector_.push_back(timeNow);
 }
 
+void DelsysDataReader::appendTime(double time) {
+	timeVector_.push_back(time);
+}
+
 void DelsysDataReader::updateEMG() {
-	// if plotter is enabled, go through the plotting pipeline
-	if (plotterEnabled_) {
-		if (EMGPrepared_ == false) {
-			prepareEMGGraph();
-			EMGPrepared_ = true;
-		}
-		else {
-			updateEMGGraph();
-		}
-	}
-	else {
-		// otherwise go through steps that do not involve plotting
-		if (EMGPrepared_ == false) {
-			prepareTime();
-		}
-		else {
-			updateTime();
-			updateEMGData();
-		}
-	}
-	
+	updateEMGData();
 }
 
 // reads byte stream and updates float vector EMGData_
@@ -409,51 +389,6 @@ void DelsysDataReader::updateEMGData() {
 	EMGData_.push_back(EMGDataPoints_);
 }
 
-void DelsysDataReader::prepareEMGGraph() {
-#ifdef PYTHON_ENABLED
-	try {
-		// create new PythonPlotter object on heap memory
-		pythonPlotter_ = std::make_unique<PythonPlotter>();
-
-		// set the number of subplots to equal the number of sensors in use
-		pythonPlotter_->setSubPlots(nActiveSensors_);
-
-		// set the maximum number of data points on the graph
-		pythonPlotter_->setMaxSize(50);
-
-		prepareTime();
-
-		// prepare PythonPlotter
-		pythonPlotter_->prepareGraph();
-	}
-	catch (std::exception& e) {
-		std::cerr << "Error in DelsysDataReader::prepareEMGGraph(): " << e.what() << std::endl;
-	}
-	catch (...) {
-		std::cerr << "Unknown error in DelsysDataReader::prepareEMGGraph()" << std::endl;
-	}
-#endif
-}
-
-// updates EMG data by calling updateEMGData, passes relevant parameters to PythonPlotter and plots the data
-void DelsysDataReader::updateEMGGraph() {
-#ifdef PYTHON_ENABLED
-	updateTime();
-
-	std::array<float, 16> timeArray = { timeVector_.back(), timeVector_.back(), timeVector_.back(), timeVector_.back(), timeVector_.back(), timeVector_.back(), timeVector_.back(), timeVector_.back(), timeVector_.back(), timeVector_.back(), timeVector_.back(), timeVector_.back(), timeVector_.back(), timeVector_.back(), timeVector_.back(), timeVector_.back() };
-
-	// get the latest EMG data point
-	updateEMGData();
-
-	//std::cout << newEMGData << std::endl;
-
-	// append EMG to y axis and current time in seconds to x axis
-	pythonPlotter_->setData(timeArray, EMGDataPoints_);
-
-	// plot the data
-	pythonPlotter_->updateGraph();
-#endif
-}
 
 
 // This function saves the time points and the corresponding EMG voltage values to file for later examination.

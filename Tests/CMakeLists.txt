@@ -232,7 +232,7 @@ if(PYTHON_LIB)
 						PRIVATE "${OPENSIM_LIBRARY}"
 						PRIVATE "${SIMBODY_LIBRARY}"
 						PRIVATE "ws2_32.lib")
-	target_include_directories(test_Delsys PRIVATE "${PYTHON_PATH}/include")
+	target_include_directories(test_EMG PRIVATE "${PYTHON_PATH}/include")
 	# add a preprocessor definition
 	add_definitions(-DPYTHON_ENABLED)
 else()

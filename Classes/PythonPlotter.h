@@ -27,6 +27,7 @@ namespace OpenSimLive {
 		void setData(std::array<float, 16> x, std::array<float, 16> y) { XData_ = x; YData_ = y; }
 		// set the number of subplots
 		void setSubPlots(unsigned int n) { numSubPlots_ = n; }
+		void setTime(double time);
 		
 	protected:
 			

@@ -3,9 +3,6 @@
 #include <OpenSim.h>
 #include <Client.h>
 #include <memory>
-#ifdef PYTHON_ENABLED
-#include <PythonPlotter.h>
-#endif
 
 namespace OpenSimLive {
 
@@ -27,7 +24,9 @@ namespace OpenSimLive {
 		OpenSim::TimeSeriesTable_<SimTK::Quaternion> getTimeSeriesTable() { return *quatTable_; }
 		// reads byte stream from the IMUs and updates the EMG signal into a vector
 		void updateEMG();
-		void setPlotterEnabled(bool setting) { plotterEnabled_ = setting; }
+		std::array<float, 16> getLatestEMGValues() { return EMGDataPoints_; }
+		unsigned int getNActiveSensors() { return nActiveSensors_; }
+		void appendTime(double time);
 		
 	protected:
 			
@@ -54,13 +53,9 @@ namespace OpenSimLive {
 		// number of active sensors
 		unsigned int nActiveSensors_ = 0;
 
-		// PRIVATE METHODS FOR EMG AND PLOTTING
+		// PRIVATE METHODS FOR EMG
 		// reads byte stream from IMUs and updates the float array of EMG data points (EMGDataPoints_), argument is the index of the sensor we use to plot EMG data
 		void updateEMGData();
-		// make PythonPlotter run preparatory Python commands
-		void prepareEMGGraph();
-		// pass updated parameters to PythonPlotter
-		void updateEMGGraph();
 		// save EMG time series as .txt
 		void saveEMGToFile(const std::string& rootDir, const std::string& resultsDir);
 		// give initial values to startTime_ and currentTime
@@ -69,12 +64,6 @@ namespace OpenSimLive {
 		void updateTime();
 
 		// PRIVATE VARIABLES FOR EMG AND PLOTTING
-		// enable plotter at all?
-		bool plotterEnabled_ = false;
-		#ifdef PYTHON_ENABLED
-		// unique pointer for PythonPlotter object
-		std::unique_ptr<PythonPlotter> pythonPlotter_;
-		#endif
 		// time point where EMG measurement begins
 		std::chrono::steady_clock::time_point startTime_;
 		// time point that is used together with startTime_ to calculate elapsed time since the beginning of EMG measurement
@@ -85,8 +74,6 @@ namespace OpenSimLive {
 		std::vector<float> timeVector_;
 		// tracks EMG for different sensors from the latest update
 		std::array<float, 16> EMGDataPoints_ = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
-		// if EMGPrepared_ is false, we run prepare functions instead of update functions
-		bool EMGPrepared_ = false;
 
 	}; // end of class
 }

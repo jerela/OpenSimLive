@@ -10,6 +10,9 @@
 #include <XMLFunctions.h>
 #include <ThreadPoolContainer.h>
 #include <mutex>
+#ifdef PYTHON_ENABLED
+#include <PythonPlotter.h>
+#endif
 
 std::mutex mainMutex;
 
@@ -38,73 +41,11 @@ struct VariableManager {
 
 
 
-// IK for multithreading, each thread runs this function separately
-void concurrentIK(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, const VariableManager& vm, Server& myLink) {
-	IKTool.setTime(vm.clockDuration.count());
-	// calculate the IK and update the visualization
-	IKTool.update(true);
-	if (vm.enableMirrorTherapy)
-	{
-		// get the data we want to send to Java program
-		std::array<double, 6> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
-		// get a double array from the double std::array
-		//double* mirrorTherapyPacket = &trackerResults[0];
-		// create mirrorTherapyPacket as a pointer to the underlying array of trackerResults
-		double* mirrorTherapyPacket = trackerResults.data();
-		// send the data
-		if (vm.sendMode)
-			myLink.SendDoubles(mirrorTherapyPacket, 6);
-	}
-}
-
-// Runs IK and related shenanigans; this function is not yet multithreaded, but it contains the statement to begin multithreading
-void RunIKProcedure(OpenSimLive::DelsysDataReader& delsysDataReader, OpenSimLive::IMUInverseKinematicsToolLive& IKTool, Server& myLink, OpenSimLive::ThreadPoolContainer& threadPoolContainer, const VariableManager& vm) {
-	// fill a time series table with quaternion orientations of the IMUs
-	OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(delsysDataReader.getTimeSeriesTable());
-
-	// get the orientation of station_reference_body and pass it to PointTracker through IKTool; MOVE THIS TO CONCURRENTIK TO SPEED UP PROGRAM SLIGHTLY
-	if (IKTool.getUseReferenceRotation())
-	{
-		bool foundBodyIMUOrientation = false;
-		for (unsigned int i = 0; i < quatTable.getNumColumns(); ++i) // iterate through the quaternions of all IMUs
-		{
-			if (vm.stationReferenceBody + "_imu" == quatTable.getColumnLabel(i)) // if we find the data of the IMU on station_reference_body
-			{
-				// get the quaternion orientation of that IMU
-				SimTK::Quaternion_<SimTK::Real> quat = quatTable.getMatrixBlock(0, i, 1, 1)[0][0];
-				// pass it on to IKTool that inherits PointTracker, and use it at the end of PointTracker rotation calculations
-				IKTool.setReferenceBodyRotation(quat);
-				foundBodyIMUOrientation = true;
-				break;
-			}
-		}
-		if (!foundBodyIMUOrientation)
-		{
-			std::cout << "Base body IMU orientation not found! Disabling feature." << std::endl;
-			IKTool.setUseReferenceRotation(false);
-		}
-	}
-
-	// give the necessary inputs to IKTool
-	IKTool.setQuaternion(quatTable);
-
-	// Send a function to be multithreaded
-	threadPoolContainer.offerFuture(concurrentIK, std::ref(IKTool), std::ref(vm), std::ref(myLink));
-
-}
-
-
 
 
 void EMGThread(OpenSimLive::DelsysDataReader& delsysDataReader) {
 	std::unique_lock<std::mutex> delsysMutex(mainMutex);
 	delsysDataReader.updateEMG();
-	delsysMutex.unlock();
-}
-
-void orientationThread(OpenSimLive::DelsysDataReader& delsysDataReader) {
-	std::unique_lock<std::mutex> delsysMutex(mainMutex);
-	delsysDataReader.updateQuaternionData();
 	delsysMutex.unlock();
 }
 
@@ -119,8 +60,6 @@ void ConnectToDataStream() {
 	// Create a struct to hold a number of variables, and to pass them to functions
 	VariableManager vm;
 
-	// enable or disable Python-based EMG plotting
-	delsysDataReader.setPlotterEnabled(vm.enableEMGPlotting);
 
 	bool getDataKeyHit = false; // tells if the key that initiates a single IK calculation is hit
 	bool referenceBaseRotationKeyHit = false; // tells if the key that initiates the fetching of the current rotation of the base IMU is hit
@@ -133,12 +72,19 @@ void ConnectToDataStream() {
 	// initialize the object that handles multithreading
 	OpenSimLive::ThreadPoolContainer threadPoolContainer(vm.maxThreads);
 
-	// get the current times
+
+	#ifdef PYTHON_ENABLED
+	// initialize and prepare PythonPlotter
+	PythonPlotter pythonPlotter;
+	pythonPlotter.setMaxSize(50);
+	pythonPlotter.setSubPlots(delsysDataReader.getNActiveSensors());
+	pythonPlotter.prepareGraph();
+	#endif
+
+	// get the current times and start counting
 	vm.clockStart = std::chrono::high_resolution_clock::now();
 	vm.clockNow = vm.clockStart;
 	vm.clockPrev = vm.clockStart;
-		
-		
 
 	std::cout << "Entering data streaming and IK loop. Press C to calibrate model, Z to calculate IK once, N to enter continuous mode, M to exit continuous mode, V to enter send mode, B to exit send mode, L to save base reference orientation and X to quit." << std::endl;
 
@@ -149,52 +95,47 @@ void ConnectToDataStream() {
 	{
 		// show EMG data
 		//delsysDataReader.updateEMG();
-		threadPoolContainer.offerFuture(EMGThread, std::ref(delsysDataReader));
-		bool newDataAvailable = true;
+		//threadPoolContainer.offerFuture(EMGThread, std::ref(delsysDataReader));
 
+		// update time
+		vm.clockNow = std::chrono::high_resolution_clock::now();
+		vm.clockDuration = vm.clockNow - vm.clockStart;
+		double elapsedTime = vm.clockDuration.count();
 
-		// if new data is available and continuous mode has been switched on
-		if (newDataAvailable && vm.continuousMode) {
-			// use high resolution clock to count time since the IMU measurement began
-			vm.clockNow = std::chrono::high_resolution_clock::now();
-			// calculate the duration since the beginning of counting
-			vm.clockDuration = vm.clockNow - vm.clockStart;
-			// calculate the duration since the previous time IK was continuously calculated
-			vm.prevDuration = vm.clockNow - vm.clockPrev;
-			// if more than the set time delay has passed since the last time IK was calculated
-			if (vm.prevDuration.count()*1000 > vm.continuousModeMsDelay) {
-				// set current time as the time IK was previously calculated for the following iterations of the while-loop
-				vm.clockPrev = vm.clockNow;
-				//RunIKProcedure(delsysDataReader, IKTool, myLink, threadPoolContainer, vm);
-			}
+		// update EMG and set time for DelsysDataReader
+		delsysDataReader.updateEMG();
+		delsysDataReader.appendTime(elapsedTime);
+
+		// send EMG data points to PythonPlotter
+		#ifdef PYTHON_ENABLED
+		if (vm.enableEMGPlotting) {
+			pythonPlotter.setTime(elapsedTime);
+			pythonPlotter.setYData(delsysDataReader.getLatestEMGValues());
+			pythonPlotter.updateGraph();
 		}
+		#endif
 
-		if (!vm.continuousMode && startContinuousModeKeyHit && !vm.calibratedModelFile.empty()) {
-			std::cout << "Entering continuous mode." << std::endl;
-			vm.continuousMode = true;
-			startContinuousModeKeyHit = false;
-			if (vm.resetClockOnContinuousMode && !(vm.clockDuration.count() > 0) ) // ensure that the config setting is set to true and that this is the first time continuous mode is entered
-				vm.clockStart = std::chrono::high_resolution_clock::now();
-		}
+		/*
+		// use high resolution clock to count time since the measurement started
+		vm.clockNow = std::chrono::high_resolution_clock::now();
+		// calculate the duration since the beginning of counting
+		vm.clockDuration = vm.clockNow - vm.clockStart;
+		// calculate the duration since the previous time IK was continuously calculated
+		vm.prevDuration = vm.clockNow - vm.clockPrev;
+		// if more than the set time delay has passed since the last time IK was calculated
+		if (vm.prevDuration.count()*1000 > vm.continuousModeMsDelay) {
+			// set current time as the time IK was previously calculated for the following iterations of the while-loop
+			vm.clockPrev = vm.clockNow;
+			delsysDataReader.updateEMG();
+		}*/
+		
 
-		if (vm.continuousMode && stopContinuousModeKeyHit) {
-			std::cout << "Exiting continuous mode." << std::endl;
-			vm.continuousMode = false;
-			stopContinuousModeKeyHit = false;
-		}
 
 		char hitKey = ' ';
 		if (_kbhit())
 		{
 			hitKey = toupper((char)_getch());
 			vm.mainDataLoop = (hitKey != 'X'); // stay in main data loop as long as we don't hit X
-			getDataKeyHit = (hitKey == 'Z');
-			calibrateModelKeyHit = (hitKey == 'C');
-			startContinuousModeKeyHit = (hitKey == 'N');
-			stopContinuousModeKeyHit = (hitKey == 'M');
-			startSendModeKeyHit = (hitKey == 'V');
-			stopSendModeKeyHit = (hitKey == 'B');
-			referenceBaseRotationKeyHit = (hitKey == 'L');
 		}
 			
 	} while (vm.mainDataLoop);
