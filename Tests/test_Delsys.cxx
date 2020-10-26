@@ -209,11 +209,11 @@ void ConnectToDataStream() {
 
 
 		// get IMU orientation data in quaternions
-		//delsysDataReader.updateQuaternionData();
+		delsysDataReader.updateQuaternionData();
 		//threadPoolContainer.offerFuture(orientationThread, std::ref(delsysDataReader));
 		// show EMG data
 		//delsysDataReader.updateEMG();
-		//hreadPoolContainer.offerFuture(EMGThread, std::ref(delsysDataReader));
+		//threadPoolContainer.offerFuture(EMGThread, std::ref(delsysDataReader));
 		bool newDataAvailable = true;
 
 		

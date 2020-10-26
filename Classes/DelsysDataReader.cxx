@@ -175,13 +175,16 @@ void DelsysDataReader::updateQuaternionData()
 	// number of elements between starting bytes of consecutive sensors
 	unsigned int dataGap = 36;
 
+	// The amount of bytes covering a single "cycle" of data for all 16 sensors is 832 (16 bytes per quaternion, 36 bytes of empty space after each quaternion byte sequence). Therefore if we start reading the stream halfway through a byte sequence describing quaternion elements, we have to be able to read at 832 + 16 bytes to make sure we get that sequence in its entirety on the next cycle.
+	const unsigned int nBytes = 848; // (16+36)*16 + 16 = 848
+
 	// initialize array for holding bytes that are read from Trigno Control Utility / Delsys SDK
-	char receivedBytes[6400];
+	char receivedBytes[nBytes];
 	// whether the recvBytes returns true to indicate we successfully read bytes from Delsys SDK
 	bool success = false;
 	do {
 		// returns 1 if bytes were successfully read
-		success = AUXPort_->RecvBytes(receivedBytes, 6400);
+		success = AUXPort_->RecvBytes(receivedBytes, nBytes, nBytes);
 
 		if (success)
 		{
@@ -199,8 +202,8 @@ void DelsysDataReader::updateQuaternionData()
 			int streakStartIndex = 0;
 			// starting index of the first streak
 			int firstStartIndex = -1;
-			// iterate through whole data (6400 byte values)
-			for (unsigned int k = 0; k < 6400; ++k) {
+			// iterate through whole data (6400/nBytes byte values)
+			for (unsigned int k = 0; k < nBytes; ++k) {
 
 				// if the current byte value is nonzero, increment streak; otherwise set streak to zero
 				if (receivedBytes[k] != 0) {
@@ -356,7 +359,7 @@ void DelsysDataReader::updateEMGData() {
 	bool success = false;
 	do {
 		// returns 1 if bytes were successfully read
-		success = EMGPort_->RecvBytes(receivedBytes, nBytes, 64);
+		success = EMGPort_->RecvBytes(receivedBytes, nBytes, nBytes);
 
 		if (success)
 		{
