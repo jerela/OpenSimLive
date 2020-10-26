@@ -13,6 +13,31 @@
 #ifdef PYTHON_ENABLED
 #include <PythonPlotter.h>
 #endif
+//#include <windows.h>
+
+/*
+double PCFreq = 0.0;
+__int64 CounterStart = 0;
+
+void StartCounter()
+{
+	LARGE_INTEGER li;
+	if (!QueryPerformanceFrequency(&li))
+		std::cout << "QueryPerformanceFrequency failed!\n";
+
+	PCFreq = double(li.QuadPart) / 1000.0;
+
+	QueryPerformanceCounter(&li);
+	CounterStart = li.QuadPart;
+}
+double GetCounter()
+{
+	LARGE_INTEGER li;
+	QueryPerformanceCounter(&li);
+	return double(li.QuadPart - CounterStart) / PCFreq;
+}*/
+
+
 
 std::mutex mainMutex;
 
@@ -98,12 +123,17 @@ void RunIKProcedure(OpenSimLive::DelsysDataReader& delsysDataReader, OpenSimLive
 }
 
 
-
+void EMGThreadLoop(OpenSimLive::DelsysDataReader& delsysDataReader, VariableManager& vm) {
+	do {
+		delsysDataReader.updateEMG();
+	} while (vm.mainDataLoop);
+	
+}
 
 void EMGThread(OpenSimLive::DelsysDataReader& delsysDataReader) {
-	std::unique_lock<std::mutex> delsysMutex(mainMutex);
+	//std::unique_lock<std::mutex> delsysMutex(mainMutex);
 	delsysDataReader.updateEMG();
-	delsysMutex.unlock();
+	//delsysMutex.unlock();
 }
 
 void orientationThread(OpenSimLive::DelsysDataReader& delsysDataReader) {
@@ -127,8 +157,6 @@ void ConnectToDataStream() {
 	pythonPlotter.prepareGraph();
 	#endif
 	
-	std::vector<SimTK::Quaternion_<SimTK::Real>> quaternionData; // for data in quaternion form
-	
 	// Create a struct to hold a number of variables, and to pass them to functions
 	VariableManager vm;
 
@@ -144,6 +172,7 @@ void ConnectToDataStream() {
 
 	// initialize the object that handles multithreading
 	OpenSimLive::ThreadPoolContainer threadPoolContainer(vm.maxThreads);
+	OpenSimLive::ThreadPoolContainer delsysContainer(1);
 
 	// get the current times
 	vm.clockStart = std::chrono::high_resolution_clock::now();
@@ -181,10 +210,12 @@ void ConnectToDataStream() {
 	// Send a function to be multithreaded
 	//threadPoolContainer.offerFuture(EMGThreadLoop, std::ref(delsysDataReader), std::ref(vm));
 
+	delsysContainer.offerFuture(orientationThread, std::ref(delsysDataReader));
+
 	do
 	{
 
-
+		
 		if (vm.EMGMode) {
 			// update time
 			vm.clockNow = std::chrono::high_resolution_clock::now();
@@ -193,6 +224,7 @@ void ConnectToDataStream() {
 
 			// update EMG and set time for DelsysDataReader
 			delsysDataReader.updateEMG();
+			//threadPoolContainer.offerFuture(EMGThread, std::ref(delsysDataReader));
 			delsysDataReader.appendTime(elapsedTime);
 
 			// send EMG data points to PythonPlotter
@@ -209,11 +241,13 @@ void ConnectToDataStream() {
 
 
 		// get IMU orientation data in quaternions
-		delsysDataReader.updateQuaternionData();
-		//threadPoolContainer.offerFuture(orientationThread, std::ref(delsysDataReader));
-		// show EMG data
-		//delsysDataReader.updateEMG();
-		//threadPoolContainer.offerFuture(EMGThread, std::ref(delsysDataReader));
+		//std::cout << "updateQuaternionData: ";
+		//StartCounter();
+		//delsysDataReader.updateQuaternionData();
+		//delsysContainer.offerFuture(orientationThread, std::ref(delsysDataReader));
+		//std::cout << GetCounter() << std::endl;
+		delsysContainer.offerFuture(orientationThread, std::ref(delsysDataReader));
+
 		bool newDataAvailable = true;
 
 		
@@ -289,18 +323,22 @@ void ConnectToDataStream() {
 
 		// if new data is available and continuous mode has been switched on
 		if (newDataAvailable && vm.continuousMode) {
+			//delsysContainer.offerFuture(orientationThread, std::ref(delsysDataReader));
+
 			// use high resolution clock to count time since the IMU measurement began
 			vm.clockNow = std::chrono::high_resolution_clock::now();
 			// calculate the duration since the beginning of counting
 			vm.clockDuration = vm.clockNow - vm.clockStart;
 			// calculate the duration since the previous time IK was continuously calculated
 			vm.prevDuration = vm.clockNow - vm.clockPrev;
+
 			// if more than the set time delay has passed since the last time IK was calculated
 			if (vm.prevDuration.count()*1000 > vm.continuousModeMsDelay) {
 				// set current time as the time IK was previously calculated for the following iterations of the while-loop
 				vm.clockPrev = vm.clockNow;
 				RunIKProcedure(delsysDataReader, IKTool, myLink, threadPoolContainer, vm);
 			}
+
 		}
 
 		if (!vm.continuousMode && startContinuousModeKeyHit && !vm.calibratedModelFile.empty()) {

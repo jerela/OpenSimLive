@@ -4,7 +4,6 @@
 #include <string>
 #include <iostream>
 #include <Client.h>
-#include <conio.h> // for kbhit
 #include <chrono>
 #include <thread>
 #include <array>
@@ -13,6 +12,28 @@
 #include <XMLFunctions.h>
 #include <memory> // for std::unique_ptr
 #include <map>
+
+double PCFreq = 0.0;
+__int64 CounterStart = 0;
+
+void StartCounter()
+{
+	LARGE_INTEGER li;
+	if (!QueryPerformanceFrequency(&li))
+		std::cout << "QueryPerformanceFrequency failed!\n";
+
+	PCFreq = double(li.QuadPart) / 1000.0;
+
+	QueryPerformanceCounter(&li);
+	CounterStart = li.QuadPart;
+}
+double GetCounter()
+{
+	LARGE_INTEGER li;
+	QueryPerformanceCounter(&li);
+	return double(li.QuadPart - CounterStart) / PCFreq;
+}
+
 
 const std::string OPENSIMLIVE_ROOT = OPENSIMLIVE_ROOT_PATH;
 
@@ -28,7 +49,7 @@ DelsysDataReader::DelsysDataReader() {
 	std::string activeSensorNumbersString = ConfigReader("DelsysMappings.xml", "active_sensors");
 	// stringstream is a simple way to separate the whitespace-separated numbers from the whole string
 	std::stringstream ss(activeSensorNumbersString);
-	// perhaps this loop could be implemented by checking when stringstream has reached its end rather than separately reading the number of sensors, which is heavier in terms of performance?
+	// loop through active sensors and save their indices to a vector
 	for (unsigned int i = 0; i < nActiveSensors_; ++i) {
 		std::string tempSensorNumber;
 		// write from stringstream to tempSensorNumber
@@ -38,15 +59,17 @@ DelsysDataReader::DelsysDataReader() {
 	}
 
 	// reserve a number of elements in the vector that contains EMG data arrays for all sensors
-	EMGData_.reserve(10000);
+	EMGData_.reserve(50000);
 }
 
 // DESTRUCTOR
 DelsysDataReader::~DelsysDataReader() {
-	std::cout << "EMG performance was " << (double)EMGData_.size() / timeVector_.back() << " read values per second." << std::endl;
-	std::cout << "Saving EMG time series to file..." << std::endl;
-	saveEMGToFile(OPENSIMLIVE_ROOT, "Delsys-data");
-	//saveTimeSeriesToTxtFile(timeVector_, EMGData_, OPENSIMLIVE_ROOT, "Delsys-data", "EMGTimeSeries.txt", "Time series of measured electromyographical data:\n", "Time (s)\t Voltage (unit?)");
+	if (EMGData_.size() > 0 && timeVector_.size() > 0) {
+		// report EMG throughput to console
+		std::cout << "EMG performance was " << (double)EMGData_.size() / timeVector_.back() << " read values per second." << std::endl;
+		std::cout << "Saving EMG time series to file..." << std::endl;
+		saveEMGToFile(OPENSIMLIVE_ROOT, "Delsys-data");
+	}
 }
 
 // this union is used to convert bytes to float; all its data members share a memory location, meaning that the byte array we save into it can be accessed as a float
@@ -183,11 +206,16 @@ void DelsysDataReader::updateQuaternionData()
 	// whether the recvBytes returns true to indicate we successfully read bytes from Delsys SDK
 	bool success = false;
 	do {
+		std::cout << "receiveBytes: ";
+		StartCounter();
 		// returns 1 if bytes were successfully read
 		success = AUXPort_->RecvBytes(receivedBytes, nBytes, nBytes);
+		std::cout << GetCounter() << std::endl;
 
 		if (success)
 		{
+			std::cout << "first part: ";
+			StartCounter();
 			// dictionary/map of quaternions
 			std::map<int, SimTK::Quaternion_<SimTK::Real>> quatMap;
 			// vector that contains the indices that nonzero byte sequences begin for each quaternion
@@ -202,7 +230,7 @@ void DelsysDataReader::updateQuaternionData()
 			int streakStartIndex = 0;
 			// starting index of the first streak
 			int firstStartIndex = -1;
-			// iterate through whole data (6400/nBytes byte values)
+			// iterate through whole data (nBytes byte values)
 			for (unsigned int k = 0; k < nBytes; ++k) {
 
 				// if the current byte value is nonzero, increment streak; otherwise set streak to zero
@@ -253,20 +281,22 @@ void DelsysDataReader::updateQuaternionData()
 					// read data and store it as a quaternion only if it hasn't already been stored
 					if (!dataAlreadyRead) {
 						// array of 16 chars
-						char dataBytes[16];
+						//char dataBytes[16];
 						// iterate to 16 and fill dataBytes with nonzero byte values
-						for (unsigned int m = 0; m < 16; ++m) {
-							dataBytes[m] = receivedBytes[streakStartIndex + m];
+						//for (unsigned int m = 0; m < 16; ++m) {
+							//dataBytes[m] = receivedBytes[streakStartIndex + m];
 							//std::cout << "dataBytes[" << m << "] = " << (int)dataBytes[m] << std::endl;
-						}
+						//}
 						// create a float array depicting a quaternion and populate it with floats that have been converted from bytes using convertBytesToFloat()
-						float quaternion[4];
-						quaternion[0] = convertBytesToFloat(dataBytes[0], dataBytes[1], dataBytes[2], dataBytes[3], reverse);
-						quaternion[1] = convertBytesToFloat(dataBytes[4], dataBytes[5], dataBytes[6], dataBytes[7], reverse);
-						quaternion[2] = convertBytesToFloat(dataBytes[8], dataBytes[9], dataBytes[10], dataBytes[11], reverse);
-						quaternion[3] = convertBytesToFloat(dataBytes[12], dataBytes[13], dataBytes[14], dataBytes[15], reverse);
+						//float quaternion[4];
+						//quaternion[0] = convertBytesToFloat(dataBytes[0], dataBytes[1], dataBytes[2], dataBytes[3], reverse);
+						//quaternion[1] = convertBytesToFloat(dataBytes[4], dataBytes[5], dataBytes[6], dataBytes[7], reverse);
+						//quaternion[2] = convertBytesToFloat(dataBytes[8], dataBytes[9], dataBytes[10], dataBytes[11], reverse);
+						//quaternion[3] = convertBytesToFloat(dataBytes[12], dataBytes[13], dataBytes[14], dataBytes[15], reverse);
+						
 						// construct a quaternion out of the float array
-						SimTK::Quaternion_<SimTK::Real> quat(quaternion[0], quaternion[1], quaternion[2], quaternion[3]);
+						//SimTK::Quaternion_<SimTK::Real> quat(quaternion[0], quaternion[1], quaternion[2], quaternion[3]);
+						SimTK::Quaternion_<SimTK::Real> quat(convertBytesToFloat(receivedBytes[streakStartIndex], receivedBytes[streakStartIndex + 1], receivedBytes[streakStartIndex + 2], receivedBytes[streakStartIndex + 3], reverse), convertBytesToFloat(receivedBytes[streakStartIndex + 4], receivedBytes[streakStartIndex + 5], receivedBytes[streakStartIndex + 6], receivedBytes[streakStartIndex + 7], reverse), convertBytesToFloat(receivedBytes[streakStartIndex + 8], receivedBytes[streakStartIndex + 9], receivedBytes[streakStartIndex + 10], receivedBytes[streakStartIndex + 11], reverse), convertBytesToFloat(receivedBytes[streakStartIndex + 12], receivedBytes[streakStartIndex + 13], receivedBytes[streakStartIndex + 14], receivedBytes[streakStartIndex + 15], reverse));
 						// place the quaternion in a dictionary/map
 						quatMap[sensorIndex] = quat;
 
@@ -281,7 +311,12 @@ void DelsysDataReader::updateQuaternionData()
 					std::cout << "WARNING: NONZERO DATA STREAK IS " << std::to_string(streak) << std::endl;
 				}
 			}
+			std::cout << GetCounter() << std::endl;
 
+			std::cout << "second part :";
+			StartCounter();
+
+			// if the number of sensors detected in this loop does not equal the number of total active sensors, keep reading data
 			if (nDetectedSensors != nActiveSensors_) {
 				success = false;
 			}
@@ -300,7 +335,7 @@ void DelsysDataReader::updateQuaternionData()
 				//std::cout << "Labels with " << labels.size() << " elements: " << labels[0] << ", " << labels[1] << ", " << labels[2] << std::endl;
 
 				
-
+				// create a matrix with 1 row and nActiveSensors_ columns, then populate it with quaternions
 				SimTK::Matrix_<SimTK::Quaternion> quatMatrix(1, nActiveSensors_);
 				for (unsigned int m = 0; m < nActiveSensors_; ++m) {
 					int x = m - offset + 1;
@@ -313,10 +348,9 @@ void DelsysDataReader::updateQuaternionData()
 
 				quatTable_ = std::make_unique<OpenSim::TimeSeriesTable_<SimTK::Quaternion>>(timeVector, quatMatrix, labels);
 			}
-			
+			std::cout << GetCounter() << std::endl;
 
 		} // if statement for successful data retrieval ends
-
 
 	} while (!success);
 	//std::cout << "Finished loop" << std::endl;
