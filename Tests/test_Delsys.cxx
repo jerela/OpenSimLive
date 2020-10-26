@@ -24,6 +24,7 @@ struct VariableManager {
 	bool mainDataLoop = true; // IMU data is being measured and analyzed while this is true
 	bool continuousMode = false; // IK is calculated continuously while this is true
 	bool sendMode = false; // data is sent to client with each IK step while this is true
+	bool EMGMode = false; // EMG data is read from Delsys sensors when this is true
 	bool saveIKResults = ("true" == ConfigReader("MainConfiguration.xml", "save_ik_results")); // Boolean that determines if we want to save IK results (joint angles and their errors) to file when the program finishes. This can be very memory-heavy especially with long measurements.
 	int continuousModeMsDelay = std::stoi(ConfigReader("MainConfiguration.xml", "continuous_mode_ms_delay")); // delay between consequent IK calculations in consequent mode, in milliseconds
 	bool resetClockOnContinuousMode = ("true" == ConfigReader("MainConfiguration.xml", "reset_clock_on_continuous_mode")); // if true, clock will be reset to zero when entering continuous mode; if false, the clock will be set to zero at calibration
@@ -138,6 +139,8 @@ void ConnectToDataStream() {
 	bool stopContinuousModeKeyHit = false; // tells if the key that pauses continuous mode is hit
 	bool startSendModeKeyHit = false; // tells if the key that starts send mode is hit
 	bool stopSendModeKeyHit = false; // tells if the key that pauses send mode is hit
+	bool startEMGModeKeyHit = false; // tells if the key that starts/continues EMG measurement is hit
+	bool stopEMGModeKeyHit = false; // tells if the key that pauses EMG measurement is hit
 
 	// initialize the object that handles multithreading
 	OpenSimLive::ThreadPoolContainer threadPoolContainer(vm.maxThreads);
@@ -181,23 +184,26 @@ void ConnectToDataStream() {
 	do
 	{
 
-		// update time
-		vm.clockNow = std::chrono::high_resolution_clock::now();
-		vm.clockDuration = vm.clockNow - vm.clockStart;
-		double elapsedTime = vm.clockDuration.count();
 
-		// update EMG and set time for DelsysDataReader
-		delsysDataReader.updateEMG();
-		delsysDataReader.appendTime(elapsedTime);
+		if (vm.EMGMode) {
+			// update time
+			vm.clockNow = std::chrono::high_resolution_clock::now();
+			vm.clockDuration = vm.clockNow - vm.clockStart;
+			double elapsedTime = vm.clockDuration.count();
 
-		// send EMG data points to PythonPlotter
-		#ifdef PYTHON_ENABLED
-		if (vm.enableEMGPlotting) {
-			pythonPlotter.setTime(elapsedTime);
-			pythonPlotter.setYData(delsysDataReader.getLatestEMGValues());
-			pythonPlotter.updateGraph();
+			// update EMG and set time for DelsysDataReader
+			delsysDataReader.updateEMG();
+			delsysDataReader.appendTime(elapsedTime);
+
+			// send EMG data points to PythonPlotter
+			#ifdef PYTHON_ENABLED
+			if (vm.enableEMGPlotting) {
+				pythonPlotter.setTime(elapsedTime);
+				pythonPlotter.setYData(delsysDataReader.getLatestEMGValues());
+				pythonPlotter.updateGraph();
+			}
+			#endif
 		}
-		#endif
 
 
 
@@ -323,6 +329,18 @@ void ConnectToDataStream() {
 			stopSendModeKeyHit = false;
 		}
 
+		if (!vm.EMGMode && startEMGModeKeyHit) {
+			std::cout << "Starting EMG measurement mode." << std::endl;
+			vm.EMGMode = true;
+			startEMGModeKeyHit = false;
+		}
+
+		if (vm.EMGMode && stopEMGModeKeyHit) {
+			std::cout << "Exiting EMG measurement mode." << std::endl;
+			vm.EMGMode = false;
+			stopEMGModeKeyHit = false;
+		}
+
 		char hitKey = ' ';
 		if (_kbhit())
 		{
@@ -334,6 +352,8 @@ void ConnectToDataStream() {
 			stopContinuousModeKeyHit = (hitKey == 'M');
 			startSendModeKeyHit = (hitKey == 'V');
 			stopSendModeKeyHit = (hitKey == 'B');
+			startEMGModeKeyHit = (hitKey == 'A');
+			stopEMGModeKeyHit = (hitKey == 'S');
 			referenceBaseRotationKeyHit = (hitKey == 'L');
 		}
 			

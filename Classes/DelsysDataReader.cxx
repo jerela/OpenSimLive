@@ -36,10 +36,14 @@ DelsysDataReader::DelsysDataReader() {
 		// convert string tempSensorNumber to integer and push it in a vector
 		activeSensors_.push_back(std::stoi(tempSensorNumber));
 	}
+
+	// reserve a number of elements in the vector that contains EMG data arrays for all sensors
+	EMGData_.reserve(10000);
 }
 
 // DESTRUCTOR
 DelsysDataReader::~DelsysDataReader() {
+	std::cout << "EMG performance was " << (double)EMGData_.size() / timeVector_.back() << " read values per second." << std::endl;
 	std::cout << "Saving EMG time series to file..." << std::endl;
 	saveEMGToFile(OPENSIMLIVE_ROOT, "Delsys-data");
 	//saveTimeSeriesToTxtFile(timeVector_, EMGData_, OPENSIMLIVE_ROOT, "Delsys-data", "EMGTimeSeries.txt", "Time series of measured electromyographical data:\n", "Time (s)\t Voltage (unit?)");
@@ -49,7 +53,7 @@ DelsysDataReader::~DelsysDataReader() {
 union DelsysDataReader::byteFloater {
 	float f;
 	// flexible array member; this is not recommended, see if unsigned char c[4] would work better!
-	unsigned char c[0];
+	unsigned char c[4];
 };
 
 // Takes four bytes and whether to reverse byte order or not as an input and returns a float.
@@ -344,35 +348,35 @@ void DelsysDataReader::updateEMGData() {
 
 	int reverse = 0;
 
+	const unsigned int nBytes = 64;
+
 	// initialize array for holding bytes that are read from Trigno Control Utility / Delsys SDK
-	char receivedBytes[6400];
+	char receivedBytes[nBytes];
 	// whether the recvBytes returns true to indicate we successfully read bytes from Delsys SDK
 	bool success = false;
 	do {
 		// returns 1 if bytes were successfully read
-		success = EMGPort_->RecvBytes(receivedBytes, 6400);
+		success = EMGPort_->RecvBytes(receivedBytes, nBytes, 64);
 
 		if (success)
 		{
 			unsigned int nonzeros = 0;
 			success = false;
-			// every 4 values: 0, 4, 8, ...
+			// every 4 values: 0, 4, 8, ..., until 64 (16 sensors)
 			for (unsigned int k = 0; k < 64; ++k) {
 				// if we are at the starting index of each 4-byte sequence
 				if (k % 4 == 0) {
-					// array of 4 chars
-					char dataBytes[4];
-					// iterate to 4 and fill dataBytes with nonzero byte values
-					for (unsigned int m = 0; m < 4; ++m) {
-						dataBytes[m] = receivedBytes[k + m];
-						//std::cout << "dataBytes[" << m << "] = " << (int)dataBytes[m] << std::endl;
-					}
+
+					//std::cout << "convertBytesToFloat: ";
+					//StartCounter();
 					// fill EMGDataPoint with float that has been converted from bytes using convertBytesToFloat()
-					float EMGDataPoint = convertBytesToFloat(dataBytes[0], dataBytes[1], dataBytes[2], dataBytes[3], reverse);
-					
+					float EMGDataPoint = convertBytesToFloat(receivedBytes[k], receivedBytes[k+1], receivedBytes[k+2], receivedBytes[k+3], reverse);
+					//std::cout << GetCounter() << std::endl;
+					// if the float is nonzero, assign it to EMGDataPoints_ in an index corresponding to the sensor that sent the float
 					if (EMGDataPoint != 0) {
+						EMGDataPoints_[nonzeros] = EMGDataPoint;
 						++nonzeros;
-						EMGDataPoints_[floor(k / 4)] = EMGDataPoint;
+						//EMGDataPoints_[floor(k / 4)] = EMGDataPoint;
 					}
 						
 					//std::cout << "k=" << k << ", float=" << EMGDataPoint << std::endl;

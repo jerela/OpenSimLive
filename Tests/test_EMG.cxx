@@ -44,9 +44,9 @@ struct VariableManager {
 
 
 void EMGThread(OpenSimLive::DelsysDataReader& delsysDataReader) {
-	std::unique_lock<std::mutex> delsysMutex(mainMutex);
+	//std::unique_lock<std::mutex> delsysMutex(mainMutex);
 	delsysDataReader.updateEMG();
-	delsysMutex.unlock();
+	//delsysMutex.unlock();
 }
 
 
@@ -86,16 +86,13 @@ void ConnectToDataStream() {
 	vm.clockNow = vm.clockStart;
 	vm.clockPrev = vm.clockStart;
 
-	std::cout << "Entering data streaming and IK loop. Press C to calibrate model, Z to calculate IK once, N to enter continuous mode, M to exit continuous mode, V to enter send mode, B to exit send mode, L to save base reference orientation and X to quit." << std::endl;
+	std::cout << "Entering EMG reading loop. Press X to quit." << std::endl;
 
 	// Send a function to be multithreaded
 	//threadPoolContainer.offerFuture(EMGThreadLoop, std::ref(delsysDataReader), std::ref(vm));
 
 	do
 	{
-		// show EMG data
-		//delsysDataReader.updateEMG();
-		//threadPoolContainer.offerFuture(EMGThread, std::ref(delsysDataReader));
 
 		// update time
 		vm.clockNow = std::chrono::high_resolution_clock::now();
@@ -104,6 +101,7 @@ void ConnectToDataStream() {
 
 		// update EMG and set time for DelsysDataReader
 		delsysDataReader.updateEMG();
+		//threadPoolContainer.offerFuture(EMGThread, std::ref(delsysDataReader));
 		delsysDataReader.appendTime(elapsedTime);
 
 		// send EMG data points to PythonPlotter

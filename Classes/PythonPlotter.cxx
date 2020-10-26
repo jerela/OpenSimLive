@@ -106,9 +106,9 @@ void PythonPlotter::updateGraph() {
 	// draw the graph
 	PyRun_SimpleString("fig.canvas.draw()");
 //	PyRun_SimpleString("pyplot.show(block=False)");
+	//PyRun_SimpleString("print(len(x1))");
+	//PyRun_SimpleString("print(len(y1))");
 	// stop momentarily so the user can see the graph
-	PyRun_SimpleString("print(len(x1))");
-	PyRun_SimpleString("print(len(y1))");
 	PyRun_SimpleString("pyplot.pause(0.001)");
 }
 
