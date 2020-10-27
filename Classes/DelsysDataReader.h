@@ -38,7 +38,7 @@ namespace OpenSimLive {
 		std::vector<std::string> getLabelsFromFile(); // reads all 16 labels from DelsysMappings into a vector
 
 		// PRIVATE VARIABLES
-		union byteFloater; // data type that can contain several different variable types in one memory location; used in convertBytesToFloat
+		union byteFloatConverter; // data type that can contain several different variable types in one memory location; used in convertBytesToFloat
 		// pointer to Delsys SDK command port, which receives commands
 		std::unique_ptr<Client> commandPort_;
 		// pointer to Delsys SDK AUX port, which sends orientation data

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <MainConfiguration>
-	<!--Update rate for IMUs-->
+	<!--Update rate for Xsens IMUs-->
 	<desired_update_rate>60</desired_update_rate>
-	<!--File containing IMU labels on the model corresponding to IMU IDs.-->
+	<!--File containing Xsens IMU labels on the model corresponding to IMU IDs.-->
 	<mappings_file>SensorMappings_full.xml</mappings_file>
 	<!--Uncalibrated OpenSim model to be used.-->
 	<opensim_model_file>gait2392_full.osim</opensim_model_file>
@@ -27,5 +27,5 @@
 	<!--Maximum number of concurrent worker threads for multithreading.-->
 	<threads>8</threads>
 	<!--Live EMG plotting requires Python 3 and slows down EMG retrieval.-->
-	<enable_EMG_plotting>true</enable_EMG_plotting>
+	<enable_EMG_plotting>false</enable_EMG_plotting>
 </MainConfiguration>

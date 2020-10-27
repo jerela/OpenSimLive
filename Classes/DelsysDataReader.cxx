@@ -13,28 +13,6 @@
 #include <memory> // for std::unique_ptr
 #include <map>
 
-double PCFreq = 0.0;
-__int64 CounterStart = 0;
-
-void StartCounter()
-{
-	LARGE_INTEGER li;
-	if (!QueryPerformanceFrequency(&li))
-		std::cout << "QueryPerformanceFrequency failed!\n";
-
-	PCFreq = double(li.QuadPart) / 1000.0;
-
-	QueryPerformanceCounter(&li);
-	CounterStart = li.QuadPart;
-}
-double GetCounter()
-{
-	LARGE_INTEGER li;
-	QueryPerformanceCounter(&li);
-	return double(li.QuadPart - CounterStart) / PCFreq;
-}
-
-
 const std::string OPENSIMLIVE_ROOT = OPENSIMLIVE_ROOT_PATH;
 
 using namespace OpenSimLive;
@@ -67,22 +45,23 @@ DelsysDataReader::~DelsysDataReader() {
 	if (EMGData_.size() > 0 && timeVector_.size() > 0) {
 		// report EMG throughput to console
 		std::cout << "EMG performance was " << (double)EMGData_.size() / timeVector_.back() << " read values per second." << std::endl;
+		// save the data in timeVector_ and EMGData_ to a .txt file in OpenSimLive/Delsys-data/
 		std::cout << "Saving EMG time series to file..." << std::endl;
 		saveEMGToFile(OPENSIMLIVE_ROOT, "Delsys-data");
 	}
 }
 
 // this union is used to convert bytes to float; all its data members share a memory location, meaning that the byte array we save into it can be accessed as a float
-union DelsysDataReader::byteFloater {
+union DelsysDataReader::byteFloatConverter {
+	// create a float and a char array that share a memory address
 	float f;
-	// flexible array member; this is not recommended, see if unsigned char c[4] would work better!
 	unsigned char c[4];
 };
 
 // Takes four bytes and whether to reverse byte order or not as an input and returns a float.
 float DelsysDataReader::convertBytesToFloat(char b1, char b2, char b3, char b4, int rev) {
 	// create union that can be read/written as both bytes and float
-	byteFloater bytesToFloat;
+	byteFloatConverter bytesToFloat;
 	// populate it with bytes with two ways, depending on its endianness
 	if (rev == 0) {
 		bytesToFloat.c[0] = b1;
@@ -162,12 +141,14 @@ bool DelsysDataReader::initiateConnection() {
 	// SOCKET COMMUNICATION
 	bool bResult = false;
 	const char* ipc = "10.139.24.243";
+	// define endianness
 	int reverse = 0;
 	int dataport = -1; // datagram port, not in use
 	commandPort_ = std::make_unique<Client>(50040, dataport, ipc, reverse, &bResult);
 	EMGPort_ = std::make_unique<Client>(50043, dataport, ipc, reverse, &bResult);
 	AUXPort_ = std::make_unique<Client>(50044, dataport, ipc, reverse, &bResult);
 
+	// communicate with Delsys Trigno Control Utility to set backwards compatibility and upsampling on and start measuring with the sensors
 	commandPort_->SendString("\r\n\r\n");
 	commandPort_->SendString("BACKWARDS COMPATIBILITY ON\r\n");
 	commandPort_->SendString("\r\n\r\n");
@@ -183,8 +164,9 @@ bool DelsysDataReader::initiateConnection() {
 
 // This function commands Delsys SDK to stop streaming data.
 bool DelsysDataReader::closeConnection() {
+	// tell Delsys Trigno Control Utility to stop measuring
 	commandPort_->SendString("STOP\r\n");
-	std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+	//std::this_thread::sleep_for(std::chrono::milliseconds(1500));
 	commandPort_->SendString("\r\n\r\n");
 	return 1;
 }
@@ -193,29 +175,25 @@ bool DelsysDataReader::closeConnection() {
 // This function reads data from Delsys SDK and calculates a time series table of quaternions based on it.
 void DelsysDataReader::updateQuaternionData()
 {
+	// define endianness for converting bytes to float
 	int reverse = 0;
 
 	// number of elements between starting bytes of consecutive sensors
 	unsigned int dataGap = 36;
 
-	// The amount of bytes covering a single "cycle" of data for all 16 sensors is 832 (16 bytes per quaternion, 36 bytes of empty space after each quaternion byte sequence). Therefore if we start reading the stream halfway through a byte sequence describing quaternion elements, we have to be able to read at 832 + 16 bytes to make sure we get that sequence in its entirety on the next cycle.
-	const unsigned int nBytes = 848; // (16+36)*16 + 16 = 848
+	// The amount of bytes covering a single "cycle" of data for all 16 sensors is 576 (16 bytes per quaternion, 20 bytes of empty space after each quaternion byte sequence).
+	const unsigned int nBytes = 576; // (36)*16 = 576
 
 	// initialize array for holding bytes that are read from Trigno Control Utility / Delsys SDK
 	char receivedBytes[nBytes];
 	// whether the recvBytes returns true to indicate we successfully read bytes from Delsys SDK
 	bool success = false;
 	do {
-		std::cout << "receiveBytes: ";
-		StartCounter();
 		// returns 1 if bytes were successfully read
 		success = AUXPort_->RecvBytes(receivedBytes, nBytes, nBytes);
-		std::cout << GetCounter() << std::endl;
 
 		if (success)
 		{
-			std::cout << "first part: ";
-			StartCounter();
 			// dictionary/map of quaternions
 			std::map<int, SimTK::Quaternion_<SimTK::Real>> quatMap;
 			// vector that contains the indices that nonzero byte sequences begin for each quaternion
@@ -280,22 +258,7 @@ void DelsysDataReader::updateQuaternionData()
 
 					// read data and store it as a quaternion only if it hasn't already been stored
 					if (!dataAlreadyRead) {
-						// array of 16 chars
-						//char dataBytes[16];
-						// iterate to 16 and fill dataBytes with nonzero byte values
-						//for (unsigned int m = 0; m < 16; ++m) {
-							//dataBytes[m] = receivedBytes[streakStartIndex + m];
-							//std::cout << "dataBytes[" << m << "] = " << (int)dataBytes[m] << std::endl;
-						//}
-						// create a float array depicting a quaternion and populate it with floats that have been converted from bytes using convertBytesToFloat()
-						//float quaternion[4];
-						//quaternion[0] = convertBytesToFloat(dataBytes[0], dataBytes[1], dataBytes[2], dataBytes[3], reverse);
-						//quaternion[1] = convertBytesToFloat(dataBytes[4], dataBytes[5], dataBytes[6], dataBytes[7], reverse);
-						//quaternion[2] = convertBytesToFloat(dataBytes[8], dataBytes[9], dataBytes[10], dataBytes[11], reverse);
-						//quaternion[3] = convertBytesToFloat(dataBytes[12], dataBytes[13], dataBytes[14], dataBytes[15], reverse);
-						
-						// construct a quaternion out of the float array
-						//SimTK::Quaternion_<SimTK::Real> quat(quaternion[0], quaternion[1], quaternion[2], quaternion[3]);
+						// create the quaternion from bytes that are converted into floats
 						SimTK::Quaternion_<SimTK::Real> quat(convertBytesToFloat(receivedBytes[streakStartIndex], receivedBytes[streakStartIndex + 1], receivedBytes[streakStartIndex + 2], receivedBytes[streakStartIndex + 3], reverse), convertBytesToFloat(receivedBytes[streakStartIndex + 4], receivedBytes[streakStartIndex + 5], receivedBytes[streakStartIndex + 6], receivedBytes[streakStartIndex + 7], reverse), convertBytesToFloat(receivedBytes[streakStartIndex + 8], receivedBytes[streakStartIndex + 9], receivedBytes[streakStartIndex + 10], receivedBytes[streakStartIndex + 11], reverse), convertBytesToFloat(receivedBytes[streakStartIndex + 12], receivedBytes[streakStartIndex + 13], receivedBytes[streakStartIndex + 14], receivedBytes[streakStartIndex + 15], reverse));
 						// place the quaternion in a dictionary/map
 						quatMap[sensorIndex] = quat;
@@ -311,10 +274,6 @@ void DelsysDataReader::updateQuaternionData()
 					std::cout << "WARNING: NONZERO DATA STREAK IS " << std::to_string(streak) << std::endl;
 				}
 			}
-			std::cout << GetCounter() << std::endl;
-
-			std::cout << "second part :";
-			StartCounter();
 
 			// if the number of sensors detected in this loop does not equal the number of total active sensors, keep reading data
 			if (nDetectedSensors != nActiveSensors_) {
@@ -348,7 +307,6 @@ void DelsysDataReader::updateQuaternionData()
 
 				quatTable_ = std::make_unique<OpenSim::TimeSeriesTable_<SimTK::Quaternion>>(timeVector, quatMatrix, labels);
 			}
-			std::cout << GetCounter() << std::endl;
 
 		} // if statement for successful data retrieval ends
 
@@ -404,11 +362,8 @@ void DelsysDataReader::updateEMGData() {
 				// if we are at the starting index of each 4-byte sequence
 				if (k % 4 == 0) {
 
-					//std::cout << "convertBytesToFloat: ";
-					//StartCounter();
 					// fill EMGDataPoint with float that has been converted from bytes using convertBytesToFloat()
 					float EMGDataPoint = convertBytesToFloat(receivedBytes[k], receivedBytes[k+1], receivedBytes[k+2], receivedBytes[k+3], reverse);
-					//std::cout << GetCounter() << std::endl;
 					// if the float is nonzero, assign it to EMGDataPoints_ in an index corresponding to the sensor that sent the float
 					if (EMGDataPoint != 0) {
 						EMGDataPoints_[nonzeros] = EMGDataPoint;
@@ -436,18 +391,23 @@ void DelsysDataReader::updateEMGData() {
 // This function saves the time points and the corresponding EMG voltage values to file for later examination.
 void DelsysDataReader::saveEMGToFile(const std::string& rootDir, const std::string& resultsDir) {
 
+	// create the complete path of the file, including the file itself, as a string
 	std::string filePath(rootDir + "/" + resultsDir + "/" + "EMGTimeSeries.txt");
+	// create an output file stream that is used to write into the file
 	std::ofstream outputFile;
 	// open and set file to discard any contents that existed in the file previously (truncate mode)
 	outputFile.open(filePath, std::ios_base::out | std::ios_base::trunc);
+	// check that the file was successfully opened and write itno it
 	if (outputFile.is_open())
 	{
 		outputFile << "Time series of measured electromyographical data:\n";
 		outputFile << "Time (s)\t EMG1 \t EMG2 \t EMG3 \t EMG4 \t EMG5 \t EMG6 \t EMG7 \t EMG8 \t EMG9 \t EMG10 \t EMG11 \t EMG12 \t EMG13 \t EMG14 \t EMG15 \t EMG16";
 
 		for (unsigned int i = 0; i < EMGData_.size(); ++i) { // iteration through rows
+			// after the first 2 rows of text, start with a new line and put time values in the first column
 			outputFile << "\n" << timeVector_[i];
 			for (unsigned int j = 0; j < 16; ++j) {
+				// then input EMG values, separating them from time and other EMG values with a tab
 				outputFile << "\t" << EMGData_[i][j];
 			}
 		}

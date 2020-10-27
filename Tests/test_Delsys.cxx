@@ -13,30 +13,6 @@
 #ifdef PYTHON_ENABLED
 #include <PythonPlotter.h>
 #endif
-//#include <windows.h>
-
-/*
-double PCFreq = 0.0;
-__int64 CounterStart = 0;
-
-void StartCounter()
-{
-	LARGE_INTEGER li;
-	if (!QueryPerformanceFrequency(&li))
-		std::cout << "QueryPerformanceFrequency failed!\n";
-
-	PCFreq = double(li.QuadPart) / 1000.0;
-
-	QueryPerformanceCounter(&li);
-	CounterStart = li.QuadPart;
-}
-double GetCounter()
-{
-	LARGE_INTEGER li;
-	QueryPerformanceCounter(&li);
-	return double(li.QuadPart - CounterStart) / PCFreq;
-}*/
-
 
 
 std::mutex mainMutex;
@@ -123,19 +99,6 @@ void RunIKProcedure(OpenSimLive::DelsysDataReader& delsysDataReader, OpenSimLive
 }
 
 
-void EMGThreadLoop(OpenSimLive::DelsysDataReader& delsysDataReader, VariableManager& vm) {
-	do {
-		delsysDataReader.updateEMG();
-	} while (vm.mainDataLoop);
-	
-}
-
-void EMGThread(OpenSimLive::DelsysDataReader& delsysDataReader) {
-	//std::unique_lock<std::mutex> delsysMutex(mainMutex);
-	delsysDataReader.updateEMG();
-	//delsysMutex.unlock();
-}
-
 void orientationThread(OpenSimLive::DelsysDataReader& delsysDataReader) {
 	std::unique_lock<std::mutex> delsysMutex(mainMutex);
 	delsysDataReader.updateQuaternionData();
@@ -207,11 +170,6 @@ void ConnectToDataStream() {
 
 	std::cout << "Entering data streaming and IK loop. Press C to calibrate model, Z to calculate IK once, N to enter continuous mode, M to exit continuous mode, V to enter send mode, B to exit send mode, L to save base reference orientation and X to quit." << std::endl;
 
-	// Send a function to be multithreaded
-	//threadPoolContainer.offerFuture(EMGThreadLoop, std::ref(delsysDataReader), std::ref(vm));
-
-	delsysContainer.offerFuture(orientationThread, std::ref(delsysDataReader));
-
 	do
 	{
 
@@ -240,12 +198,7 @@ void ConnectToDataStream() {
 
 
 
-		// get IMU orientation data in quaternions
-		//std::cout << "updateQuaternionData: ";
-		//StartCounter();
-		//delsysDataReader.updateQuaternionData();
-		//delsysContainer.offerFuture(orientationThread, std::ref(delsysDataReader));
-		//std::cout << GetCounter() << std::endl;
+		// get IMU orientation data in quaternions in a separate thread
 		delsysContainer.offerFuture(orientationThread, std::ref(delsysDataReader));
 
 		bool newDataAvailable = true;
@@ -260,7 +213,7 @@ void ConnectToDataStream() {
 				std::cout << "Reference base rotation cannot be calculated because station reference body has not been defined in XML configuration!" << std::endl;
 				break;
 			}
-			//OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
+			// create a time series table
 			OpenSim::TimeSeriesTable_<SimTK::Quaternion> quaternionTimeSeriesTable(delsysDataReader.getTimeSeriesTable());
 			bool foundReferenceBodyIMUOrientation = false;
 			for (unsigned int i = 0; i < quaternionTimeSeriesTable.getNumColumns(); ++i) // iterate through the quaternion time series table to find the desired IMU data
@@ -323,8 +276,6 @@ void ConnectToDataStream() {
 
 		// if new data is available and continuous mode has been switched on
 		if (newDataAvailable && vm.continuousMode) {
-			//delsysContainer.offerFuture(orientationThread, std::ref(delsysDataReader));
-
 			// use high resolution clock to count time since the IMU measurement began
 			vm.clockNow = std::chrono::high_resolution_clock::now();
 			// calculate the duration since the beginning of counting
