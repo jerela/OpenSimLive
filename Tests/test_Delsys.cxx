@@ -9,6 +9,13 @@
 #include "conio.h" // for non-ANSI _kbhit() and _getch()
 #include <XMLFunctions.h>
 #include <ThreadPoolContainer.h>
+#include <mutex>
+#ifdef PYTHON_ENABLED
+#include <PythonPlotter.h>
+#endif
+
+
+std::mutex mainMutex;
 
 const std::string OPENSIMLIVE_ROOT = OPENSIMLIVE_ROOT_PATH;
 
@@ -18,10 +25,12 @@ struct VariableManager {
 	bool mainDataLoop = true; // IMU data is being measured and analyzed while this is true
 	bool continuousMode = false; // IK is calculated continuously while this is true
 	bool sendMode = false; // data is sent to client with each IK step while this is true
+	bool EMGMode = false; // EMG data is read from Delsys sensors when this is true
 	bool saveIKResults = ("true" == ConfigReader("MainConfiguration.xml", "save_ik_results")); // Boolean that determines if we want to save IK results (joint angles and their errors) to file when the program finishes. This can be very memory-heavy especially with long measurements.
 	int continuousModeMsDelay = std::stoi(ConfigReader("MainConfiguration.xml", "continuous_mode_ms_delay")); // delay between consequent IK calculations in consequent mode, in milliseconds
 	bool resetClockOnContinuousMode = ("true" == ConfigReader("MainConfiguration.xml", "reset_clock_on_continuous_mode")); // if true, clock will be reset to zero when entering continuous mode; if false, the clock will be set to zero at calibration
 	bool enableMirrorTherapy = (ConfigReader("MainConfiguration.xml", "station_parent_body") != "none"); // if "none", then set to false
+	bool enableEMGPlotting = ("true" == ConfigReader("MainConfiguration.xml", "enable_EMG_plotting")); // if true, PythonPlotter will be used to visualize live EMG data, but with extremely low frequency
 	unsigned int maxThreads = stoi(ConfigReader("MainConfiguration.xml", "threads")); // get the maximum number of concurrent threads for multithreading
 	std::string stationReferenceBody = ConfigReader("MainConfiguration.xml", "station_reference_body"); // get the name of the reference body used in mirror therapy
 
@@ -90,9 +99,11 @@ void RunIKProcedure(OpenSimLive::DelsysDataReader& delsysDataReader, OpenSimLive
 }
 
 
-
-
-
+void orientationThread(OpenSimLive::DelsysDataReader& delsysDataReader) {
+	std::unique_lock<std::mutex> delsysMutex(mainMutex);
+	delsysDataReader.updateQuaternionData();
+	delsysMutex.unlock();
+}
 
 
 void ConnectToDataStream() {
@@ -101,8 +112,13 @@ void ConnectToDataStream() {
 	OpenSimLive::DelsysDataReader delsysDataReader;
 	while (!delsysDataReader.initiateConnection()) {}
 
-	
-	std::vector<SimTK::Quaternion_<SimTK::Real>> quaternionData; // for data in quaternion form
+	#ifdef PYTHON_ENABLED
+	// initialize and prepare PythonPlotter
+	PythonPlotter pythonPlotter;
+	pythonPlotter.setMaxSize(50);
+	pythonPlotter.setSubPlots(delsysDataReader.getNActiveSensors());
+	pythonPlotter.prepareGraph();
+	#endif
 	
 	// Create a struct to hold a number of variables, and to pass them to functions
 	VariableManager vm;
@@ -114,9 +130,12 @@ void ConnectToDataStream() {
 	bool stopContinuousModeKeyHit = false; // tells if the key that pauses continuous mode is hit
 	bool startSendModeKeyHit = false; // tells if the key that starts send mode is hit
 	bool stopSendModeKeyHit = false; // tells if the key that pauses send mode is hit
+	bool startEMGModeKeyHit = false; // tells if the key that starts/continues EMG measurement is hit
+	bool stopEMGModeKeyHit = false; // tells if the key that pauses EMG measurement is hit
 
 	// initialize the object that handles multithreading
 	OpenSimLive::ThreadPoolContainer threadPoolContainer(vm.maxThreads);
+	OpenSimLive::ThreadPoolContainer delsysContainer(1);
 
 	// get the current times
 	vm.clockStart = std::chrono::high_resolution_clock::now();
@@ -147,18 +166,41 @@ void ConnectToDataStream() {
 		myLink.Connect(); // create socket connection
 		std::cout << "Client program connected." << std::endl;
 	}
-		
-		
+	
 
 	std::cout << "Entering data streaming and IK loop. Press C to calibrate model, Z to calculate IK once, N to enter continuous mode, M to exit continuous mode, V to enter send mode, B to exit send mode, L to save base reference orientation and X to quit." << std::endl;
 
 	do
 	{
-		// get IMU orientation data in quaternions
-		delsysDataReader.updateQuaternionData();
-		//quaternionData = delsysDataReader.getQuaternionData();
-		// update the boolean value to see if new data is available since orientation data was last retrieved
-		//bool newDataAvailable = xsensDataReader.GetNewDataAvailable();
+
+		
+		if (vm.EMGMode) {
+			// update time
+			vm.clockNow = std::chrono::high_resolution_clock::now();
+			vm.clockDuration = vm.clockNow - vm.clockStart;
+			double elapsedTime = vm.clockDuration.count();
+
+			// update EMG and set time for DelsysDataReader
+			delsysDataReader.updateEMG();
+			//threadPoolContainer.offerFuture(EMGThread, std::ref(delsysDataReader));
+			delsysDataReader.appendTime(elapsedTime);
+
+			// send EMG data points to PythonPlotter
+			#ifdef PYTHON_ENABLED
+			if (vm.enableEMGPlotting) {
+				pythonPlotter.setTime(elapsedTime);
+				pythonPlotter.setYData(delsysDataReader.getLatestEMGValues());
+				pythonPlotter.updateGraph();
+			}
+			#endif
+		}
+
+
+
+
+		// get IMU orientation data in quaternions in a separate thread
+		delsysContainer.offerFuture(orientationThread, std::ref(delsysDataReader));
+
 		bool newDataAvailable = true;
 
 		
@@ -171,7 +213,7 @@ void ConnectToDataStream() {
 				std::cout << "Reference base rotation cannot be calculated because station reference body has not been defined in XML configuration!" << std::endl;
 				break;
 			}
-			//OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
+			// create a time series table
 			OpenSim::TimeSeriesTable_<SimTK::Quaternion> quaternionTimeSeriesTable(delsysDataReader.getTimeSeriesTable());
 			bool foundReferenceBodyIMUOrientation = false;
 			for (unsigned int i = 0; i < quaternionTimeSeriesTable.getNumColumns(); ++i) // iterate through the quaternion time series table to find the desired IMU data
@@ -240,12 +282,14 @@ void ConnectToDataStream() {
 			vm.clockDuration = vm.clockNow - vm.clockStart;
 			// calculate the duration since the previous time IK was continuously calculated
 			vm.prevDuration = vm.clockNow - vm.clockPrev;
+
 			// if more than the set time delay has passed since the last time IK was calculated
 			if (vm.prevDuration.count()*1000 > vm.continuousModeMsDelay) {
 				// set current time as the time IK was previously calculated for the following iterations of the while-loop
 				vm.clockPrev = vm.clockNow;
 				RunIKProcedure(delsysDataReader, IKTool, myLink, threadPoolContainer, vm);
 			}
+
 		}
 
 		if (!vm.continuousMode && startContinuousModeKeyHit && !vm.calibratedModelFile.empty()) {
@@ -274,6 +318,18 @@ void ConnectToDataStream() {
 			stopSendModeKeyHit = false;
 		}
 
+		if (!vm.EMGMode && startEMGModeKeyHit) {
+			std::cout << "Starting EMG measurement mode." << std::endl;
+			vm.EMGMode = true;
+			startEMGModeKeyHit = false;
+		}
+
+		if (vm.EMGMode && stopEMGModeKeyHit) {
+			std::cout << "Exiting EMG measurement mode." << std::endl;
+			vm.EMGMode = false;
+			stopEMGModeKeyHit = false;
+		}
+
 		char hitKey = ' ';
 		if (_kbhit())
 		{
@@ -285,6 +341,8 @@ void ConnectToDataStream() {
 			stopContinuousModeKeyHit = (hitKey == 'M');
 			startSendModeKeyHit = (hitKey == 'V');
 			stopSendModeKeyHit = (hitKey == 'B');
+			startEMGModeKeyHit = (hitKey == 'A');
+			stopEMGModeKeyHit = (hitKey == 'S');
 			referenceBaseRotationKeyHit = (hitKey == 'L');
 		}
 			

@@ -13,3 +13,6 @@ SimTK::Vec3 get_sensor_to_opensim_rotations();
 std::string sensorIdToLabel(const std::string& id, const std::string& mappingsFileName);
 // This function calibrates an OpenSim model from setup file, similarly to how MATLAB scripting commands for OpenSense work.
 std::string calibrateModelFromSetupFile(const std::string& IMUPlacerSetupFile, const OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quaternionTimeSeriesTable);
+// Generic function to save time series as .txt files.
+template<typename myType>
+void saveTimeSeriesToTxtFile(std::vector<myType> timeVector, std::vector<myType> dataVector, const std::string& rootDir, const std::string& resultsDir, const std::string& fileName, const std::string& description, const std::string& labels);

@@ -41,7 +41,7 @@ class Client
 		bool				Close();										// Close the socket
 
 		bool				SendString(char* pStr);							// Send a string to socket
-		int					RecvBytes(char* pVals, int iLen);  				// Receive some bytes
+		int					RecvBytes(char* pVals, int iLen, int clientBuffSize = CLIENT_BUFF_SIZE);  				// Receive some bytes
 		
 
 	protected:		

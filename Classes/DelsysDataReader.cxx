@@ -4,7 +4,6 @@
 #include <string>
 #include <iostream>
 #include <Client.h>
-#include <conio.h> // for kbhit
 #include <chrono>
 #include <thread>
 #include <array>
@@ -14,6 +13,7 @@
 #include <memory> // for std::unique_ptr
 #include <map>
 
+const std::string OPENSIMLIVE_ROOT = OPENSIMLIVE_ROOT_PATH;
 
 using namespace OpenSimLive;
 
@@ -27,31 +27,41 @@ DelsysDataReader::DelsysDataReader() {
 	std::string activeSensorNumbersString = ConfigReader("DelsysMappings.xml", "active_sensors");
 	// stringstream is a simple way to separate the whitespace-separated numbers from the whole string
 	std::stringstream ss(activeSensorNumbersString);
-	// perhaps this loop could be implemented by checking when stringstream has reached its end rather than separately reading the number of sensors, which is heavier in terms of performance?
+	// loop through active sensors and save their indices to a vector
 	for (unsigned int i = 0; i < nActiveSensors_; ++i) {
 		std::string tempSensorNumber;
-		// write from stringstream to sempSensorNumber
+		// write from stringstream to tempSensorNumber
 		ss >> tempSensorNumber;
 		// convert string tempSensorNumber to integer and push it in a vector
 		activeSensors_.push_back(std::stoi(tempSensorNumber));
 	}
+
+	// reserve a number of elements in the vector that contains EMG data arrays for all sensors
+	EMGData_.reserve(50000);
 }
 
 // DESTRUCTOR
 DelsysDataReader::~DelsysDataReader() {
-
+	if (EMGData_.size() > 0 && timeVector_.size() > 0) {
+		// report EMG throughput to console
+		std::cout << "EMG performance was " << (double)EMGData_.size() / timeVector_.back() << " read values per second." << std::endl;
+		// save the data in timeVector_ and EMGData_ to a .txt file in OpenSimLive/Delsys-data/
+		std::cout << "Saving EMG time series to file..." << std::endl;
+		saveEMGToFile(OPENSIMLIVE_ROOT, "Delsys-data");
+	}
 }
 
 // this union is used to convert bytes to float; all its data members share a memory location, meaning that the byte array we save into it can be accessed as a float
-union DelsysDataReader::byteFloater {
+union DelsysDataReader::byteFloatConverter {
+	// create a float and a char array that share a memory address
 	float f;
-	unsigned char c[0];
+	unsigned char c[4];
 };
 
 // Takes four bytes and whether to reverse byte order or not as an input and returns a float.
 float DelsysDataReader::convertBytesToFloat(char b1, char b2, char b3, char b4, int rev) {
 	// create union that can be read/written as both bytes and float
-	byteFloater bytesToFloat;
+	byteFloatConverter bytesToFloat;
 	// populate it with bytes with two ways, depending on its endianness
 	if (rev == 0) {
 		bytesToFloat.c[0] = b1;
@@ -95,12 +105,6 @@ std::vector<std::string> DelsysDataReader::getSegmentLabelsForNumberLabels(std::
 }
 
 
-
-
-
-
-
-
 // This function calculates an index offset to correct the detected indices of sensors.
 unsigned int DelsysDataReader::correctSensorIndex(std::vector<unsigned int>& sensorIndices) {
 
@@ -137,11 +141,14 @@ bool DelsysDataReader::initiateConnection() {
 	// SOCKET COMMUNICATION
 	bool bResult = false;
 	const char* ipc = "10.139.24.243";
+	// define endianness
 	int reverse = 0;
 	int dataport = -1; // datagram port, not in use
 	commandPort_ = std::make_unique<Client>(50040, dataport, ipc, reverse, &bResult);
+	EMGPort_ = std::make_unique<Client>(50043, dataport, ipc, reverse, &bResult);
 	AUXPort_ = std::make_unique<Client>(50044, dataport, ipc, reverse, &bResult);
 
+	// communicate with Delsys Trigno Control Utility to set backwards compatibility and upsampling on and start measuring with the sensors
 	commandPort_->SendString("\r\n\r\n");
 	commandPort_->SendString("BACKWARDS COMPATIBILITY ON\r\n");
 	commandPort_->SendString("\r\n\r\n");
@@ -157,8 +164,9 @@ bool DelsysDataReader::initiateConnection() {
 
 // This function commands Delsys SDK to stop streaming data.
 bool DelsysDataReader::closeConnection() {
+	// tell Delsys Trigno Control Utility to stop measuring
 	commandPort_->SendString("STOP\r\n");
-	std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+	//std::this_thread::sleep_for(std::chrono::milliseconds(1500));
 	commandPort_->SendString("\r\n\r\n");
 	return 1;
 }
@@ -167,18 +175,22 @@ bool DelsysDataReader::closeConnection() {
 // This function reads data from Delsys SDK and calculates a time series table of quaternions based on it.
 void DelsysDataReader::updateQuaternionData()
 {
+	// define endianness for converting bytes to float
 	int reverse = 0;
 
 	// number of elements between starting bytes of consecutive sensors
 	unsigned int dataGap = 36;
 
+	// The amount of bytes covering a single "cycle" of data for all 16 sensors is 576 (16 bytes per quaternion, 20 bytes of empty space after each quaternion byte sequence).
+	const unsigned int nBytes = 576; // (36)*16 = 576
+
 	// initialize array for holding bytes that are read from Trigno Control Utility / Delsys SDK
-	char receivedBytes[6400];
+	char receivedBytes[nBytes];
 	// whether the recvBytes returns true to indicate we successfully read bytes from Delsys SDK
 	bool success = false;
 	do {
 		// returns 1 if bytes were successfully read
-		success = AUXPort_->RecvBytes(receivedBytes, 6400);
+		success = AUXPort_->RecvBytes(receivedBytes, nBytes, nBytes);
 
 		if (success)
 		{
@@ -196,8 +208,8 @@ void DelsysDataReader::updateQuaternionData()
 			int streakStartIndex = 0;
 			// starting index of the first streak
 			int firstStartIndex = -1;
-			// iterate through whole data (6400 byte values)
-			for (unsigned int k = 0; k < 6400; ++k) {
+			// iterate through whole data (nBytes byte values)
+			for (unsigned int k = 0; k < nBytes; ++k) {
 
 				// if the current byte value is nonzero, increment streak; otherwise set streak to zero
 				if (receivedBytes[k] != 0) {
@@ -246,21 +258,8 @@ void DelsysDataReader::updateQuaternionData()
 
 					// read data and store it as a quaternion only if it hasn't already been stored
 					if (!dataAlreadyRead) {
-						// array of 16 chars
-						char dataBytes[16];
-						// iterate to 16 and fill dataBytes with nonzero byte values
-						for (unsigned int m = 0; m < 16; ++m) {
-							dataBytes[m] = receivedBytes[streakStartIndex + m];
-							//std::cout << "dataBytes[" << m << "] = " << (int)dataBytes[m] << std::endl;
-						}
-						// create a float array depicting a quaternion and populate it with floats that have been converted from bytes using convertBytesToFloat()
-						float quaternion[4];
-						quaternion[0] = convertBytesToFloat(dataBytes[0], dataBytes[1], dataBytes[2], dataBytes[3], reverse);
-						quaternion[1] = convertBytesToFloat(dataBytes[4], dataBytes[5], dataBytes[6], dataBytes[7], reverse);
-						quaternion[2] = convertBytesToFloat(dataBytes[8], dataBytes[9], dataBytes[10], dataBytes[11], reverse);
-						quaternion[3] = convertBytesToFloat(dataBytes[12], dataBytes[13], dataBytes[14], dataBytes[15], reverse);
-						// construct a quaternion out of the float array
-						SimTK::Quaternion_<SimTK::Real> quat(quaternion[0], quaternion[1], quaternion[2], quaternion[3]);
+						// create the quaternion from bytes that are converted into floats
+						SimTK::Quaternion_<SimTK::Real> quat(convertBytesToFloat(receivedBytes[streakStartIndex], receivedBytes[streakStartIndex + 1], receivedBytes[streakStartIndex + 2], receivedBytes[streakStartIndex + 3], reverse), convertBytesToFloat(receivedBytes[streakStartIndex + 4], receivedBytes[streakStartIndex + 5], receivedBytes[streakStartIndex + 6], receivedBytes[streakStartIndex + 7], reverse), convertBytesToFloat(receivedBytes[streakStartIndex + 8], receivedBytes[streakStartIndex + 9], receivedBytes[streakStartIndex + 10], receivedBytes[streakStartIndex + 11], reverse), convertBytesToFloat(receivedBytes[streakStartIndex + 12], receivedBytes[streakStartIndex + 13], receivedBytes[streakStartIndex + 14], receivedBytes[streakStartIndex + 15], reverse));
 						// place the quaternion in a dictionary/map
 						quatMap[sensorIndex] = quat;
 
@@ -276,6 +275,7 @@ void DelsysDataReader::updateQuaternionData()
 				}
 			}
 
+			// if the number of sensors detected in this loop does not equal the number of total active sensors, keep reading data
 			if (nDetectedSensors != nActiveSensors_) {
 				success = false;
 			}
@@ -294,7 +294,7 @@ void DelsysDataReader::updateQuaternionData()
 				//std::cout << "Labels with " << labels.size() << " elements: " << labels[0] << ", " << labels[1] << ", " << labels[2] << std::endl;
 
 				
-
+				// create a matrix with 1 row and nActiveSensors_ columns, then populate it with quaternions
 				SimTK::Matrix_<SimTK::Quaternion> quatMatrix(1, nActiveSensors_);
 				for (unsigned int m = 0; m < nActiveSensors_; ++m) {
 					int x = m - offset + 1;
@@ -303,20 +303,118 @@ void DelsysDataReader::updateQuaternionData()
 					quatMatrix.set(0, m, quatMap[x]);
 				}
 
-				/*for (unsigned int z = 0; z < nActiveSensors_; ++z) {
-					std::cout << "Quaternion for " << labels[z] << ": " << quatMatrix.get(0,z) << std::endl;
-				}*/
-
 				std::vector<double> timeVector = { 0 };
 
 				quatTable_ = std::make_unique<OpenSim::TimeSeriesTable_<SimTK::Quaternion>>(timeVector, quatMatrix, labels);
 			}
-			
 
 		} // if statement for successful data retrieval ends
-
 
 	} while (!success);
 	//std::cout << "Finished loop" << std::endl;
 
+}
+
+void DelsysDataReader::prepareTime() {
+	// get time at the beginning of the plotting
+	startTime_ = std::chrono::high_resolution_clock::now();
+	currentTime_ = startTime_;
+}
+
+void DelsysDataReader::updateTime() {
+	// get time at each iteration
+	currentTime_ = std::chrono::high_resolution_clock::now();
+	// count how many milliseconds have passed
+	double timeNow = std::chrono::duration<double>(currentTime_ - startTime_).count();
+	// push time to vector for saving to file later
+	timeVector_.push_back(timeNow);
+}
+
+void DelsysDataReader::appendTime(double time) {
+	timeVector_.push_back(time);
+}
+
+void DelsysDataReader::updateEMG() {
+	updateEMGData();
+}
+
+// reads byte stream and updates float vector EMGData_
+void DelsysDataReader::updateEMGData() {
+
+	int reverse = 0;
+
+	const unsigned int nBytes = 64;
+
+	// initialize array for holding bytes that are read from Trigno Control Utility / Delsys SDK
+	char receivedBytes[nBytes];
+	// whether the recvBytes returns true to indicate we successfully read bytes from Delsys SDK
+	bool success = false;
+	do {
+		// returns 1 if bytes were successfully read
+		success = EMGPort_->RecvBytes(receivedBytes, nBytes, nBytes);
+
+		if (success)
+		{
+			unsigned int nonzeros = 0;
+			success = false;
+			// every 4 values: 0, 4, 8, ..., until 64 (16 sensors)
+			for (unsigned int k = 0; k < 64; ++k) {
+				// if we are at the starting index of each 4-byte sequence
+				if (k % 4 == 0) {
+
+					// fill EMGDataPoint with float that has been converted from bytes using convertBytesToFloat()
+					float EMGDataPoint = convertBytesToFloat(receivedBytes[k], receivedBytes[k+1], receivedBytes[k+2], receivedBytes[k+3], reverse);
+					// if the float is nonzero, assign it to EMGDataPoints_ in an index corresponding to the sensor that sent the float
+					if (EMGDataPoint != 0) {
+						EMGDataPoints_[nonzeros] = EMGDataPoint;
+						++nonzeros;
+						//EMGDataPoints_[floor(k / 4)] = EMGDataPoint;
+					}
+						
+					//std::cout << "k=" << k << ", float=" << EMGDataPoint << std::endl;
+				}
+				if (nonzeros >= nActiveSensors_)
+					success = true;
+			}
+
+		} // if statement for successful data retrieval ends
+
+	} while (!success);
+	//std::cout << "Finished loop" << std::endl;
+	
+	// push the desired sensor's EMG readings into another vector
+	EMGData_.push_back(EMGDataPoints_);
+}
+
+
+
+// This function saves the time points and the corresponding EMG voltage values to file for later examination.
+void DelsysDataReader::saveEMGToFile(const std::string& rootDir, const std::string& resultsDir) {
+
+	// create the complete path of the file, including the file itself, as a string
+	std::string filePath(rootDir + "/" + resultsDir + "/" + "EMGTimeSeries.txt");
+	// create an output file stream that is used to write into the file
+	std::ofstream outputFile;
+	// open and set file to discard any contents that existed in the file previously (truncate mode)
+	outputFile.open(filePath, std::ios_base::out | std::ios_base::trunc);
+	// check that the file was successfully opened and write itno it
+	if (outputFile.is_open())
+	{
+		outputFile << "Time series of measured electromyographical data:\n";
+		outputFile << "Time (s)\t EMG1 \t EMG2 \t EMG3 \t EMG4 \t EMG5 \t EMG6 \t EMG7 \t EMG8 \t EMG9 \t EMG10 \t EMG11 \t EMG12 \t EMG13 \t EMG14 \t EMG15 \t EMG16";
+
+		for (unsigned int i = 0; i < EMGData_.size(); ++i) { // iteration through rows
+			// after the first 2 rows of text, start with a new line and put time values in the first column
+			outputFile << "\n" << timeVector_[i];
+			for (unsigned int j = 0; j < 16; ++j) {
+				// then input EMG values, separating them from time and other EMG values with a tab
+				outputFile << "\t" << EMGData_[i][j];
+			}
+		}
+		outputFile.close();
+		std::cout << "EMG time series written to file " << filePath << std::endl;
+	}
+	else {
+		std::cout << "Failed to open file " << filePath << std::endl;
+	}
 }

@@ -169,7 +169,7 @@ bool Client::SendString(char* pStr)
 }
 
 // Receive some bytes, returns number of bytes received.
-int Client::RecvBytes(char* pVals, int iLen)
+int Client::RecvBytes(char* pVals, int iLen, int clientBuffSize)
 {
 	int			i				= 0;
 	int			j				= 0;
@@ -183,7 +183,7 @@ int Client::RecvBytes(char* pVals, int iLen)
 	// We receiving the incoming ints one byte at a time.
 	while (!bEnd)
 	{
-		if ((iNumBytes = recv(m_iSock, pTemp, CLIENT_BUFF_SIZE, 0)) == -1)
+		if ((iNumBytes = recv(m_iSock, pTemp, clientBuffSize, 0)) == -1)
 		{
 			perror("Client::RecvBytes, recv");
 			return -1;
@@ -207,11 +207,11 @@ int Client::RecvBytes(char* pVals, int iLen)
 	}
 
 
-	if (VERBOSE)
+	/*if (VERBOSE)
 	{
-		//printf("Client: received %d bytes - ", iTotalBytes);
-		//printf("\n");
-	}
+		printf("Client: received %d bytes - ", iTotalBytes);
+		printf("\n");
+	}*/
 
 	return iTotalBytes;
 }
