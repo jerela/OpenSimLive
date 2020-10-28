@@ -165,6 +165,7 @@ namespace OpenSimLive {
 		void SetDesiredUpdateRate(int rate) { desiredUpdateRate_ = rate; } // sets the desired orientation measurement frequency
 		void SetDesiredRadioChannel(int channel) { desiredRadioChannel_ = channel; } // sets the desired radio channel
 		bool GetNewDataAvailable() { return newDataAvailable_; } // returns true if new data is available since the last time we used a getter function for orientations
+		std::vector<XsQuaternion> XsensDataReader::getQuaternionData(); // returns IMU orientations as quaternions
 
 	protected:
 			
@@ -176,7 +177,7 @@ namespace OpenSimLive {
 		// PRIVATE VARIABLES
 		WirelessMasterCallback wirelessMasterCallback_; // Callback for wireless master		
 		std::vector<MtwCallback*> mtwCallbacks_; // Callbacks for MTw devices
-		int desiredUpdateRate_ = 75; // orientation measurement frequency in hertz
+		int desiredUpdateRate_ = 60; // orientation measurement frequency in hertz
 		int desiredRadioChannel_ = 19; // use radio channel 19 for wireless master
 		XsDevicePtrArray mtwDevices_;
 		XsDevicePtr wirelessMasterDevice_;

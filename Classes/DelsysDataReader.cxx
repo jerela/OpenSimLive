@@ -397,7 +397,7 @@ void DelsysDataReader::saveEMGToFile(const std::string& rootDir, const std::stri
 	std::ofstream outputFile;
 	// open and set file to discard any contents that existed in the file previously (truncate mode)
 	outputFile.open(filePath, std::ios_base::out | std::ios_base::trunc);
-	// check that the file was successfully opened and write itno it
+	// check that the file was successfully opened and write into it
 	if (outputFile.is_open())
 	{
 		outputFile << "Time series of measured electromyographical data:\n";
