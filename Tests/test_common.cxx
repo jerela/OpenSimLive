@@ -175,8 +175,6 @@ void ConnectToDataStream() {
 		// get IMU orientation data in quaternions
 		genericDataReader.updateQuaternionTable();
 
-		bool newDataAvailable = true;
-
 		// if user hits the key to save the current orientation of the station reference body IMU when it is placed against the mounting surface of the robot arm
 		if (referenceBaseRotationKeyHit)
 		{
@@ -207,7 +205,7 @@ void ConnectToDataStream() {
 		}
 
 		// if user hits the calibration key and new data is available
-		if (newDataAvailable && calibrateModelKeyHit) {
+		if (calibrateModelKeyHit) {
 			// set clock to start from calibration
 			vm.clockStart = std::chrono::high_resolution_clock::now();
 			// fill a timeseriestable with quaternion orientations of IMUs
@@ -237,7 +235,7 @@ void ConnectToDataStream() {
 		}
 
 		// if user hits the single IK calculation key, new data is available and the model has been calibrated
-		if (newDataAvailable && getDataKeyHit && !vm.calibratedModelFile.empty())
+		if (getDataKeyHit && !vm.calibratedModelFile.empty())
 		{
 			// use high resolution clock to count time since the IMU measurement began
 			vm.clockNow = std::chrono::high_resolution_clock::now();
@@ -247,7 +245,7 @@ void ConnectToDataStream() {
 		}
 
 		// if new data is available and continuous mode has been switched on
-		if (newDataAvailable && vm.continuousMode) {
+		if (vm.continuousMode) {
 			// use high resolution clock to count time since the IMU measurement began
 			vm.clockNow = std::chrono::high_resolution_clock::now();
 			// calculate the duration since the beginning of counting
