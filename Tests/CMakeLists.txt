@@ -296,6 +296,8 @@ set(TEST_COMMON_SOURCES
 	"${INCLUDE_CLASSES_PATH}/DelsysDataReader.cxx"
 	"${INCLUDE_CLASSES_PATH}/XsensDataReader.h"
 	"${INCLUDE_CLASSES_PATH}/XsensDataReader.cxx"
+	"${INCLUDE_CLASSES_PATH}/SimulatedDataReader.h"
+	"${INCLUDE_CLASSES_PATH}/SimulatedDataReader.cxx"
 	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctions.h"
 	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctions.cxx"
 	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctionsXsens.h"

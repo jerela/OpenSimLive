@@ -13,12 +13,17 @@
 - [Acknowledgments](#acknowledgments)
 <!-- toc -->
 
+
+**THIS NEEDS UPDATING**
+
 OpenSimLive is a C++ package that streams orientation data from Xsens MTw Awinda inertial measurement units and calculates inverse kinematics based on that data. It relies on OpenSim for biomechanical analyses and related tools. The current version uses OpenSim 4.1 API and XDA 4.6.
 
 ## Getting started
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
 
 ### Prerequisites
+
+**THIS NEEDS UPDATING**
 
 XDA 4.6 and OpenSim 4.1 are required for core functionality. CMake and Visual Studio are used to configure, generate and build the project. Vicon Datastream SDK 1.10 and Vicon Nexus 2.10+ are required if you wish to perform inverse kinematics on live marker data, but are otherwise optional.
 
@@ -31,6 +36,8 @@ Example
 Step by step instructions on how to install this project.
 
 #### Windows (64-bit)
+
+**THIS NEEDS UPDATING**
 
 1. Download and unzip the package to a directory on your hard drive.
 2. Open CMake and select that directory as the source code directory.
@@ -75,6 +82,8 @@ After the model is calibrated, you can enable continuous inverse kinematics and 
 When you are finished, pressing X will quit the program. At this point the program will save IK results, IK errors and calculated mirrored positions and rotations to **IK-live.mot**, **IK-live_orientationErrors.sto** and **PointTrackerOutput.txt**, respectively, in the **Config** folder.
 
 ### Running the tests
+
+**THIS NEEDS UPDATING**
 
 There are currently two tests, **test_IK_speed** and **test_IK_speed_multithread**. They are found in OpenSimLive/Tests/ in the source directory and in a similar separate Tests folder in the build directory. Note that **xsensdeviceapi64.dll** and **xstypes64.dll** from .../Xsens/MT Software Suite 4.6/MT SDK/x64/lib must be copied to the folder where the test executables are.
 
@@ -131,6 +140,24 @@ This class establishes the connection to Xsens MTw Awinda inertial measurement u
 
 This method takes a vector of XsQuaternion objects as its input. If any IMUs have new data, it updates the quaternion orientation values in the vector for that IMU. In any case the input vector is returned.
 
+### DelsysDataReader
+
+This class establishes the connection to Delsys Trigno Avanti inertial measurement units and acquires orientation and EMG data from them.
+
+#### DelsysDataReader::updateQuaternionData()
+
+This method creates a time series table of quaternions for a single frame. The quaternions represent orientations of Delsys Trigno Avanti sensors, supporting a maximum of 16 sensors.
+
+Although the quaternion bytes for each sensor in the byte stream are in ascending order, the method may start reading this bytestream at any point, not only in the beginning. Therefore the first quaternion this method reads does not necessarily represent the orientation of the first sensor. Initially the method will assume this to be the case, and form a vector of initial detected sensor indices. These indices are compared to the sensor indices given in <active_sensors> in OpenSimLive/Config/DelsysMappings.xml and incremented until they match, and the number of increments is used as an "offset" to determine the actual sensor indices from the detected byte stream.
+
+For example, if we use sensors 1, 2 and 3, but the method starts reading the byte stream from the third quaternion, the detected sensor indices before correction are 1, 15 and 16. After each incrementation step, we compare the results to the indices given in the config file. Therefore after the first incrementation we have 2, 16 and 1, which doesn't match the actual sensor indices even after sorting. After the second incrementation we have 3, 1 and 2 which after sorting is 1, 2 and 3. This matches the sensor indices in the config file, and we now know that the first detected quaternion actually belonged to the third sensor.
+
+Now imagine that we use sensors 1, 2, 3, 4, 9, 10, 11 and 12. If the method starts reading the byte stream from the quaternion of sensor 9, it is detected as sensor 1 and without any offset incrementation we detect sensors 1, 2, 3, 4, 9, 10, 11 and 12, even though the actual indices of the sensors are 9, 10, 11, 12, 1, 2, 3 and 4. The method will return quaternions assigned to the wrong sensor indices. Therefore when selecting your sensors, you should avoid index sequences that contain this kind of symmetry.
+
+### IMUHandler
+
+This class can be used as a "generic data reader" class for IMUs. It is used in **test_common** to invoke methods from DelsysDataReader or XsensDataReader. Because of slight differences in the working principles of DelsysDataReader and XsensDataReader, the methods invoked by IMUHandler are not always exactly identical to the methods invoked by the corresponding data reader class.
+
 ### ThreadPoolContainer
 
 This class controls the number of worker threads during multithreading and works as an interface to access the ThreadPool class. When constructed with an integer parameter N, ThreadPoolContainer creates a ThreadPool object with N worker threads. This class ensures that the user has control over how many worker threads run at a time.
@@ -140,13 +167,25 @@ This class is not necessary if multithreading is not used.
 
 This method sends a function to the thread pool. If there are N worker threads running already, the function will wait in queue until the oldest of them has finished, then it will be given to the worker thread. If there are less than N worker threads running, the function is immediately given to a vacant worker thread. The elements of the thread pool are managed in a vector.
 
+### Client
+
+This class is based on [Keith Vertanen's Java / C++ socket class](https://www.keithv.com/software/socket/) and enables socket communication between Delsys Trigno Control Utility (TCU) and this program. It is used to send commands to TCU and receive orientation and EMG data from it. In effect, this class is used to read bytes sent by TCU.
+
+### Server
+
+Like Client, this class is also based on Keith Vertanen's work. It enables socket communication between this program and the Java client that is used to control the robot arm in mirror therapy.
+
+### PythonPlotter
+
+This class can be used to plot data, but it requires Python3 with matplotplib. The main program freezes when embedded Python commands are interpreted and the procedure is not thread-safe. Thus using this class during any data loops will slow them down.
+
 ## Troubleshooting and FAQ
 
 ### General questions
 
 #### What operating systems are supported by OpenSimLive?
 
-Currently OpenSimLive has been tested with 64-bit Windows 7 and 64-bit Windows 10.
+Currently OpenSimLive has been tested on 64-bit Windows 7 and 64-bit Windows 10.
 
 ### Run-time issues
 

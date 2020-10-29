@@ -113,6 +113,8 @@ void ConnectToDataStream() {
 		manufacturer = delsys;
 	else if (vm.manufacturer == "xsens")
 		manufacturer = xsens;
+	else if (vm.manufacturer == "simulated")
+		manufacturer = simulated;
 
 	genericDataReader.setManufacturer(manufacturer);
 

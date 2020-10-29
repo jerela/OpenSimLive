@@ -40,6 +40,9 @@ void IMUHandler::initialize() {
 		delsysObject_.reset(new OpenSimLive::DelsysDataReader);
 		while (!delsysObject_->initiateConnection()) {}
 	}
+	else if (IMUType_ == simulated) {
+		simulatedObject_.reset(new OpenSimLive::SimulatedDataReader);
+	}
 }
 
 // update the value of quaternionTimeSeriesTable_
@@ -50,6 +53,10 @@ void IMUHandler::updateQuaternionTable() {
 	else if (IMUType_ == delsys) {
 		delsysObject_->updateQuaternionData();
 		quaternionTimeSeriesTable_ = delsysObject_->getTimeSeriesTable();
+	}
+	else if (IMUType_ == simulated) {
+		simulatedObject_->updateQuaternionTable();
+		quaternionTimeSeriesTable_ = simulatedObject_->getTimeSeriesTable();
 	}
 }
 
@@ -67,6 +74,10 @@ void IMUHandler::updateEMG() {
 	else if (IMUType_ == delsys) {
 		delsysObject_->updateEMG();
 	}
+	else if (IMUType_ == simulated)
+	{
+		std::cout << "Simulation has no EMG capabilities, updateEMG() will do nothing!" << std::endl;
+	}
 }
 
 // close the connection, save to file etc
@@ -77,6 +88,9 @@ void IMUHandler::closeConnection() {
 	}
 	else if (IMUType_ == delsys) {
 		delsysObject_->closeConnection();
+	}
+	else if (IMUType_ == simulated) {
+		simulatedObject_->closeConnection();
 	}
 }
 

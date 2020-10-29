@@ -2,11 +2,12 @@
 #pragma once
 #include <DelsysDataReader.h>
 #include <XsensDataReader.h>
+#include <SimulatedDataReader.h>
 #include <memory>
 #include <OpenSim.h>
 
 
-enum IMUType { xsens = 0, delsys = 1 };
+enum IMUType { xsens = 0, delsys = 1, simulated = 2 };
 
 namespace OpenSimLive {
 
@@ -34,6 +35,7 @@ namespace OpenSimLive {
 		IMUType IMUType_; // holds the enum that is either delsys or xsens
 		std::unique_ptr<OpenSimLive::XsensDataReader> xsensObject_; // pointer to XsensDataReader object
 		std::unique_ptr<OpenSimLive::DelsysDataReader> delsysObject_; // pointer to DelsysDataReader object
+		std::unique_ptr<OpenSimLive::SimulatedDataReader> simulatedObject_; // pointer to SimulatedDataReader object
 		OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable_; // quaternion time series table that is fed to IK, among other things
 
 	}; // end of class
