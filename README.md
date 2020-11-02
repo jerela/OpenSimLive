@@ -16,7 +16,7 @@
 
 **THIS NEEDS UPDATING**
 
-OpenSimLive is a C++ package that streams orientation data from Xsens MTw Awinda inertial measurement units and calculates inverse kinematics based on that data. It relies on OpenSim for biomechanical analyses and related tools. The current version uses OpenSim 4.1 API and XDA 4.6.
+OpenSimLive is a C++ package that streams orientation data from inertial measurement units and calculates inverse kinematics based on that data. It relies on OpenSim for biomechanical analyses and related tools. The current version uses OpenSim 4.1 API. Two types of IMUs are supported: Xsens MTw Awinda and Delsys Trigno Avanti. Xsens IMUs use XDA 4.6 and Delsys IMUs use Delsys Trigno Control Utility.
 
 ## Getting started
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
@@ -25,7 +25,7 @@ These instructions will get you a copy of the project up and running on your loc
 
 **THIS NEEDS UPDATING**
 
-XDA 4.6 and OpenSim 4.1 are required for core functionality. CMake and Visual Studio are used to configure, generate and build the project. Vicon Datastream SDK 1.10 and Vicon Nexus 2.10+ are required if you wish to perform inverse kinematics on live marker data, but are otherwise optional.
+OpenSim 4.1 is required for core functionality. XDA 4.6 is required to use Xsens IMUs. CMake and Visual Studio are used to configure, generate and build the project.
 
 ```
 Example
@@ -40,7 +40,7 @@ Step by step instructions on how to install this project.
 **THIS NEEDS UPDATING**
 
 1. Download and unzip the package to a directory on your hard drive.
-2. Open CMake and select that directory as the source code directory.
+2. Open CMake and select the directory from the previous step as the source code directory.
 - Put YourFilePath/YourSourceCodeFolder-build or whatever else you want as the build folder and allow CMake to create a new folder when prompted.
 - Select **x64** as the generator when prompted.
 - Select **Configure**. CMake variables and their values should now be displayed. If any of them are not found, you can manually type in folders. An example file path of each is as follows:
@@ -54,20 +54,24 @@ Step by step instructions on how to install this project.
    - OPENSIM_LIB_PATH:          C:/OpenSim 4.1/sdk/lib
    - SIMBODY_INCLUDE_PATH:      C:/OpenSim 4.1/sdk/Simbody/include
    - SIMBODY_LIB_PATH:          C:/OpenSim 4.1/sdk/Simbody/lib
-   - VICONSDK_LIB:              C:/Program Files/Vicon/DataStream SDK/Win64/CPP/ViconDataStreamSDK_CPP.lib
-   - VICONSDK_PATH:             C:/Program Files/Vicon/DataStream SDK/Win64/CPP
-- The two last entries are not required for IMU IK calculations.
+   - PYTHON_LIB:				  C:/Users/YourUserHere/AppData/Local/Programs/Python38/libs
+   - PYTHON_PATH:				  C:/Users/YourUserHere/AppData/Local/Programs/Python38
+- The two last entries are not required unless you wish to plot EMG data with Delsys IMUs.
 - Finally, select **Generate**.
-3. Open Visual Studio. Open the solution you just generated in the build directory. Build **ALL_BUILD**. Visual Studio should now create the required executable(s) in a subdirectory in the build directory.
-4. Copy **xsensdeviceapi64.dll** and **xstypes64.dll** from .../Xsens/MT Software Suite 4.6/MT SDK/x64/lib to the directory where **XsensReader.exe** is.
+3. Open Visual Studio. Open the solution you just generated in the build directory. Build **ALL_BUILD**. Visual Studio should now create the required executable(s) in a subdirectory in the build directory. It will probably be .../BuildFolderName/MirrorTherapy/RelWithDebInfo/ for mirror therapy applications and .../BuildFolderName/Tests/RelWithDebInfo/ for tests.
+4. Copy **xsensdeviceapi64.dll** and **xstypes64.dll** from .../Xsens/MT Software Suite 4.6/MT SDK/x64/lib to the directories where **OSL_common.exe** and **test_IK_speed** are or add their locations to the PATH environmental variable.
 5. Go to .../OpenSimLive/Config and make sure the .xml files have the right values for your directory paths.
-6. Installation complete. You are ready to run **XsensReader.exe**.
+6. Installation complete. You are ready to run OpenSimLive.
 
 ### Running the program
 
-The main mirror therapy program (**XsensReader**) is controlled by keyboard input. Calibrating a model will open a visualization in another window, so make sure you select the command console window as the active window to ensure keyboard input is successfully read.
+The main mirror therapy program (**OSL_common**) and most other programs and tests are controlled by keyboard input. Calibrating a model will open a visualization in another window, so make sure you select the command console window as the active window to ensure keyboard input is successfully read.
 
-When the program starts, it will look for active Xsens IMUs. Make sure your IMUs are on and not on standby mode (move them until a red light starts blinking). The program will list all IMUs it can connect to in a numbered order and finding an IMU may take a few seconds. When the program lists all the IMUs you want to use, press Y on your keyboard to continue.
+If you have set IMU manufacturer as "xsens" in MainConfiguration, then when the program starts, it will look for active Xsens IMUs. Make sure your IMUs are on and not on standby mode (move them until a red light starts blinking). The program will list all IMUs it can connect to in a numbered order and finding an IMU may take a few seconds. When the program lists all the IMUs you want to use, press Y on your keyboard to continue.
+
+If you have set IMU manufacturer as "delsys" in MainConfiguration, then the program will start reading data stream from Delsys Trigno Control Utility.
+
+Finally, you can run the program without any actual IMUs by setting "simulated", in which case the program will create random quaternions for IMU orientations.
 
 If **station_parent_body** in **Config/MainConfiguration.xml** is set to anything but "none", the program (acting as a server for socket communication) will wait for another program (the client) to connect to it. For testing purposes, you can run **JavaClient/run.bat** at this point to execute a program that receives data from the server. When the connection is made, the main program will automatically continue.
 
@@ -83,17 +87,15 @@ When you are finished, pressing X will quit the program. At this point the progr
 
 ### Running the tests
 
-**THIS NEEDS UPDATING**
-
-There are currently two tests, **test_IK_speed** and **test_IK_speed_multithread**. They are found in OpenSimLive/Tests/ in the source directory and in a similar separate Tests folder in the build directory. Note that **xsensdeviceapi64.dll** and **xstypes64.dll** from .../Xsens/MT Software Suite 4.6/MT SDK/x64/lib must be copied to the folder where the test executables are.
+There are currently three tests, **test_EMG**, **test_IK_speed** and **test_IK_speed_multithread**. They are found in OpenSimLive/Tests/ in the source directory and in a similar separate Tests folder in the build directory. Note that **xsensdeviceapi64.dll** and **xstypes64.dll** from .../Xsens/MT Software Suite 4.6/MT SDK/x64/lib must be copied to the folder where the test executables are to run IK speed tests.
 
 **test_IK_speed** measures how many inverse kinematics operations are performed over a time that the user inputs in seconds.
 **test_IK_speed_multithread** measures how many inverse kinematics operations are performed over a time that the user inputs in seconds. The user also inputs the number of threads to be used.
-
+Both of these tests currently use Xsens IMUs.
 Both tests calculate point position tracking operations for mirror therapy if **station_parent_body** in OpenSimLive/Config/MainConfiguration.xml is not set to *none*. In the case of **test_IK_speed_multithread**, these operations are also multithreaded.
-
 When the tests finish, results are printed on the command prompt. They include how many IK (and possibly point tracking) operations were performed in total, how much time was elapsed and how many operations were performed on average per second.
 
+**test_EMG** reads EMG data from Delsys sensors and outputs the throughput (EMG values read per second) when you finish the program.
 
 
 ## How it works
@@ -153,6 +155,10 @@ Although the quaternion bytes for each sensor in the byte stream are in ascendin
 For example, if we use sensors 1, 2 and 3, but the method starts reading the byte stream from the third quaternion, the detected sensor indices before correction are 1, 15 and 16. After each incrementation step, we compare the results to the indices given in the config file. Therefore after the first incrementation we have 2, 16 and 1, which doesn't match the actual sensor indices even after sorting. After the second incrementation we have 3, 1 and 2 which after sorting is 1, 2 and 3. This matches the sensor indices in the config file, and we now know that the first detected quaternion actually belonged to the third sensor.
 
 Now imagine that we use sensors 1, 2, 3, 4, 9, 10, 11 and 12. If the method starts reading the byte stream from the quaternion of sensor 9, it is detected as sensor 1 and without any offset incrementation we detect sensors 1, 2, 3, 4, 9, 10, 11 and 12, even though the actual indices of the sensors are 9, 10, 11, 12, 1, 2, 3 and 4. The method will return quaternions assigned to the wrong sensor indices. Therefore when selecting your sensors, you should avoid index sequences that contain this kind of symmetry.
+
+## SimulatedDataReader
+
+This is a very simple class that creates quaternions from a random distribution and lets the program use those quaternions as IMU orientations. It can be used in **OSL_common** if you do not wish to use actual IMUs.
 
 ### IMUHandler
 

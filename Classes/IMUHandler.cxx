@@ -60,10 +60,6 @@ void IMUHandler::updateQuaternionTable() {
 	}
 }
 
-// return quaternionTimeSeriesTable_ when needed e.g. for IK
-OpenSim::TimeSeriesTable_<SimTK::Quaternion> IMUHandler::getQuaternionTable() {
-	return quaternionTimeSeriesTable_;
-}
 
 // update EMG values
 void IMUHandler::updateEMG() {

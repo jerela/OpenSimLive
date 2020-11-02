@@ -12,6 +12,7 @@ using namespace OpenSimLive;
 
 // CONSTRUCTOR
 SimulatedDataReader::SimulatedDataReader() {
+	populateLabelVector();
 }
 
 // DESTRUCTOR
@@ -24,13 +25,26 @@ SimTK::Quaternion SimulatedDataReader::generateQuaternion() {
 	return quat.normalize();
 }
 
+// populate labels_ from config file
+void SimulatedDataReader::populateLabelVector() {
+	std::string IMULabelString = ConfigReader("MainConfiguration.xml", "simulated_bodies");
+	// stringstream is a simple way to separate the whitespace-separated numbers from the whole string
+	std::stringstream ss(IMULabelString);
+	// loop through all elements
+	do {
+		std::string IMULabel;
+		// write from stringstream to IMULabel
+		ss >> IMULabel;
+		// push IMULabel in a vector
+		labels_.push_back(IMULabel);
+	} while (!ss.eof());
+}
+
 // updates quatTable_ with new quaternion values
 void SimulatedDataReader::updateQuaternionTable() {
-	// labels lists IMUs to simulate
-	std::vector<std::string> labels = { "pelvis_imu", "torso_imu", "femur_r_imu", "femur_l_imu" };
 	// create a quaternion matrix for time series table
-	SimTK::Matrix_<SimTK::Quaternion> quatMatrix(1, labels.size());
-	for (unsigned int m = 0; m < labels.size(); ++m) {
+	SimTK::Matrix_<SimTK::Quaternion> quatMatrix(1, labels_.size());
+	for (unsigned int m = 0; m < labels_.size(); ++m) {
 		quatMatrix.set(0, m, generateQuaternion());
 	}
 
@@ -38,7 +52,7 @@ void SimulatedDataReader::updateQuaternionTable() {
 	std::vector<double> timeVector = { 0 };
 
 	// finally create/overwrite the time series table
-	quatTable_ = OpenSim::TimeSeriesTable_<SimTK::Quaternion>(timeVector, quatMatrix, labels);
+	quatTable_ = OpenSim::TimeSeriesTable_<SimTK::Quaternion>(timeVector, quatMatrix, labels_);
 }
 
 // returns the time series table of quaternion orientations

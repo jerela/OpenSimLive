@@ -1,4 +1,4 @@
-set(TEST_IK_SPEED_SOURCES
+set(TEST_XSENS_IK_SPEED_SOURCES
 	"${INCLUDE_CLASSES_PATH}/IMUPlacerLive.h"
 	"${INCLUDE_CLASSES_PATH}/IMUPlacerLive.cxx"
 	"${INCLUDE_CLASSES_PATH}/IMUInverseKinematicsToolLive.h"
@@ -14,17 +14,17 @@ set(TEST_IK_SPEED_SOURCES
 	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctionsXsens.h"
 	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctionsXsens.cxx")
 
-# add executable based on the source files determined in TEST_IK_SPEED_SOURCES
-add_executable(test_IK_speed test_IK_speed.cxx "${TEST_IK_SPEED_SOURCES}")
+# add executable based on the source files determined in TEST_XSENS_IK_SPEED_SOURCES
+add_executable(test_Xsens_IK_speed test_Xsens_IK_speed.cxx "${TEST_XSENS_IK_SPEED_SOURCES}")
 
-target_link_libraries(test_IK_speed PRIVATE "${MT_LIBRARY}" # Xsens MT libraries for IMU data retrieval
+target_link_libraries(test_Xsens_IK_speed PRIVATE "${MT_LIBRARY}" # Xsens MT libraries for IMU data retrieval
 						PRIVATE "${OPENSIM_LIBRARY}"
 						PRIVATE "${SIMBODY_LIBRARY}")
 						
-target_include_directories(test_IK_speed PRIVATE
+target_include_directories(test_Xsens_IK_speed PRIVATE
 						"${INCLUDE_CLASSES_PATH}"
 						"${INCLUDE_FUNCTIONS_PATH}")
-target_include_directories(test_IK_speed PUBLIC
+target_include_directories(test_Xsens_IK_speed PUBLIC
 						   "${PROJECT_BINARY_DIR}"
 						   "${OPENSIM_INCLUDE_PATH}"
 						   "${OPENSIM_INCLUDE_PATH_TWO}"
@@ -37,27 +37,27 @@ target_include_directories(test_IK_speed PUBLIC
 						   
 						   
 						   
-set(TEST_IK_SPEED_MULTITHREAD_SOURCES
-	"${TEST_IK_SPEED_SOURCES}"
+set(TEST_XSENS_IK_SPEED_MULTITHREAD_SOURCES
+	"${TEST_XSENS_IK_SPEED_SOURCES}"
 	"${INCLUDE_CLASSES_PATH}/ThreadPool.h"
 	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.h"
 	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.tpp"
 	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.cxx")						   
 						   
 # add executable based on the source files determined in TEST_IK_SPEED_SOURCES
-add_executable(test_IK_speed_multithread
-			   test_IK_speed_multithread.cxx
-			   "${TEST_IK_SPEED_MULTITHREAD_SOURCES}")
+add_executable(test_Xsens_IK_speed_multithread
+			   test_Xsens_IK_speed_multithread.cxx
+			   "${TEST_XSENS_IK_SPEED_MULTITHREAD_SOURCES}")
 
-target_link_libraries(test_IK_speed_multithread PRIVATE "${MT_LIBRARY}" # Xsens MT libraries for IMU data retrieval
+target_link_libraries(test_Xsens_IK_speed_multithread PRIVATE "${MT_LIBRARY}" # Xsens MT libraries for IMU data retrieval
 						PRIVATE "${OPENSIM_LIBRARY}"
 						PRIVATE "${SIMBODY_LIBRARY}")
 						
-target_include_directories(test_IK_speed_multithread PRIVATE
+target_include_directories(test_Xsens_IK_speed_multithread PRIVATE
 						"${INCLUDE_CLASSES_PATH}"
 						"${INCLUDE_FUNCTIONS_PATH}")
 						
-target_include_directories(test_IK_speed_multithread PUBLIC
+target_include_directories(test_Xsens_IK_speed_multithread PUBLIC
 						   "${PROJECT_BINARY_DIR}"
 						   "${OPENSIM_INCLUDE_PATH}"
 						   "${OPENSIM_INCLUDE_PATH_TWO}"
@@ -142,6 +142,76 @@ target_include_directories(test_EMG PUBLIC
 						   "${OPENSIM_INCLUDE_PATH_TWO}"
 						   "${SIMBODY_INCLUDE_PATH}"
 						   )						   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+set(TEST_IK_SPEED_MULTITHREAD_SOURCES
+	"${INCLUDE_CLASSES_PATH}/IMUPlacerLive.h"
+	"${INCLUDE_CLASSES_PATH}/IMUPlacerLive.cxx"
+	"${INCLUDE_CLASSES_PATH}/IMUInverseKinematicsToolLive.h"
+	"${INCLUDE_CLASSES_PATH}/IMUInverseKinematicsToolLive.cxx"
+	"${INCLUDE_CLASSES_PATH}/PointTracker.h"
+	"${INCLUDE_CLASSES_PATH}/PointTracker.cxx"
+	"${INCLUDE_CLASSES_PATH}/DecorationGeneratorLive.h"
+	"${INCLUDE_CLASSES_PATH}/DecorationGeneratorLive.cxx"
+	"${INCLUDE_CLASSES_PATH}/XsensDataReader.h"
+	"${INCLUDE_CLASSES_PATH}/XsensDataReader.cxx"
+	"${INCLUDE_CLASSES_PATH}/Client.h"						   
+	"${INCLUDE_CLASSES_PATH}/Client.cpp"
+	"${INCLUDE_CLASSES_PATH}/DelsysDataReader.h"
+	"${INCLUDE_CLASSES_PATH}/DelsysDataReader.cxx"
+	"${INCLUDE_CLASSES_PATH}/SimulatedDataReader.h"
+	"${INCLUDE_CLASSES_PATH}/SimulatedDataReader.cxx"
+	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctions.h"
+	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctions.cxx"
+	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctionsXsens.h"
+	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctionsXsens.cxx"
+	"${INCLUDE_CLASSES_PATH}/ThreadPool.h"
+	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.h"
+	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.tpp"
+	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.cxx"
+	"${INCLUDE_CLASSES_PATH}/IMUHandler.h"
+	"${INCLUDE_CLASSES_PATH}/IMUHandler.cxx"
+	)	
+
+
+add_executable(test_IK_speed_multithread
+			   test_IK_speed_multithread.cxx
+			   "${TEST_IK_SPEED_MULTITHREAD_SOURCES}")
+
+target_link_libraries(test_IK_speed_multithread
+						PRIVATE "${MT_LIBRARY}"
+						PRIVATE "${OPENSIM_LIBRARY}"
+						PRIVATE "${SIMBODY_LIBRARY}"
+						PRIVATE "ws2_32.lib")
+						
+target_include_directories(test_IK_speed_multithread PRIVATE
+						"${INCLUDE_CLASSES_PATH}"
+						"${INCLUDE_FUNCTIONS_PATH}")
+						
+target_include_directories(test_IK_speed_multithread PUBLIC
+						   "${PROJECT_BINARY_DIR}"
+						   "${OPENSIM_INCLUDE_PATH}"
+						   "${OPENSIM_INCLUDE_PATH_TWO}"
+						   "${SIMBODY_INCLUDE_PATH}"
+						   "${MTSDK_PATH}"
+						   "${MT_LIB_PATH}"
+						   )						   
+						   
+
+
 
 
 

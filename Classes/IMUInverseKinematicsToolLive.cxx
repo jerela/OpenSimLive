@@ -233,7 +233,7 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
     // Convert to OpenSim Frame
     const SimTK::Vec3& rotations = get_sensor_to_opensim_rotations();
     SimTK::Rotation sensorToOpenSim = SimTK::Rotation(SimTK::BodyOrSpaceType::SpaceRotationSequence, rotations[0], SimTK::XAxis, rotations[1], SimTK::YAxis, rotations[2], SimTK::ZAxis);
-
+    
     // Rotate data so Y-Axis is up
     OpenSim::OpenSenseUtilities::rotateOrientationTable(quatTable, sensorToOpenSim);
 
@@ -251,10 +251,12 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
 
     // set the time of state s0
     auto& times = oRefs.getTimes();
-    std::unique_lock<std::mutex> concurrentIKMutex(m);
-
+    
     // check if another thread has already set the time of state s_ to a more advanced time point
     bool threadExpired = false;
+
+    std::unique_lock<std::mutex> concurrentIKMutex(m);
+
     if (s_.getTime() > time) {
         //std::cout << "Thread was found to be expired at check 1." << std::endl;
         threadExpired = true;
@@ -294,7 +296,7 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
     //model_.getVisualizer().getSimbodyVisualizer().drawFrameNow(s_);
 
     // update the time of s_
-    if (get_report_errors()) {
+    if (get_report_errors() && !threadExpired) {
         int nos = ikSolver.getNumOrientationSensorsInUse();
         SimTK::Array_<double> orientationErrors(nos, 0.0);
         // calculate orientation errors into orientationErrors
@@ -397,3 +399,9 @@ void IMUInverseKinematicsToolLive::update(const bool visualizeResults)
     updateInverseKinematics(get_quat(), visualizeResults);
 }
 
+
+// This function updates the IK after it's been initially run
+void IMUInverseKinematicsToolLive::update(const bool visualizeResults, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quat)
+{
+    updateInverseKinematics(quat, visualizeResults);
+}

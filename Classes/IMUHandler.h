@@ -24,7 +24,8 @@ namespace OpenSimLive {
 		void updateQuaternionTable();
 		void updateEMG();
 		void closeConnection();
-		OpenSim::TimeSeriesTable_<SimTK::Quaternion> getQuaternionTable();
+		// return quaternionTimeSeriesTable_ when needed e.g. for IK
+		OpenSim::TimeSeriesTable_<SimTK::Quaternion> getQuaternionTable() { return quaternionTimeSeriesTable_; };
 
 	protected:
 			

@@ -22,9 +22,12 @@ namespace OpenSimLive {
 	private:
 		// PRIVATE METHODS
 		SimTK::Quaternion generateQuaternion();
+		void populateLabelVector();
 
 		// PRIVATE VARIABLES
 		OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable_;
+		// labels_ lists IMUs to simulate
+		std::vector<std::string> labels_;
 
 	}; // end of class
 }
