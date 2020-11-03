@@ -18,6 +18,8 @@
 
 OpenSimLive is a C++ package that streams orientation data from inertial measurement units and calculates inverse kinematics based on that data. It relies on OpenSim for biomechanical analyses and related tools. The current version uses OpenSim 4.1 API. Two types of IMUs are supported: Xsens MTw Awinda and Delsys Trigno Avanti. Xsens IMUs use XDA 4.6 and Delsys IMUs use Delsys Trigno Control Utility.
 
+Some of OpenSimLive's features can be tested without actual IMUs by using fake IMU data that that OpenSimLive generates as random unit quaternions.
+
 ## Getting started
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
 
@@ -25,7 +27,9 @@ These instructions will get you a copy of the project up and running on your loc
 
 **THIS NEEDS UPDATING**
 
-OpenSim 4.1 is required for core functionality. XDA 4.6 is required to use Xsens IMUs. CMake and Visual Studio are used to configure, generate and build the project.
+OpenSim 4.1 is required for core functionality. XDA 4.6 is required to use Xsens IMUs. Delsys Trigno Control Utility is required to communicate with Delsys SDK and read data from Delsys IMUs. CMake and Visual Studio are used to configure, generate and build the project.
+
+Python 3.7+ is optional and enables using the PythonPlotter class, which can be used to plot OpenSimLive data.
 
 ```
 Example
@@ -59,7 +63,7 @@ Step by step instructions on how to install this project.
 - The two last entries are not required unless you wish to plot EMG data with Delsys IMUs.
 - Finally, select **Generate**.
 3. Open Visual Studio. Open the solution you just generated in the build directory. Build **ALL_BUILD**. Visual Studio should now create the required executable(s) in a subdirectory in the build directory. It will probably be .../BuildFolderName/MirrorTherapy/RelWithDebInfo/ for mirror therapy applications and .../BuildFolderName/Tests/RelWithDebInfo/ for tests.
-4. Copy **xsensdeviceapi64.dll** and **xstypes64.dll** from .../Xsens/MT Software Suite 4.6/MT SDK/x64/lib to the directories where **OSL_common.exe** and **test_IK_speed** are or add their locations to the PATH environmental variable.
+4. Copy **xsensdeviceapi64.dll** and **xstypes64.dll** from .../Xsens/MT Software Suite 4.6/MT SDK/x64/lib to the directories where **OSL_common.exe** and **test_IK_speed** are or add their locations to the PATH environmental variable. **This is required to run Xsens-related scripts, but is otherwise optional.**
 5. Go to .../OpenSimLive/Config and make sure the .xml files have the right values for your directory paths.
 6. Installation complete. You are ready to run OpenSimLive.
 
@@ -67,13 +71,13 @@ Step by step instructions on how to install this project.
 
 The main mirror therapy program (**OSL_common**) and most other programs and tests are controlled by keyboard input. Calibrating a model will open a visualization in another window, so make sure you select the command console window as the active window to ensure keyboard input is successfully read.
 
-If you have set IMU manufacturer as "xsens" in MainConfiguration, then when the program starts, it will look for active Xsens IMUs. Make sure your IMUs are on and not on standby mode (move them until a red light starts blinking). The program will list all IMUs it can connect to in a numbered order and finding an IMU may take a few seconds. When the program lists all the IMUs you want to use, press Y on your keyboard to continue.
+If you have set IMU manufacturer as "xsens" in MainConfiguration.xml, then when the program starts, it will look for active Xsens IMUs. Make sure your IMUs are on and not on standby mode (move them until a red light starts blinking). The program will list all IMUs it can connect to in a numbered order and finding an IMU may take a few seconds. When the program lists all the IMUs you want to use, press Y on your keyboard to continue.
 
-If you have set IMU manufacturer as "delsys" in MainConfiguration, then the program will start reading data stream from Delsys Trigno Control Utility.
+If you have set IMU manufacturer as "delsys" in MainConfiguration.xml, then the program will start reading data stream from Delsys Trigno Control Utility.
 
-Finally, you can run the program without any actual IMUs by setting "simulated", in which case the program will create random quaternions for IMU orientations.
+Finally, you can run the program without any actual IMUs by setting manufactured as "simulated", in which case the program will create random quaternions for IMU orientations. The visualization of the skeletal model in this case will not look sensible, but will instead change to random and sometimes unnatural orientations with each new frame.
 
-If **station_parent_body** in **Config/MainConfiguration.xml** is set to anything but "none", the program (acting as a server for socket communication) will wait for another program (the client) to connect to it. For testing purposes, you can run **JavaClient/run.bat** at this point to execute a program that receives data from the server. When the connection is made, the main program will automatically continue.
+If **station_parent_body** in **Config/MainConfiguration.xml** is set to anything but "none", the program (acting as a server for socket communication) will wait for another program (the client) to connect to it. For testing purposes, you can run **JavaClient/run.bat** at this point to execute a program that receives data from the server. When the connection is made, the main program will automatically continue. Make sure that *socket_port* in /Config/MainConfiguration.xml matches the first line of /JavaClient/conf.txt so that the client can connect to the server with the right port.
 
 The program should print input instructions in the command window. Pressing L will set a reference orientation for the base segment IMU and pressing C will calibrate the model.
 Setting a reference orientation with L is not necessary, but is used to acknowledge differences in coordinate system rotations between the base body on the model and the rehabilitation robot. When L is pressed, the IMU on the base segment should be facing the same way as the robot's coordinate system. For example, if the robot is mounted on a wall 180 degrees opposite to the patient during the rehabilitation session, then the base segment IMU should first be placed on a surface that is parallel to the base of the robot and in a way that the IMU would be on the patient's base segment if the patient was sitting with their back to the base of the robot. After reference orientation is set, the IMU should be placed back on the patient's base segment and the model should then be calibrated. During inverse kinematics the current position of the base segment IMU is then used to correct the mirrored rotations and positions of the body to be rehabilitated, before they are sent to the client.
@@ -83,16 +87,19 @@ To enable sending data to the client, you must press V. Pressing B will disable 
 
 After the model is calibrated, you can enable continuous inverse kinematics and rotation/position mirroring operations with N and disable them with M. The visualization window will show the solved joint angles on the model. If data sending is enabled, the calculated data is automatically sent to the client. You can also press Z to calculate IK and rotation/position mirroring operations at a single time point.
 
-When you are finished, pressing X will quit the program. At this point the program will save IK results, IK errors and calculated mirrored positions and rotations to **IK-live.mot**, **IK-live_orientationErrors.sto** and **PointTrackerOutput.txt**, respectively, in the **Config** folder.
+Delsys sensors will allow you to measure EMG. Pressing A will begin EMG measurement and S will pause it.
+
+When you are finished, pressing X will quit the program. At this point the program will save IK results, IK errors and calculated mirrored positions and rotations to **IK-live.mot**, **IK-live_orientationErrors.sto** and **PointTrackerOutput.txt**, respectively, in /OpenSimLive-results/.
 
 ### Running the tests
 
-There are currently three tests, **test_EMG**, **test_IK_speed** and **test_IK_speed_multithread**. They are found in OpenSimLive/Tests/ in the source directory and in a similar separate Tests folder in the build directory. Note that **xsensdeviceapi64.dll** and **xstypes64.dll** from .../Xsens/MT Software Suite 4.6/MT SDK/x64/lib must be copied to the folder where the test executables are to run IK speed tests.
+There are currently four tests, **test_EMG**, **test_Xsens_IK_speed**, **test_Xsens_IK_speed_multithread** and **test_IK_speed_multithread**. They are found in /Tests/ in the source directory and in a similar separate Tests folder in the build directory. Note that **xsensdeviceapi64.dll** and **xstypes64.dll** from .../Xsens/MT Software Suite 4.6/MT SDK/x64/lib must be copied to the folder where the test executables are to run IK speed tests.
 
-**test_IK_speed** measures how many inverse kinematics operations are performed over a time that the user inputs in seconds.
-**test_IK_speed_multithread** measures how many inverse kinematics operations are performed over a time that the user inputs in seconds. The user also inputs the number of threads to be used.
-Both of these tests currently use Xsens IMUs.
-Both tests calculate point position tracking operations for mirror therapy if **station_parent_body** in OpenSimLive/Config/MainConfiguration.xml is not set to *none*. In the case of **test_IK_speed_multithread**, these operations are also multithreaded.
+**test_Xsens_IK_speed** measures how many inverse kinematics operations are performed over a time that the user inputs in seconds while using Xsens sensors. **test_Xsens_IK_speed_multithread** does the same with user-given amount of CPU threads.
+
+**test_IK_speed_multithread** measures how many inverse kinematics operations are performed over a time that the user inputs in seconds. The user also inputs the number of threads to be used. This test supports Xsens or Delsys IMUs or simulated data.
+
+All tests except **test_EMG** calculate point position tracking operations for mirror therapy if **station_parent_body** in /OpenSimLive/Config/MainConfiguration.xml is not set to *none*.
 When the tests finish, results are printed on the command prompt. They include how many IK (and possibly point tracking) operations were performed in total, how much time was elapsed and how many operations were performed on average per second.
 
 **test_EMG** reads EMG data from Delsys sensors and outputs the throughput (EMG values read per second) when you finish the program.
