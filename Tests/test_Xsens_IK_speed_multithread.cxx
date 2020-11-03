@@ -4,26 +4,25 @@
 #include <OpenSim.h>
 #include <IMUPlacerLive.h>
 #include <IMUInverseKinematicsToolLive.h>
+#include <XsensDataReader.h>
 #include <ThreadPoolContainer.h>
 #include "conio.h" // for non-ANSI _kbhit() and _getch()
 #include <XMLFunctions.h>
 #include <XMLFunctionsXsens.h>
 #include <thread>
 #include <future>
+#include <mutex>
 #include <functional>
-#include <IMUHandler.h>
 
 const std::string OPENSIMLIVE_ROOT = OPENSIMLIVE_ROOT_PATH;
 
-void updateConcurrentIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, std::chrono::steady_clock::time_point& clockStart, std::chrono::duration<double>& clockDuration, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable) {
-	
+void updateConcurrentIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, std::chrono::steady_clock::time_point& clockStart, std::chrono::duration<double>& clockDuration) {
 	// calculate current duration
 	clockDuration = (std::chrono::high_resolution_clock::now() - clockStart);
 	// update current duration as time in IKTool
 	IKTool.setTime(clockDuration.count());
 
-	IKTool.update(false, quatTable);
-	
+	IKTool.update(false);
 	std::array<double, 6> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
 	//double* mirrorTherapyPacket = &trackerResults[0];
 	double* mirrorTherapyPacket = trackerResults.data();
@@ -31,21 +30,13 @@ void updateConcurrentIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, s
 
 void ConnectToDataStream(double inputSeconds, int inputThreads) {
 
-	OpenSimLive::IMUHandler genericDataReader;
+	// create Xsens connection object and connect the program to IMUs
+	OpenSimLive::XsensDataReader xsensDataReader;
+	int desiredUpdateRate = stoi(ConfigReader("MainConfiguration.xml", "desired_update_rate"));
+	xsensDataReader.SetDesiredUpdateRate(desiredUpdateRate);
+	xsensDataReader.InitiateStartupPhase();
 
-	std::string manufacturerStr = ConfigReader("MainConfiguration.xml", "IMU_manufacturer");
-	IMUType manufacturer = simulated; // default to simulated in case the following if-statements fail
-	if (manufacturerStr == "delsys")
-		manufacturer = delsys;
-	else if (manufacturerStr == "xsens")
-		manufacturer = xsens;
-	else if (manufacturerStr == "simulated")
-		manufacturer = simulated;
-
-	genericDataReader.setManufacturer(manufacturer);
-
-	genericDataReader.initialize();
-
+	std::vector<XsQuaternion> quaternionData(xsensDataReader.GetMtwCallbacks().size()); // for data in quaternion form
 		
 	std::string calibratedModelFile; // the file name of the calibrated OpenSim model will be stored here
 	bool saveIKResults = ("true" == ConfigReader("MainConfiguration.xml", "save_ik_results")); // Boolean that determines if we want to save IK results (joint angles and their errors) to file when the program finishes. This can be very memory-heavy especially with long measurements.
@@ -60,9 +51,12 @@ void ConnectToDataStream(double inputSeconds, int inputThreads) {
 	SimTK::Vec3 sensorToOpenSimRotations = get_sensor_to_opensim_rotations();
 	
 	// CALIBRATION STEP
-	genericDataReader.updateQuaternionTable();
+
+	// get IMU orientation data in quaternions
+	quaternionData = xsensDataReader.GetQuaternionData(quaternionData);
+
 	// fill a timeseriestable with quaternion orientations of IMUs
-	OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable = genericDataReader.getQuaternionTable();
+	OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), quaternionData));
 	// calibrate the model and return its file name
 	calibratedModelFile = calibrateModelFromSetupFile(OPENSIMLIVE_ROOT + "/Config/" + ConfigReader("MainConfiguration.xml", "imu_placer_setup_file"), quaternionTimeSeriesTable);
 	// give IKTool the necessary inputs and run it
@@ -77,8 +71,6 @@ void ConnectToDataStream(double inputSeconds, int inputThreads) {
 	if (enableMirrorTherapy == true) {
 		IKTool.setPointTrackerBodyName(ConfigReader("MainConfiguration.xml", "station_parent_body"));
 		IKTool.setPointTrackerReferenceBodyName(ConfigReader("MainConfiguration.xml", "station_reference_body"));
-		IKTool.setPointTrackerEnabled(true);
-		IKTool.setSavePointTrackerResults(true);
 	}
 	else {
 		IKTool.setPointTrackerEnabled(false);
@@ -95,16 +87,13 @@ void ConnectToDataStream(double inputSeconds, int inputThreads) {
 	auto clockStart = std::chrono::high_resolution_clock::now(); // get the starting time of IMU measurement loop
 	std::chrono::duration<double> clockDuration;
 
-	std::cout << clockDuration.count() << std::endl;
 	// loop until enough time has been elapsed
 	do {
-
 		// update quaternions for IKTool
-		genericDataReader.updateQuaternionTable();
-		//IKTool.setQuaternion(genericDataReader.getQuaternionTable());
+		IKTool.setQuaternion(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), xsensDataReader.GetQuaternionData(quaternionData)));
 		
 		// begin multithreading a function that consists of IK calculations + PointTracker
-		threadPoolContainer.offerFuture(updateConcurrentIKTool, std::ref(IKTool), std::ref(clockStart), std::ref(clockDuration), genericDataReader.getQuaternionTable());
+		threadPoolContainer.offerFuture(updateConcurrentIKTool, std::ref(IKTool), std::ref(clockStart), std::ref(clockDuration));
 
 		// increment iterations number
 		++iteration;
@@ -118,17 +107,17 @@ void ConnectToDataStream(double inputSeconds, int inputThreads) {
 
 	if (saveIKResults) {
 		std::cout << "Saving IK results to file..." << std::endl;
-		if (iteration < 10000) {
+		if (iteration < 1000) {
 			IKTool.reportToFile();
 		}
 		else
 		{
-			std::cout << "More than 10000 iterations calculated, as a safety precaution program is not saving results to file!" << std::endl;
+			std::cout << "More than 1000 iterations calculated, as a safety precaution program is not saving results to file!" << std::endl;
 		}
 	}
 
 	// close the connection to IMUs
-	genericDataReader.closeConnection();
+	xsensDataReader.CloseConnection();
 
 	return;
 }
@@ -153,3 +142,14 @@ int main(int argc, char *argv[])
 	std::cout << "Program finished." << std::endl;
 	return 1;
 }
+
+// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
+// Debug program: F5 or Debug > Start Debugging menu
+
+// Tips for Getting Started: 
+//   1. Use the Solution Explorer window to add/manage files
+//   2. Use the Team Explorer window to connect to source control
+//   3. Use the Output window to see build output and other messages
+//   4. Use the Error List window to view errors
+//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
+//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file

@@ -28,4 +28,8 @@
 	<threads>8</threads>
 	<!--Live EMG plotting requires Python 3 and slows down EMG retrieval.-->
 	<enable_EMG_plotting>false</enable_EMG_plotting>
+	<!--If given the option to choose, use Xsens IMUs, Delsys IMUs or simulated data?-->
+	<IMU_manufacturer>simulated</IMU_manufacturer>
+	<!--If using simulated IMU data, which IMUs do we simulate?-->
+	<simulated_bodies>pelvis_imu torso_imu femur_r_imu femur_l_imu</simulated_bodies>
 </MainConfiguration>

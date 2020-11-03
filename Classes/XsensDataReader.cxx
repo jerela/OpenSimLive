@@ -281,6 +281,26 @@ std::vector<XsQuaternion> XsensDataReader::GetQuaternionData(std::vector<XsQuate
 }
 
 
+std::vector<XsQuaternion> XsensDataReader::getQuaternionData() {
+	//newDataAvailable_ = false;
+	size_t mtwCallbackSize = mtwCallbacks_.size();
+	std::vector<XsQuaternion> quaternionData(mtwCallbackSize);
+	for (size_t i = 0; i < mtwCallbackSize; ++i)
+	{
+		// wait until new data is available
+		do {} while (!mtwCallbacks_[i]->dataAvailable());
+		
+		//newDataAvailable_ = true;
+		XsDataPacket const* packet = mtwCallbacks_[i]->getOldestPacket();
+		quaternionData[i] = packet->orientationQuaternion();
+		mtwCallbacks_[i]->deleteOldestPacket();
+		
+	}
+	return quaternionData;
+}
+
+
+
 
 std::vector<XsEuler> XsensDataReader::GetEulerData(std::vector<XsEuler>& eulerData) {
 	newDataAvailable_ = false;

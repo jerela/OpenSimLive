@@ -50,13 +50,15 @@ void EMGThread(OpenSimLive::DelsysDataReader& delsysDataReader) {
 }
 
 
-void ConnectToDataStream() {
+
+int main(int argc, char *argv[])
+{
 
 	// create Delsys connection object
 	OpenSimLive::DelsysDataReader delsysDataReader;
 	while (!delsysDataReader.initiateConnection()) {}
 
-	
+
 	// Create a struct to hold a number of variables, and to pass them to functions
 	VariableManager vm;
 
@@ -73,13 +75,13 @@ void ConnectToDataStream() {
 	OpenSimLive::ThreadPoolContainer threadPoolContainer(vm.maxThreads);
 
 
-	#ifdef PYTHON_ENABLED
+#ifdef PYTHON_ENABLED
 	// initialize and prepare PythonPlotter
 	PythonPlotter pythonPlotter;
 	pythonPlotter.setMaxSize(50);
 	pythonPlotter.setSubPlots(delsysDataReader.getNActiveSensors());
 	pythonPlotter.prepareGraph();
-	#endif
+#endif
 
 	// get the current times and start counting
 	vm.clockStart = std::chrono::high_resolution_clock::now();
@@ -105,13 +107,13 @@ void ConnectToDataStream() {
 		delsysDataReader.appendTime(elapsedTime);
 
 		// send EMG data points to PythonPlotter
-		#ifdef PYTHON_ENABLED
+#ifdef PYTHON_ENABLED
 		if (vm.enableEMGPlotting) {
 			pythonPlotter.setTime(elapsedTime);
 			pythonPlotter.setYData(delsysDataReader.getLatestEMGValues());
 			pythonPlotter.updateGraph();
 		}
-		#endif
+#endif
 
 		/*
 		// use high resolution clock to count time since the measurement started
@@ -126,7 +128,7 @@ void ConnectToDataStream() {
 			vm.clockPrev = vm.clockNow;
 			delsysDataReader.updateEMG();
 		}*/
-		
+
 
 
 		char hitKey = ' ';
@@ -135,7 +137,7 @@ void ConnectToDataStream() {
 			hitKey = toupper((char)_getch());
 			vm.mainDataLoop = (hitKey != 'X'); // stay in main data loop as long as we don't hit X
 		}
-			
+
 	} while (vm.mainDataLoop);
 
 	std::cout << "Exiting main data loop!" << std::endl;
@@ -143,36 +145,11 @@ void ConnectToDataStream() {
 	// close the connection to IMUs
 	delsysDataReader.closeConnection();
 
-	return;
+
+		
+	std::cout << "Program finished." << std::endl;
+	return 1;
+	
 }
 
 
-int main(int argc, char *argv[])
-{
-    if (argc < 2) {
-		// report version
-		std::cout << argv[0] << " version " << OpenSimLive_VERSION_MAJOR << "." << OpenSimLive_VERSION_MINOR << std::endl;
-		std::cout << "Usage: " << argv[0] << " number" << std::endl;
-		
-
-
-		std::cout << "Connecting to MTw Awinda data stream..." << std::endl;
-		// connect to XSens IMUs, perform IK etc
-		ConnectToDataStream();
-
-		
-		std::cout << "Program finished." << std::endl;
-		return 1;
-	}
-}
-
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file

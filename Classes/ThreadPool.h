@@ -1,4 +1,5 @@
-/* https://github.com/progschj/ThreadPool
+/* Copyright/license disclaimer for this class:
+https://github.com/progschj/ThreadPool
 
 Copyright(c) 2012 Jakob Progsch, Václav Zeman
 

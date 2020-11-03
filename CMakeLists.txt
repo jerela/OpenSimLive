@@ -9,10 +9,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # YOU MAY HAVE TO SET THIS MANUALLY IF YOU HAVE VICON SDK IN A DIFFERENT DIRECTORY
 # find path to CPP folder of the Vicon SDK installation directory
-find_path(VICONSDK_PATH DataStreamClient.h PATHS C:/Program Files/Vicon/DataStream SDK/Win64/CPP)
+# find_path(VICONSDK_PATH DataStreamClient.h PATHS C:/Program Files/Vicon/DataStream SDK/Win64/CPP)
 
 # find Vicon SDK library
-find_library(VICONSDK_LIB ViconDataStreamSDK_CPP.lib PATHS "${VICONSDK_PATH}")
+# find_library(VICONSDK_LIB ViconDataStreamSDK_CPP.lib PATHS "${VICONSDK_PATH}")
 
 # find path to OpenSim include and lib folders (according to OpenSim 4.1 directory hierarchy)
 find_path(OPENSIM_INCLUDE_PATH OpenSim.h PATHS "$ENV{OPENSIM_HOME}/sdk/include/OpenSim" "C:/OpenSim 4.1/sdk/include/OpenSim")
@@ -65,27 +65,27 @@ configure_file(OpenSimLiveConfig.h.in OpenSimLiveConfig.h)
 find_path(OPENSIM_INCLUDE_PATH_TWO OpenSim.h PATHS "$ENV{OPENSIM_HOME}/sdk/include/OpenSim")
 
 # add and link the executables, libraries and directories for ViconMarkerReader only if VICONSDK_LIB was found
-if(VICONSDK_LIB)
-	message([STATUS] "Vicon SDK found.")
-	add_executable(ViconMarkerReader ViconMarkerReader.cxx)
+# if(VICONSDK_LIB)
+	# message([STATUS] "Vicon SDK found.")
+	# add_executable(ViconMarkerReader ViconMarkerReader.cxx)
 	# link Vicon SDK library
-	target_link_libraries(ViconMarkerReader PRIVATE "${VICONSDK_LIB}")
+	# target_link_libraries(ViconMarkerReader PRIVATE "${VICONSDK_LIB}")
 	# link OpenSim and Simbody libraries
-	target_link_libraries(ViconMarkerReader PRIVATE "${OPENSIM_LIBRARY}")
-	target_link_libraries(ViconMarkerReader PRIVATE "${SIMBODY_LIBRARY}")
-	target_include_directories(ViconMarkerReader PUBLIC
-						   "${PROJECT_BINARY_DIR}"
-						   "${VICONSDK_PATH}"
-						   "${OPENSIM_INCLUDE_PATH}"
-						   "${OPENSIM_INCLUDE_PATH_TWO}"
-						   "${SIMBODY_INCLUDE_PATH}"
-						   )
-else()
+	# target_link_libraries(ViconMarkerReader PRIVATE "${OPENSIM_LIBRARY}")
+	# target_link_libraries(ViconMarkerReader PRIVATE "${SIMBODY_LIBRARY}")
+	# target_include_directories(ViconMarkerReader PUBLIC
+						   # "${PROJECT_BINARY_DIR}"
+						   # "${VICONSDK_PATH}"
+						   # "${OPENSIM_INCLUDE_PATH}"
+						   # "${OPENSIM_INCLUDE_PATH_TWO}"
+						   # "${SIMBODY_INCLUDE_PATH}"
+						   # )
+# else()
 	# if Vicon SDK is not found, inform the user but continue CMake
-	message([STATUS] "Cannot find Vicon SDK. Removing VICONSDK_LIB and VICONSDK_PATH from list of CMake variables and disabling ViconMarkerReader. This will not affect your ability to use OpenSimLive with IMUs.")
-	unset(VICONSDK_LIB)
-	unset(VICONSDK_PATH)
-endif()
+	# message([STATUS] "Cannot find Vicon SDK. Removing VICONSDK_LIB and VICONSDK_PATH from list of CMake variables and disabling ViconMarkerReader. This will not affect your ability to use OpenSimLive with IMUs.")
+	# unset(VICONSDK_LIB)
+	# unset(VICONSDK_PATH)
+# endif()
 
 
 
@@ -119,52 +119,10 @@ find_path(MTSDK_PATH xsensdeviceapi.h PATHS "C:/Program Files/Xsens/MT Software 
 find_path(INCLUDE_CLASSES_PATH IMUPlacerLive.h PATHS "${CMAKE_CURRENT_SOURCE_DIR}/Classes")
 # same for functions folder
 find_path(INCLUDE_FUNCTIONS_PATH XMLFunctions.h PATHS "${CMAKE_CURRENT_SOURCE_DIR}/Functions")
-# set all C++ files that XsensReader uses into XSENS_SOURCES
-set(XSENS_SOURCES XsensReader.cxx "${INCLUDE_CLASSES_PATH}/IMUPlacerLive.h"
-	"${INCLUDE_CLASSES_PATH}/IMUPlacerLive.cxx"
-	"${INCLUDE_CLASSES_PATH}/IMUInverseKinematicsToolLive.h"
-	"${INCLUDE_CLASSES_PATH}/IMUInverseKinematicsToolLive.cxx"
-	"${INCLUDE_CLASSES_PATH}/DecorationGeneratorLive.h"
-	"${INCLUDE_CLASSES_PATH}/DecorationGeneratorLive.cxx"
-	"${INCLUDE_CLASSES_PATH}/PointTracker.h"
-	"${INCLUDE_CLASSES_PATH}/PointTracker.cxx"
-	"${INCLUDE_CLASSES_PATH}/Server.h"
-	"${INCLUDE_CLASSES_PATH}/Server.cpp"
-	"${INCLUDE_CLASSES_PATH}/XsensDataReader.h"
-	"${INCLUDE_CLASSES_PATH}/XsensDataReader.cxx"
-	"${INCLUDE_CLASSES_PATH}/ThreadPool.h"
-	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.h"
-	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.cxx"
-	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.tpp"
-	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctions.h"
-	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctions.cxx"
-	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctionsXsens.h"
-	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctionsXsens.cxx")
 
 
-
-# add executable for C++ files in XSENS_SOURCES
-add_executable(XsensReader "${XSENS_SOURCES}")
-
-# link MT SDK libraries
-target_link_libraries(XsensReader PRIVATE "${MT_LIBRARY}" # Xsens MT libraries for IMU data retrieval
-						PRIVATE "${OPENSIM_LIBRARY}"
-						PRIVATE "${SIMBODY_LIBRARY}"
-						PRIVATE "ws2_32.lib") # winsock2 required for socket communication
-
-target_include_directories(XsensReader PRIVATE
-						"${INCLUDE_CLASSES_PATH}"
-						"${INCLUDE_FUNCTIONS_PATH}")
-target_include_directories(XsensReader PUBLIC
-						   "${PROJECT_BINARY_DIR}"
-						   "${OPENSIM_INCLUDE_PATH}"
-						   "${OPENSIM_INCLUDE_PATH_TWO}"
-						   "${SIMBODY_INCLUDE_PATH}"
-						   "${MTSDK_PATH}"
-						   "${MT_LIB_PATH}"
-						   )
-
-
+# add main subfolder
+add_subdirectory("MirrorTherapy")
 # add tests subfolder
 add_subdirectory("Tests")
 # add config CMakeLists subfolder

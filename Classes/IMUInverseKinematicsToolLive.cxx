@@ -195,7 +195,7 @@ void IMUInverseKinematicsToolLive::startDecorationGenerator() {
     // set visualize to true so PointTracker knows to calculate data for decoration generator
     setVisualize(true);
     // PointTracker must be run so we can obtain the location of the mirrored point
-    updatePointTracker();
+    updatePointTracker(s_);
     // realize positions for adding decoration generator to visualizer
     model_.realizePosition(s_);
     // make the decoration generator's objects adopt the coordinate system of the reference body
@@ -233,7 +233,7 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
     // Convert to OpenSim Frame
     const SimTK::Vec3& rotations = get_sensor_to_opensim_rotations();
     SimTK::Rotation sensorToOpenSim = SimTK::Rotation(SimTK::BodyOrSpaceType::SpaceRotationSequence, rotations[0], SimTK::XAxis, rotations[1], SimTK::YAxis, rotations[2], SimTK::ZAxis);
-
+    
     // Rotate data so Y-Axis is up
     OpenSim::OpenSenseUtilities::rotateOrientationTable(quatTable, sensorToOpenSim);
 
@@ -242,7 +242,6 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
 
     OpenSim::OrientationsReference oRefs(orientationsData, &get_orientation_weights());
     OpenSim::MarkersReference mRefs{};
-
     SimTK::Array_<OpenSim::CoordinateReference> coordinateReferences;
     
     // create the solver given the input data
@@ -251,37 +250,33 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
 
     // set the time of state s0
     auto& times = oRefs.getTimes();
-    std::unique_lock<std::mutex> concurrentIKMutex(m);
-
+    
     // check if another thread has already set the time of state s_ to a more advanced time point
     bool threadExpired = false;
-    if (s_.getTime() > time) {
-        //std::cout << "Thread was found to be expired at check 1." << std::endl;
-        threadExpired = true;
-    }
 
+    // lock a part of the code from being run by several threads in parallel
+    std::unique_lock<std::mutex> concurrentIKMutex(m);
+    // give s_ an initial time for assembling it with ikSolver_
     s_.updTime() = times[0];
     concurrentIKMutex.unlock();
-    // assemble state s0, solving the initial joint angles in the least squares sense
-    concurrentIKMutex.lock();
-    ikSolver.assemble(s_);
 
+    // assemble state s_, solving the initial joint angles in the least squares sense
+    ikSolver.assemble(s_);
+    // create a copy of s_ so we can use methods that modify the propreties of s without modifying the properties s_ (which may be modified by another thread, leading to exceptions if multiple threads modify it in parallel)
+    SimTK::State s = s_;
+    // update the time to be shown in the visualization and so that when we realize the report, the correct timestamp is used for the joint angle values
+    s.updTime() = time;
+    
     // save joint angles to q_
     //updateJointAngleVariable(s_, model_);
 
-    // update the time to be shown in the visualization and so that when we realize the report, the correct timestamp is used for the joint angle values
-    s_.updTime() = time;
-
-    // check if another thread has already set the time of state s_ to a more advanced time point
-    /*if (s_.getTime() > time) {
-        //std::cout << "Thread was found to be expired at check 2." << std::endl;
-        threadExpired = true;
-    }*/
-
-    // now insert q into the original visualized state and show them if visualizeResults is true and a younger thread hasn't passed this thread (this thread hasn't expired)
-    if (visualizeResults && !threadExpired) {
+    // show a visualization of the state
+    if (visualizeResults) {
         try {
-            model_.getVisualizer().show(s_);
+            concurrentIKMutex.lock();
+            // ikTool.assemble() is using s_ and needs its time value, so we couldn't change it for s_; instead we created s for the visualization
+            model_.getVisualizer().show(s);
+            concurrentIKMutex.unlock();
         }
         catch (std::exception& e) {
             std::cerr << "Exception in visualizing: " << e.what() << std::endl;
@@ -290,38 +285,46 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
             std::cerr << "Unknown exception in visualizer" << std::endl;
         }
     }
-    concurrentIKMutex.unlock();
-    //model_.getVisualizer().getSimbodyVisualizer().drawFrameNow(s_);
-
+    
     // update the time of s_
     if (get_report_errors()) {
-        int nos = ikSolver.getNumOrientationSensorsInUse();
-        SimTK::Array_<double> orientationErrors(nos, 0.0);
-        // calculate orientation errors into orientationErrors
-        ikSolver.computeCurrentOrientationErrors(orientationErrors);
-        // append orientationErrors into modelOrientationErrors_
         concurrentIKMutex.lock();
-        modelOrientationErrors_->appendRow(s_.getTime(), orientationErrors);
-        model_.realizeReport(s_);
-        concurrentIKMutex.unlock();
-    }
-
-    if (getPointTrackerEnabled() == true) {
-        concurrentIKMutex.lock();
-
-        // check if another thread has already set the time of state s_ to a more advanced time point
-        if (s_.getTime() > time) {
-            //std::cout << "Thread was found to be expired at check 3." << std::endl;
+        // if a newer thread hasn't already gotten here, continue; otherwise set threadExpired to true
+        if (lastUpdatedTime_ < time) {
+            // update lastUpdatedTime_ so other, older threads that are still running can check to see if this thread has passed them
+            lastUpdatedTime_ = time;
+            int nos = ikSolver.getNumOrientationSensorsInUse();
+            SimTK::Array_<double> orientationErrors(nos, 0.0);
+            // calculate orientation errors into orientationErrors
+            ikSolver.computeCurrentOrientationErrors(orientationErrors);
+            try {
+                // append orientationErrors into modelOrientationErrors_
+                modelOrientationErrors_->appendRow(time, orientationErrors);
+                // set s into a stage where report is realized; required for IK reporting
+                model_.realizeReport(s);
+            }
+            catch (std::exception& e) {
+                std::cerr << "Error in reporting IK errors: " << e.what() << std::endl;
+            }
+            catch (...) {
+                std::cerr << "Unknown error in reporting IK errors." << std::endl;
+            }
+        }
+        else {
             threadExpired = true;
         }
+        concurrentIKMutex.unlock();
+        
+    }
 
-        if (!threadExpired) {
-            // give time to PointTracker only if we need it
-            if (getSavePointTrackerResults()) {
-                setPointTrackerCurrentTime(time);
-            }
-            updatePointTracker();
+    // if this thread hadn't expired already before visualization, run PointTracker
+    if (getPointTrackerEnabled() && !threadExpired) {
+        concurrentIKMutex.lock();
+        // give time to PointTracker only if we need it
+        if (getSavePointTrackerResults()) {
+            setPointTrackerCurrentTime(time);
         }
+        updatePointTracker(s);  
         concurrentIKMutex.unlock();
     }
 
@@ -329,13 +332,13 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
 
 
 
-void IMUInverseKinematicsToolLive::updatePointTracker() {
+void IMUInverseKinematicsToolLive::updatePointTracker(SimTK::State s) {
     // calculate point location and orientation of its base body segment for mirror therapy
     //s_.advanceSystemToStage(SimTK::Stage::Position);
     //model_.realizePosition(s_);
-    model_.updMultibodySystem().realize(s_, SimTK::Stage::Position); // Required to advance (or move back) system to a stage where we can use pointTracker
+    model_.updMultibodySystem().realize(s, SimTK::Stage::Position); // Required to advance (or move back) system to a stage where we can use pointTracker
     // Run PointTracker functions
-    std::array<double, 6> trackerResults = runTracker(&s_, &model_, getPointTrackerBodyName(), getPointTrackerReferenceBodyName());
+    std::array<double, 6> trackerResults = runTracker(&s, &model_, getPointTrackerBodyName(), getPointTrackerReferenceBodyName());
     // Save the results to a private variable
     setPointTrackerPositionsAndOrientations(trackerResults);
 }
@@ -397,3 +400,9 @@ void IMUInverseKinematicsToolLive::update(const bool visualizeResults)
     updateInverseKinematics(get_quat(), visualizeResults);
 }
 
+
+// This function updates the IK after it's been initially run
+void IMUInverseKinematicsToolLive::update(const bool visualizeResults, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quat)
+{
+    updateInverseKinematics(quat, visualizeResults);
+}

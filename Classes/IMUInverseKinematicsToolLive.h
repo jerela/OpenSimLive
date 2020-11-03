@@ -26,6 +26,7 @@ namespace OpenSimLive {
 		void runInverseKinematicsWithLiveOrientations(OpenSim::Model& model, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults = false);
 		bool IMUInverseKinematicsToolLive::run(const bool visualizeResults);
 		void IMUInverseKinematicsToolLive::update(const bool visualizeResults);
+		void IMUInverseKinematicsToolLive::update(const bool visualizeResults, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quat);
 		void reportToFile();
 
 		// PUBLIC METHODS DEFINED HERE
@@ -60,6 +61,7 @@ namespace OpenSimLive {
 		std::array<double, 6> pointTrackerPositionsAndOrientations_;
 		std::string pointTrackerBodyName_ = "";
 		std::string pointTrackerReferenceBodyName_ = "pelvis";
+		double lastUpdatedTime_ = 0;
 
 		// PRIVATE METHODS DEFINED HERE
 		SimTK::Vec3 get_sensor_to_opensim_rotations() { return sensor_to_opensim_rotations; }
@@ -74,7 +76,7 @@ namespace OpenSimLive {
 		// PRIVATE METHODS DEFINED IN THE .CXX FILE
 		void updateInverseKinematics(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults = false);
 		void updateJointAngleVariable(SimTK::State& s, OpenSim::Model& model);
-		void updatePointTracker();
+		void updatePointTracker(SimTK::State s);
 		void startDecorationGenerator();
 
 	};  // end of class

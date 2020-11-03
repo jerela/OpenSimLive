@@ -1,4 +1,3 @@
-// OpenSimLive.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
 #include <OpenSimLiveConfig.h>
 #include <OpenSim.h>
@@ -106,20 +105,23 @@ void orientationThread(OpenSimLive::DelsysDataReader& delsysDataReader) {
 }
 
 
-void ConnectToDataStream() {
 
+
+
+int main(int argc, char *argv[])
+{
 	// create Delsys connection object
 	OpenSimLive::DelsysDataReader delsysDataReader;
 	while (!delsysDataReader.initiateConnection()) {}
 
-	#ifdef PYTHON_ENABLED
+#ifdef PYTHON_ENABLED
 	// initialize and prepare PythonPlotter
 	PythonPlotter pythonPlotter;
 	pythonPlotter.setMaxSize(50);
 	pythonPlotter.setSubPlots(delsysDataReader.getNActiveSensors());
 	pythonPlotter.prepareGraph();
-	#endif
-	
+#endif
+
 	// Create a struct to hold a number of variables, and to pass them to functions
 	VariableManager vm;
 
@@ -150,7 +152,7 @@ void ConnectToDataStream() {
 
 	// get the sensor to opensim rotations for IMUInverseKinematicsToolLive
 	SimTK::Vec3 sensorToOpenSimRotations = get_sensor_to_opensim_rotations();
-		
+
 	// SOCKET COMMUNICATION
 	bool bResult = false; // tells us if creating the server object succeeded or not
 	int port = std::stoi(ConfigReader("MainConfiguration.xml", "socket_port"));
@@ -161,19 +163,19 @@ void ConnectToDataStream() {
 	{
 		printf("Failed to create Server object!\n");
 	}
-	if (vm.enableMirrorTherapy) {	
+	if (vm.enableMirrorTherapy) {
 		std::cout << "Waiting for client program to connect..." << std::endl;
 		myLink.Connect(); // create socket connection
 		std::cout << "Client program connected." << std::endl;
 	}
-	
+
 
 	std::cout << "Entering data streaming and IK loop. Press C to calibrate model, Z to calculate IK once, N to enter continuous mode, M to exit continuous mode, V to enter send mode, B to exit send mode, L to save base reference orientation and X to quit." << std::endl;
 
 	do
 	{
 
-		
+
 		if (vm.EMGMode) {
 			// update time
 			vm.clockNow = std::chrono::high_resolution_clock::now();
@@ -186,13 +188,13 @@ void ConnectToDataStream() {
 			delsysDataReader.appendTime(elapsedTime);
 
 			// send EMG data points to PythonPlotter
-			#ifdef PYTHON_ENABLED
+#ifdef PYTHON_ENABLED
 			if (vm.enableEMGPlotting) {
 				pythonPlotter.setTime(elapsedTime);
 				pythonPlotter.setYData(delsysDataReader.getLatestEMGValues());
 				pythonPlotter.updateGraph();
 			}
-			#endif
+#endif
 		}
 
 
@@ -203,7 +205,7 @@ void ConnectToDataStream() {
 
 		bool newDataAvailable = true;
 
-		
+
 		// if user hits the key to save the current orientation of the station reference body IMU when it is placed against the mounting surface of the robot arm
 		if (referenceBaseRotationKeyHit)
 		{
@@ -261,7 +263,7 @@ void ConnectToDataStream() {
 			IKTool.run(true); // true for visualization
 			std::cout << "Model has been calibrated." << std::endl;
 
-			
+
 		}
 
 		// if user hits the single IK calculation key, new data is available and the model has been calibrated
@@ -284,7 +286,7 @@ void ConnectToDataStream() {
 			vm.prevDuration = vm.clockNow - vm.clockPrev;
 
 			// if more than the set time delay has passed since the last time IK was calculated
-			if (vm.prevDuration.count()*1000 > vm.continuousModeMsDelay) {
+			if (vm.prevDuration.count() * 1000 > vm.continuousModeMsDelay) {
 				// set current time as the time IK was previously calculated for the following iterations of the while-loop
 				vm.clockPrev = vm.clockNow;
 				RunIKProcedure(delsysDataReader, IKTool, myLink, threadPoolContainer, vm);
@@ -296,7 +298,7 @@ void ConnectToDataStream() {
 			std::cout << "Entering continuous mode." << std::endl;
 			vm.continuousMode = true;
 			startContinuousModeKeyHit = false;
-			if (vm.resetClockOnContinuousMode && !(vm.clockDuration.count() > 0) ) // ensure that the config setting is set to true and that this is the first time continuous mode is entered
+			if (vm.resetClockOnContinuousMode && !(vm.clockDuration.count() > 0)) // ensure that the config setting is set to true and that this is the first time continuous mode is entered
 				vm.clockStart = std::chrono::high_resolution_clock::now();
 		}
 
@@ -345,7 +347,7 @@ void ConnectToDataStream() {
 			stopEMGModeKeyHit = (hitKey == 'S');
 			referenceBaseRotationKeyHit = (hitKey == 'L');
 		}
-			
+
 	} while (vm.mainDataLoop);
 
 	std::cout << "Exiting main data loop!" << std::endl;
@@ -370,36 +372,10 @@ void ConnectToDataStream() {
 	// close the connection to IMUs
 	delsysDataReader.closeConnection();
 
-	return;
-}
-
-
-int main(int argc, char *argv[])
-{
-    if (argc < 2) {
-		// report version
-		std::cout << argv[0] << " version " << OpenSimLive_VERSION_MAJOR << "." << OpenSimLive_VERSION_MINOR << std::endl;
-		std::cout << "Usage: " << argv[0] << " number" << std::endl;
-		
-
-
-		std::cout << "Connecting to MTw Awinda data stream..." << std::endl;
-		// connect to XSens IMUs, perform IK etc
-		ConnectToDataStream();
 
 		
-		std::cout << "Program finished." << std::endl;
-		return 1;
-	}
+	std::cout << "Program finished." << std::endl;
+	return 1;
+
 }
 
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
