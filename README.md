@@ -14,8 +14,6 @@
 <!-- toc -->
 
 
-**THIS NEEDS UPDATING**
-
 OpenSimLive is a C++ package that streams orientation data from inertial measurement units and calculates inverse kinematics based on that data. It relies on OpenSim for biomechanical analyses and related tools. The current version uses OpenSim 4.1 API. Two types of IMUs are supported: Xsens MTw Awinda and Delsys Trigno Avanti. Xsens IMUs use XDA 4.6 and Delsys IMUs use Delsys Trigno Control Utility.
 
 Some of OpenSimLive's features can be tested without actual IMUs by using fake IMU data that that OpenSimLive generates as random unit quaternions.
@@ -24,8 +22,6 @@ Some of OpenSimLive's features can be tested without actual IMUs by using fake I
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
 
 ### Prerequisites
-
-**THIS NEEDS UPDATING**
 
 OpenSim 4.1 is required for core functionality. XDA 4.6 is required to use Xsens IMUs. Delsys Trigno Control Utility is required to communicate with Delsys SDK and read data from Delsys IMUs. CMake and Visual Studio are used to configure, generate and build the project.
 
@@ -40,8 +36,6 @@ Example
 Step by step instructions on how to install this project.
 
 #### Windows (64-bit)
-
-**THIS NEEDS UPDATING**
 
 1. Download and unzip the package to a directory on your hard drive.
 2. Open CMake and select the directory from the previous step as the source code directory.
@@ -62,9 +56,9 @@ Step by step instructions on how to install this project.
    - PYTHON_PATH:				  C:/Users/YourUserHere/AppData/Local/Programs/Python38
 - The two last entries are not required unless you wish to plot EMG data with Delsys IMUs.
 - Finally, select **Generate**.
-3. Open Visual Studio. Open the solution you just generated in the build directory. Build **ALL_BUILD**. Visual Studio should now create the required executable(s) in a subdirectory in the build directory. It will probably be .../BuildFolderName/MirrorTherapy/RelWithDebInfo/ for mirror therapy applications and .../BuildFolderName/Tests/RelWithDebInfo/ for tests.
-4. Copy **xsensdeviceapi64.dll** and **xstypes64.dll** from .../Xsens/MT Software Suite 4.6/MT SDK/x64/lib to the directories where **OSL_common.exe** and **test_IK_speed** are or add their locations to the PATH environmental variable. **This is required to run Xsens-related scripts, but is otherwise optional.**
-5. Go to .../OpenSimLive/Config and make sure the .xml files have the right values for your directory paths.
+3. Open Visual Studio. Open the solution you just generated in the build directory. Build **ALL_BUILD**. Visual Studio should now create the required executable(s) in a subdirectory in the build directory. It will probably be **.../BuildFolderName/MirrorTherapy/RelWithDebInfo/** for mirror therapy applications and **.../BuildFolderName/Tests/RelWithDebInfo/** for tests.
+4. Copy **xsensdeviceapi64.dll** and **xstypes64.dll** from .../Xsens/MT Software Suite 4.6/MT SDK/x64/lib to the directories where **OSL_common.exe** and **test_IK_speed** are or add their locations to the *PATH* environmental variable. **This is required to run Xsens-related scripts, but is otherwise optional.**
+5. Go to **.../OpenSimLive/Config** and make sure the .xml files have the right values for your directory paths.
 6. Installation complete. You are ready to run OpenSimLive.
 
 ### Running the program
@@ -77,7 +71,7 @@ If you have set IMU manufacturer as "delsys" in MainConfiguration.xml, then the 
 
 Finally, you can run the program without any actual IMUs by setting manufactured as "simulated", in which case the program will create random quaternions for IMU orientations. The visualization of the skeletal model in this case will not look sensible, but will instead change to random and sometimes unnatural orientations with each new frame.
 
-If **station_parent_body** in **Config/MainConfiguration.xml** is set to anything but "none", the program (acting as a server for socket communication) will wait for another program (the client) to connect to it. For testing purposes, you can run **JavaClient/run.bat** at this point to execute a program that receives data from the server. When the connection is made, the main program will automatically continue. Make sure that *socket_port* in /Config/MainConfiguration.xml matches the first line of /JavaClient/conf.txt so that the client can connect to the server with the right port.
+If **station_parent_body** in **Config/MainConfiguration.xml** is set to anything but "none", the program (acting as a server for socket communication) will wait for another program (the client) to connect to it. For testing purposes, you can run **JavaClient/run.bat** at this point to execute a program that receives data from the server. When the connection is made, the main program will automatically continue. Make sure that *socket_port* in **.../OpenSimLive/Config/MainConfiguration.xml** matches the first line of **.../OpenSimLive/JavaClient/conf.txt** so that the client can connect to the server with the right port.
 
 The program should print input instructions in the command window. Pressing L will set a reference orientation for the base segment IMU and pressing C will calibrate the model.
 Setting a reference orientation with L is not necessary, but is used to acknowledge differences in coordinate system rotations between the base body on the model and the rehabilitation robot. When L is pressed, the IMU on the base segment should be facing the same way as the robot's coordinate system. For example, if the robot is mounted on a wall 180 degrees opposite to the patient during the rehabilitation session, then the base segment IMU should first be placed on a surface that is parallel to the base of the robot and in a way that the IMU would be on the patient's base segment if the patient was sitting with their back to the base of the robot. After reference orientation is set, the IMU should be placed back on the patient's base segment and the model should then be calibrated. During inverse kinematics the current position of the base segment IMU is then used to correct the mirrored rotations and positions of the body to be rehabilitated, before they are sent to the client.
@@ -89,7 +83,7 @@ After the model is calibrated, you can enable continuous inverse kinematics and 
 
 Delsys sensors will allow you to measure EMG. Pressing A will begin EMG measurement and S will pause it.
 
-When you are finished, pressing X will quit the program. At this point the program will save IK results, IK errors and calculated mirrored positions and rotations to **IK-live.mot**, **IK-live_orientationErrors.sto** and **PointTrackerOutput.txt**, respectively, in /OpenSimLive-results/.
+When you are finished, pressing X will quit the program. At this point the program will save IK results, IK errors and calculated mirrored positions and rotations to **IK-live.mot**, **IK-live_orientationErrors.sto** and **PointTrackerOutput.txt**, respectively, in **.../OpenSimLive/OpenSimLive-results/**.
 
 ### Running the tests
 
@@ -99,7 +93,7 @@ There are currently four tests, **test_EMG**, **test_Xsens_IK_speed**, **test_Xs
 
 **test_IK_speed_multithread** measures how many inverse kinematics operations are performed over a time that the user inputs in seconds. The user also inputs the number of threads to be used. This test supports Xsens or Delsys IMUs or simulated data.
 
-All tests except **test_EMG** calculate point position tracking operations for mirror therapy if **station_parent_body** in /OpenSimLive/Config/MainConfiguration.xml is not set to *none*.
+All tests except **test_EMG** calculate point position tracking operations for mirror therapy if **station_parent_body** in **.../OpenSimLive/Config/MainConfiguration.xml** is not set to *none*.
 When the tests finish, results are printed on the command prompt. They include how many IK (and possibly point tracking) operations were performed in total, how much time was elapsed and how many operations were performed on average per second.
 
 **test_EMG** reads EMG data from Delsys sensors and outputs the throughput (EMG values read per second) when you finish the program.
@@ -111,7 +105,7 @@ IMU-based inverse kinematics and mirror therapy applications rely on a number of
 
 ### IMUPlacerLive
 
-This class calibrates an OpenSim model (XML file saved as .osim that contains joint angle definitions, constraints etc) by taking applying the orientations of IMUs at the calibration time point and placing IMUs on the bodies of the model. Config/IMUPlacerSetup.xml contains information about the model file that is calibrated, the file name that the calibrated model will be saved as, information about the initial heading of the "base" IMU and orientation transformations between IMU and OpenSim coordinates. Config/SensorMappings.xml describes which IMU corresponds to which body on the OpenSim model.
+This class calibrates an OpenSim model (XML file saved as .osim that contains joint angle definitions, constraints etc) by taking applying the orientations of IMUs at the calibration time point and placing IMUs on the bodies of the model. Config/IMUPlacerSetup.xml contains information about the model file that is calibrated, the file name that the calibrated model will be saved as, information about the initial heading of the "base" IMU and orientation transformations between IMU and OpenSim coordinates. **.../OpenSimLive/Config/SensorMappings.xml** describes which IMU corresponds to which body on the OpenSim model.
 
 IMUPlacerLive is based on the [IMUPlacer class from OpenSim 4.1](https://simtk.org/api_docs/opensim/api_docs/classOpenSim_1_1IMUPlacer.html) and inherits it. It also inherits PointTracker, which is used to call inherited public methods through IMUPlacerLive.
 
@@ -204,11 +198,11 @@ Currently OpenSimLive has been tested on 64-bit Windows 7 and 64-bit Windows 10.
 
 #### The program crashes right after printing "IMUPlacerLive run initiated"
 
-Make sure that **IMUPlacerSetup.xml** in OpenSimLive/Config/ has the correct file path for *model_file*. The file path should include the whole directory starting from the letter of your hard disk drive. Make sure that the same .osim file exists in OpenSimLive/Config/.
+Make sure that **IMUPlacerSetup.xml** in **.../OpenSimLive/Config/** has the correct file path for *model_file*. The file path should include the whole directory starting from the letter of your hard disk drive. Make sure that the same .osim file exists in **.../OpenSimLive/Config/**.
 
 #### The program crashes right after printing "Loaded model ... from file ..."
 
-Make sure that **IMUPlacerSetup.xml** in OpenSimLive/Config/ has the correct value for **base_imu_label**. The value should equal one of the *name_in_model* values in **SensorMappings_full.xml** in OpenSimLive/Config/. Additionally make sure that the IMU in question is in use.
+Make sure that **IMUPlacerSetup.xml** in **.../OpenSimLive/Config/** has the correct value for **base_imu_label**. The value should equal one of the *name_in_model* values in **SensorMappings_full.xml** in **.../OpenSimLive/Config/**. Additionally make sure that the IMU in question is in use.
 
 #### The program is stuck after printing "Waiting for ack..."
 
