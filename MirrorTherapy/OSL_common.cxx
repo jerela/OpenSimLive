@@ -1,4 +1,4 @@
-// OpenSimLive.cpp : This file contains the 'main' function. Program execution begins and ends there.
+// OSL_common.cxx : This file contains the 'main' function. Program execution begins and ends there.
 
 #include <OpenSimLiveConfig.h>
 #include <OpenSim.h>
@@ -7,7 +7,6 @@
 #include <Server.h>
 #include "conio.h" // for non-ANSI _kbhit() and _getch()
 #include <XMLFunctions.h>
-#include <XMLFunctionsXsens.h>
 #include <ThreadPoolContainer.h>
 #include <IMUHandler.h>
 
@@ -88,19 +87,12 @@ void RunIKProcedure(OpenSimLive::IMUHandler& genericDataReader, OpenSimLive::IMU
 
 	// Send a function to be multithreaded
 	threadPoolContainer.offerFuture(concurrentIK, std::ref(IKTool), std::ref(vm), std::ref(myLink));
-
-
 }
-
-
-
 
 
 
 int main(int argc, char* argv[])
 {
-
-
 	// Create a struct to hold a number of variables, and to pass them to functions
 	VariableManager vm;
 
@@ -109,24 +101,17 @@ int main(int argc, char* argv[])
 	//int desiredUpdateRate = stoi(ConfigReader("MainConfiguration.xml", "desired_update_rate"));
 	//xsensDataReader.SetDesiredUpdateRate(desiredUpdateRate);
 
-	IMUType manufacturer;
+	IMUType manufacturer = simulated; // default to simulated if the if-statement below fails
 	if (vm.manufacturer == "delsys")
 		manufacturer = delsys;
 	else if (vm.manufacturer == "xsens")
 		manufacturer = xsens;
 	else if (vm.manufacturer == "simulated")
 		manufacturer = simulated;
-
+	// set the value in the IMUHandler object
 	genericDataReader.setManufacturer(manufacturer);
-
+	// establish connection to IMUs
 	genericDataReader.initialize();
-
-
-
-	//std::vector<XsEuler> eulerData(xsensDataReader.GetMtwCallbacks().size()); // Room to store euler data for each mtw
-	//std::vector<XsQuaternion> quaternionData(xsensDataReader.GetMtwCallbacks().size()); // for data in quaternion form
-
-
 
 	bool getDataKeyHit = false; // tells if the key that initiates a single IK calculation is hit
 	bool referenceBaseRotationKeyHit = false; // tells if the key that initiates the fetching of the current rotation of the base IMU is hit
@@ -168,8 +153,6 @@ int main(int argc, char* argv[])
 		myLink.Connect(); // create socket connection
 		std::cout << "Client program connected." << std::endl;
 	}
-
-
 
 	std::cout << "Entering data streaming and IK loop. Press C to calibrate model, Z to calculate IK once, N to enter continuous mode, M to exit continuous mode, V to enter send mode, B to exit send mode, L to save base reference orientation and X to quit." << std::endl;
 
@@ -326,8 +309,6 @@ int main(int argc, char* argv[])
 
 	// close the connection to IMUs
 	genericDataReader.closeConnection();
-
-
 
 	std::cout << "Program finished." << std::endl;
 	return 1;

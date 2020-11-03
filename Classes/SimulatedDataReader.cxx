@@ -21,44 +21,44 @@ SimulatedDataReader::~SimulatedDataReader() {
 
 // creates a quaternion with randomized elements and returns it as a unit quaternion
 SimTK::Quaternion SimulatedDataReader::generateQuaternion() {
+	// create a quaternion (not a unit quaternion) with random elements
 	SimTK::Quaternion quat(rand() % 100, rand() % 100, rand() % 100, rand() % 100);
+	// return a normalized version of the random quaternion
 	return quat.normalize();
 }
 
 // populate labels_ from config file
 void SimulatedDataReader::populateLabelVector() {
+	// read the user-given values from the config file
 	std::string IMULabelString = ConfigReader("MainConfiguration.xml", "simulated_bodies");
 	// stringstream is a simple way to separate the whitespace-separated numbers from the whole string
 	std::stringstream ss(IMULabelString);
-	// loop through all elements
+	// loop through all elements (loop as long as there is anything left in the stringstream)
 	do {
+		// represents a piece of text such as "pelvis_imu"
 		std::string IMULabel;
 		// write from stringstream to IMULabel
 		ss >> IMULabel;
 		// push IMULabel in a vector
 		labels_.push_back(IMULabel);
 	} while (!ss.eof());
+	labelsSize_ = labels_.size();
 }
 
 // updates quatTable_ with new quaternion values
 void SimulatedDataReader::updateQuaternionTable() {
 	// create a quaternion matrix for time series table
-	SimTK::Matrix_<SimTK::Quaternion> quatMatrix(1, labels_.size());
-	for (unsigned int m = 0; m < labels_.size(); ++m) {
+	SimTK::Matrix_<SimTK::Quaternion> quatMatrix(1, labelsSize_);
+	// loop through all elements of labels_ (the vector containing labels for IMUs on the model)
+	for (unsigned int m = 0; m < labelsSize_; ++m) {
+		// generate a new unit quaternion on a spot in the matrix
 		quatMatrix.set(0, m, generateQuaternion());
 	}
 
-	// create a time vector for time series table
-	std::vector<double> timeVector = { 0 };
-
-	// finally create/overwrite the time series table
-	quatTable_ = OpenSim::TimeSeriesTable_<SimTK::Quaternion>(timeVector, quatMatrix, labels_);
+	// finally create/overwrite the time series table using the randomized quaternion data
+	quatTable_ = OpenSim::TimeSeriesTable_<SimTK::Quaternion>({ 0 }, quatMatrix, labels_);
 }
 
-// returns the time series table of quaternion orientations
-OpenSim::TimeSeriesTable_<SimTK::Quaternion> SimulatedDataReader::getTimeSeriesTable() {
-	return quatTable_;
-}
 
 // this is actually pointless, because there is no actual connection to IMUs when simulating IMU data
 void SimulatedDataReader::closeConnection() {

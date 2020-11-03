@@ -10,7 +10,6 @@
 #include <XMLFunctionsXsens.h>
 #include <thread>
 #include <future>
-#include <mutex>
 #include <functional>
 #include <IMUHandler.h>
 
@@ -35,7 +34,7 @@ void ConnectToDataStream(double inputSeconds, int inputThreads) {
 	OpenSimLive::IMUHandler genericDataReader;
 
 	std::string manufacturerStr = ConfigReader("MainConfiguration.xml", "IMU_manufacturer");
-	IMUType manufacturer;
+	IMUType manufacturer = simulated; // default to simulated in case the following if-statements fail
 	if (manufacturerStr == "delsys")
 		manufacturer = delsys;
 	else if (manufacturerStr == "xsens")
@@ -78,6 +77,8 @@ void ConnectToDataStream(double inputSeconds, int inputThreads) {
 	if (enableMirrorTherapy == true) {
 		IKTool.setPointTrackerBodyName(ConfigReader("MainConfiguration.xml", "station_parent_body"));
 		IKTool.setPointTrackerReferenceBodyName(ConfigReader("MainConfiguration.xml", "station_reference_body"));
+		IKTool.setPointTrackerEnabled(true);
+		IKTool.setSavePointTrackerResults(true);
 	}
 	else {
 		IKTool.setPointTrackerEnabled(false);
@@ -94,6 +95,7 @@ void ConnectToDataStream(double inputSeconds, int inputThreads) {
 	auto clockStart = std::chrono::high_resolution_clock::now(); // get the starting time of IMU measurement loop
 	std::chrono::duration<double> clockDuration;
 
+	std::cout << clockDuration.count() << std::endl;
 	// loop until enough time has been elapsed
 	do {
 
@@ -116,12 +118,12 @@ void ConnectToDataStream(double inputSeconds, int inputThreads) {
 
 	if (saveIKResults) {
 		std::cout << "Saving IK results to file..." << std::endl;
-		if (iteration < 1000) {
+		if (iteration < 10000) {
 			IKTool.reportToFile();
 		}
 		else
 		{
-			std::cout << "More than 1000 iterations calculated, as a safety precaution program is not saving results to file!" << std::endl;
+			std::cout << "More than 10000 iterations calculated, as a safety precaution program is not saving results to file!" << std::endl;
 		}
 	}
 

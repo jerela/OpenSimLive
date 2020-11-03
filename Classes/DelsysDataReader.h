@@ -24,21 +24,29 @@ namespace OpenSimLive {
 		OpenSim::TimeSeriesTable_<SimTK::Quaternion> getTimeSeriesTable() { return *quatTable_; }
 		// reads byte stream from the IMUs and updates the EMG signal into a vector
 		void updateEMG();
+		// returns the latest EMG values read from stream as an array of 16 floats, where i'th float element represents the EMG value read from i'th sensor
 		std::array<float, 16> getLatestEMGValues() { return EMGDataPoints_; }
+		// returns the number of sensors that are being used for the measurement
 		unsigned int getNActiveSensors() { return nActiveSensors_; }
-		void appendTime(double time);
+		// append time to vector of time points
+		void appendTime(double time) { timeVector_.push_back(time); }
 		
 	protected:
 			
 	private:
 		// PRIVATE METHODS
-		unsigned int correctSensorIndex(std::vector<unsigned int>& sensorIndices); // calculate the offset between detected sensor indices and actual sensor index labels
-		float convertBytesToFloat(char b1, char b2, char b3, char b4, int rev); // uses a union data type to convert between floats and bytes
-		std::vector<std::string> getSegmentLabelsForNumberLabels(std::vector<unsigned int> sensorIndices); // reads an XML file and returns a vector of string labels that connect the index of each IMU to a body on the model (e.g. IMU label/index '1' -> 'pelvis_imu')
-		std::vector<std::string> getLabelsFromFile(); // reads all 16 labels from DelsysMappings into a vector
+		// calculate the offset between detected sensor indices and actual sensor index labels
+		unsigned int correctSensorIndex(std::vector<unsigned int>& sensorIndices);
+		// use a union data type to convert between floats and bytes
+		float convertBytesToFloat(char b1, char b2, char b3, char b4, int rev);
+		// reads an XML file and returns a vector of string labels that connect the index of each IMU to a body on the model (e.g. IMU label/index '1' -> 'pelvis_imu')
+		std::vector<std::string> getSegmentLabelsForNumberLabels(std::vector<unsigned int> sensorIndices);
+		// reads all 16 labels from DelsysMappings into a vector
+		std::vector<std::string> getLabelsFromFile();
 
 		// PRIVATE VARIABLES
-		union byteFloatConverter; // data type that can contain several different variable types in one memory location; used in convertBytesToFloat
+		// data type that can contain several different variable types in one memory location; used in convertBytesToFloat
+		union byteFloatConverter;
 		// pointer to Delsys SDK command port, which receives commands
 		std::unique_ptr<Client> commandPort_;
 		// pointer to Delsys SDK AUX port, which sends orientation data
@@ -47,7 +55,8 @@ namespace OpenSimLive {
 		std::unique_ptr<Client> EMGPort_;
 		// pointer to the time series table of quaternions for each IMU w.r.t. time
 		std::unique_ptr<OpenSim::TimeSeriesTable_<SimTK::Quaternion>> quatTable_;
-		std::vector<std::string> labels_; // vector that contains labels of IMUs on the model, for example "pelvis_imu" and "femur_r_imu"
+		// vector that contains labels of IMUs on the model, for example "pelvis_imu" and "femur_r_imu"
+		std::vector<std::string> labels_;
 		// vector that contains the labels (numbers 1-16) of the Delsys sensors that are being used, as defined in <active_sensors> in the mappings file
 		std::vector<unsigned int> activeSensors_;
 		// number of active sensors

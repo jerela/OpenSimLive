@@ -330,10 +330,6 @@ void DelsysDataReader::updateTime() {
 	timeVector_.push_back(timeNow);
 }
 
-void DelsysDataReader::appendTime(double time) {
-	timeVector_.push_back(time);
-}
-
 void DelsysDataReader::updateEMG() {
 	updateEMGData();
 }
