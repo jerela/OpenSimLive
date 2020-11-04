@@ -100,11 +100,11 @@ void ConnectToDataStream(double inputSeconds, int inputThreads) {
 	do {
 
 		// update quaternions for IKTool
-		genericDataReader.updateQuaternionTable();
+		//genericDataReader.updateQuaternionTable();
 		//IKTool.setQuaternion(genericDataReader.getQuaternionTable());
 		
 		// begin multithreading a function that consists of IK calculations + PointTracker
-		threadPoolContainer.offerFuture(updateConcurrentIKTool, std::ref(IKTool), std::ref(clockStart), std::ref(clockDuration), genericDataReader.getQuaternionTable());
+		threadPoolContainer.offerFuture(updateConcurrentIKTool, std::ref(IKTool), std::ref(clockStart), std::ref(clockDuration), genericDataReader.updateAndGetQuaternionTable());
 
 		// increment iterations number
 		++iteration;

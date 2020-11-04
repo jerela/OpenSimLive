@@ -402,7 +402,7 @@ void IMUInverseKinematicsToolLive::update(const bool visualizeResults)
 
 
 // This function updates the IK after it's been initially run
-void IMUInverseKinematicsToolLive::update(const bool visualizeResults, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quat)
+void IMUInverseKinematicsToolLive::update(const bool visualizeResults, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quat)
 {
     updateInverseKinematics(quat, visualizeResults);
 }

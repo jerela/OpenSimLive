@@ -26,7 +26,7 @@ namespace OpenSimLive {
 		void runInverseKinematicsWithLiveOrientations(OpenSim::Model& model, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults = false);
 		bool IMUInverseKinematicsToolLive::run(const bool visualizeResults);
 		void IMUInverseKinematicsToolLive::update(const bool visualizeResults);
-		void IMUInverseKinematicsToolLive::update(const bool visualizeResults, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quat);
+		void IMUInverseKinematicsToolLive::update(const bool visualizeResults, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quat);
 		void reportToFile();
 
 		// PUBLIC METHODS DEFINED HERE

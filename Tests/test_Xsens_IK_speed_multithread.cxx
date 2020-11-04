@@ -16,13 +16,13 @@
 
 const std::string OPENSIMLIVE_ROOT = OPENSIMLIVE_ROOT_PATH;
 
-void updateConcurrentIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, std::chrono::steady_clock::time_point& clockStart, std::chrono::duration<double>& clockDuration) {
+void updateConcurrentIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, std::chrono::steady_clock::time_point& clockStart, std::chrono::duration<double>& clockDuration, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable) {
 	// calculate current duration
 	clockDuration = (std::chrono::high_resolution_clock::now() - clockStart);
 	// update current duration as time in IKTool
 	IKTool.setTime(clockDuration.count());
 
-	IKTool.update(false);
+	IKTool.update(false, quatTable);
 	std::array<double, 6> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
 	//double* mirrorTherapyPacket = &trackerResults[0];
 	double* mirrorTherapyPacket = trackerResults.data();
@@ -71,6 +71,8 @@ void ConnectToDataStream(double inputSeconds, int inputThreads) {
 	if (enableMirrorTherapy == true) {
 		IKTool.setPointTrackerBodyName(ConfigReader("MainConfiguration.xml", "station_parent_body"));
 		IKTool.setPointTrackerReferenceBodyName(ConfigReader("MainConfiguration.xml", "station_reference_body"));
+		IKTool.setPointTrackerEnabled(true);
+		IKTool.setSavePointTrackerResults(true);
 	}
 	else {
 		IKTool.setPointTrackerEnabled(false);
@@ -90,10 +92,10 @@ void ConnectToDataStream(double inputSeconds, int inputThreads) {
 	// loop until enough time has been elapsed
 	do {
 		// update quaternions for IKTool
-		IKTool.setQuaternion(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), xsensDataReader.GetQuaternionData(quaternionData)));
-		
+		//IKTool.setQuaternion(fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), xsensDataReader.GetQuaternionData(quaternionData)));
+
 		// begin multithreading a function that consists of IK calculations + PointTracker
-		threadPoolContainer.offerFuture(updateConcurrentIKTool, std::ref(IKTool), std::ref(clockStart), std::ref(clockDuration));
+		threadPoolContainer.offerFuture(updateConcurrentIKTool, std::ref(IKTool), std::ref(clockStart), std::ref(clockDuration), fillQuaternionTable(xsensDataReader.GetMtwCallbacks(), xsensDataReader.GetQuaternionData(quaternionData)) );
 
 		// increment iterations number
 		++iteration;

@@ -36,10 +36,10 @@ struct VariableManager {
 
 
 // IK for multithreading, each thread runs this function separately
-void concurrentIK(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, const VariableManager& vm, Server& myLink) {
+void concurrentIK(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, const VariableManager& vm, Server& myLink, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable) {
 	IKTool.setTime(vm.clockDuration.count());
 	// calculate the IK and update the visualization
-	IKTool.update(true);
+	IKTool.update(true, quatTable);
 	if (vm.enableMirrorTherapy)
 	{
 		// get the data we want to send to Java program
@@ -83,10 +83,10 @@ void RunIKProcedure(OpenSimLive::IMUHandler& genericDataReader, OpenSimLive::IMU
 	}
 
 	// give the necessary inputs to IKTool
-	IKTool.setQuaternion(quatTable);
+	//IKTool.setQuaternion(quatTable);
 
 	// Send a function to be multithreaded
-	threadPoolContainer.offerFuture(concurrentIK, std::ref(IKTool), std::ref(vm), std::ref(myLink));
+	threadPoolContainer.offerFuture(concurrentIK, std::ref(IKTool), std::ref(vm), std::ref(myLink), quatTable);
 }
 
 

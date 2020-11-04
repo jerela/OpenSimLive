@@ -35,6 +35,9 @@ void IMUHandler::initialize() {
 			xsensObject_->CloseConnection();
 			exit;
 		}
+		// initialize quatVector_
+		quatVector_ = xsensObject_->getQuaternionData();
+
 	}
 	else if (IMUType_ == delsys) {
 		delsysObject_.reset(new OpenSimLive::DelsysDataReader);
@@ -48,7 +51,7 @@ void IMUHandler::initialize() {
 // update the value of quaternionTimeSeriesTable_
 void IMUHandler::updateQuaternionTable() {
 	if (IMUType_ == xsens) {
-		quaternionTimeSeriesTable_ = (fillQuaternionTable(xsensObject_->GetMtwCallbacks(), xsensObject_->getQuaternionData()));
+		quaternionTimeSeriesTable_ = (fillQuaternionTable(xsensObject_->GetMtwCallbacks(), xsensObject_->GetQuaternionData(quatVector_)));
 	}
 	else if (IMUType_ == delsys) {
 		delsysObject_->updateQuaternionData();
@@ -57,6 +60,21 @@ void IMUHandler::updateQuaternionTable() {
 	else if (IMUType_ == simulated) {
 		simulatedObject_->updateQuaternionTable();
 		quaternionTimeSeriesTable_ = simulatedObject_->getTimeSeriesTable();
+	}
+}
+
+// This is an option that combines updateQuaternionTable() and getQuaternionTable(), resulting in better performance because quaternionTimeSeriesTable_ variable is not needlessly initialized in this class.
+OpenSim::TimeSeriesTableQuaternion IMUHandler::updateAndGetQuaternionTable() {
+	if (IMUType_ == xsens) {
+		return (fillQuaternionTable(xsensObject_->GetMtwCallbacks(), xsensObject_->GetQuaternionData(quatVector_)));
+	}
+	else if (IMUType_ == delsys) {
+		delsysObject_->updateQuaternionData();
+		return delsysObject_->getTimeSeriesTable();
+	}
+	else if (IMUType_ == simulated) {
+		simulatedObject_->updateQuaternionTable();
+		return simulatedObject_->getTimeSeriesTable();
 	}
 }
 

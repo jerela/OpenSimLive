@@ -31,6 +31,8 @@ namespace OpenSimLive {
 		void closeConnection();
 		// return quaternionTimeSeriesTable_ when needed e.g. for IK
 		OpenSim::TimeSeriesTable_<SimTK::Quaternion> getQuaternionTable() { return quaternionTimeSeriesTable_; };
+		// this is an option that combines updateQuaternionTable() and getQuaternionTable(), resulting in better performance because quaternionTimeSeriesTable_ variable is not needlessly initialized here
+		OpenSim::TimeSeriesTable_<SimTK::Quaternion> updateAndGetQuaternionTable();
 
 	protected:
 			
@@ -48,6 +50,8 @@ namespace OpenSimLive {
 		std::unique_ptr<OpenSimLive::SimulatedDataReader> simulatedObject_;
 		// quaternion time series table that is fed to IK, among other things
 		OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable_;
+		// a quaternion vector for xsensObject_; needed to call GetQuaternionData(std::vector<XsQuaternion>) instead of getQuaternionData(), which is much slower
+		std::vector<XsQuaternion> quatVector_;
 
 	}; // end of class
 }
