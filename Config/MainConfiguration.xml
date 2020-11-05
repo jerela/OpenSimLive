@@ -17,7 +17,7 @@
 	<!--Whether to reset clock to zero when continuous mode begins instead of using the calibration moment as the zero time point.-->
 	<reset_clock_on_continuous_mode>false</reset_clock_on_continuous_mode>
 	<!--Body in the OpenSim model that we use as the parent frame for the station. This station is used as the point to track for mirror therapy. Use 'none' to skip mirror therapy functions.-->
-	<station_parent_body>hand_l</station_parent_body>
+	<station_parent_body>none</station_parent_body>
 	<!--Location of the station in its parent body, given in the coordinate system of the body.-->
 	<station_location>0.01 0.01 0.01</station_location>
 	<!--Body in the OpenSim model that we use as the reference frame while mirroring the station.-->
@@ -32,4 +32,6 @@
 	<IMU_manufacturer>simulated</IMU_manufacturer>
 	<!--If using simulated IMU data, which IMUs do we simulate?-->
 	<simulated_bodies>pelvis_imu torso_imu femur_r_imu femur_l_imu</simulated_bodies>
+	<!--Whether to save quaternions that represent IMU orientations to file.-->
+	<save_quaternions_to_file>true</save_quaternions_to_file>
 </MainConfiguration>

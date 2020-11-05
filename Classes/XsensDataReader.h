@@ -166,23 +166,37 @@ namespace OpenSimLive {
 		void SetDesiredRadioChannel(int channel) { desiredRadioChannel_ = channel; } // sets the desired radio channel
 		bool GetNewDataAvailable() { return newDataAvailable_; } // returns true if new data is available since the last time we used a getter function for orientations
 		std::vector<XsQuaternion> XsensDataReader::getQuaternionData(); // returns IMU orientations as quaternions
+		void saveQuaternionsToFile(const std::string& rootDir, const std::string& resultsDir); // saves quaternion time series to file
+		void setSaveQuaternions(bool setting) { saveQuaternionsToFile_ = setting; } // enable or disable quaternion saving
 
 	protected:
 			
 	private:
 		// PRIVATE METHODS
 		int findClosestUpdateRate(const XsIntArray& supportedUpdateRates, const int desiredUpdateRate); // Given a list of update rates and a desired update rate, returns the closest update rate to the desired one
-		
 
 		// PRIVATE VARIABLES
-		WirelessMasterCallback wirelessMasterCallback_; // Callback for wireless master		
-		std::vector<MtwCallback*> mtwCallbacks_; // Callbacks for MTw devices
-		int desiredUpdateRate_ = 60; // orientation measurement frequency in hertz
-		int desiredRadioChannel_ = 19; // use radio channel 19 for wireless master
+		// Callback for wireless master
+		WirelessMasterCallback wirelessMasterCallback_;
+		// Callbacks for MTw devices
+		std::vector<MtwCallback*> mtwCallbacks_;
+		// orientation measurement frequency in hertz
+		int desiredUpdateRate_ = 60;
+		// use radio channel 19 for wireless master
+		int desiredRadioChannel_ = 19;
 		XsDevicePtrArray mtwDevices_;
 		XsDevicePtr wirelessMasterDevice_;
 		XsControl* control_;
-		bool newDataAvailable_; // boolean that indicates if new data is available since the last time we used a getter function to retrieve IMU orientations
+		// boolean that indicates if new data is available since the last time we used a getter function to retrieve IMU orientations
+		bool newDataAvailable_;
+		// boolean to toggle if quaternions are saved to file or not
+		bool saveQuaternionsToFile_ = false;
+		// quaternions are saved here for later saving to file
+		std::vector<std::vector<XsQuaternion>> quaternionData_;
+		// time values are saved here for later saving to file
+		std::vector<double> timeVector_;
+		// stores number of sensors that are used to measure orientation
+		unsigned int nSensors_ = 0;
 
 	}; // end of class
 }

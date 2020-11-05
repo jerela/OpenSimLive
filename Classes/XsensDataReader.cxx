@@ -1,5 +1,7 @@
 #include <XsensDataReader.h>
+#include <fstream>
 
+const std::string OPENSIMLIVE_ROOT = OPENSIMLIVE_ROOT_PATH;
 
 // \brief Stream insertion operator overload for XsPortInfo
 std::ostream& operator << (std::ostream& out, XsPortInfo const& p)
@@ -22,7 +24,11 @@ using namespace OpenSimLive;
 
 XsensDataReader::XsensDataReader() {}
 
-XsensDataReader::~XsensDataReader() {}
+XsensDataReader::~XsensDataReader() {
+	if (saveQuaternionsToFile_) {
+		saveQuaternionsToFile(OPENSIMLIVE_ROOT, "OpenSimLive-results");
+	}
+}
 
 
 
@@ -188,6 +194,8 @@ unsigned int XsensDataReader::InitiateStartupPhase() {
 				{
 					std::cout << "Number of connected MTws: " << nextCount << ". Press 'Y' to start measurement or 'N' to disconnect connected MTws." << std::endl;
 					connectedMTWCount = nextCount;
+					// save the number of used sensors in a private variable
+					nSensors_ = connectedMTWCount;
 				}
 				else
 				{
@@ -266,6 +274,8 @@ unsigned int XsensDataReader::InitiateStartupPhase() {
 
 std::vector<XsQuaternion> XsensDataReader::GetQuaternionData(std::vector<XsQuaternion>& quaternionData) {
 	newDataAvailable_ = false;
+	// timeGot is used to ensure that we push only one time value to a vector per data retrieval if we are saving quaternions to file
+	bool timeGot = false;
 	//std::vector<XsQuaternion> quaternionData(mtwCallbacks_.size());
 	for (size_t i = 0; i < mtwCallbacks_.size(); ++i)
 	{
@@ -274,9 +284,20 @@ std::vector<XsQuaternion> XsensDataReader::GetQuaternionData(std::vector<XsQuate
 			newDataAvailable_ = true;
 			XsDataPacket const* packet = mtwCallbacks_[i]->getOldestPacket();
 			quaternionData[i] = packet->orientationQuaternion();
+			// if saving quaternions to file, get the time of each data retrieval into a vector
+			if (saveQuaternionsToFile_ && !timeGot) {
+				timeVector_.push_back(packet->timeOfArrival().secTime());
+				timeGot = true;
+			}
 			mtwCallbacks_[i]->deleteOldestPacket();
 		}
 	}
+
+	// if we got time and are saving quaternions to file, push the quaternions into a vector
+	if (saveQuaternionsToFile_ && timeGot) {
+		quaternionData_.push_back(quaternionData);
+	}
+
 	return quaternionData;
 }
 
@@ -360,4 +381,48 @@ void XsensDataReader::CloseConnection(){
 
 	//return;
 }
+
+
+
+
+// This function saves the time points and the corresponding quaternions to file for later examination.
+void XsensDataReader::saveQuaternionsToFile(const std::string& rootDir, const std::string& resultsDir) {
+
+	if (timeVector_.size() > 100000 || quaternionData_.size() > 100000) {
+		std::cout << "In a normal situation we would save quaternions to file now, but because there are " << timeVector_.size() << " data points, for the sake of hard drive space we won't do it." << std::endl;
+		return;
+	}
+
+	// create the complete path of the file, including the file itself, as a string
+	std::string filePath(rootDir + "/" + resultsDir + "/" + "QuaternionTimeSeriesXsens.txt");
+	// create an output file stream that is used to write into the file
+	std::ofstream outputFile;
+	// open and set file to discard any contents that existed in the file previously (truncate mode)
+	outputFile.open(filePath, std::ios_base::out | std::ios_base::trunc);
+	// check that the file was successfully opened and write into it
+	if (outputFile.is_open())
+	{
+		outputFile << "Time series of measured orientation data in quaternions:\n";
+		outputFile << "Time (s)";
+
+		for (unsigned int j = 0; j < nSensors_; ++j) {
+			outputFile << "\t Q" + std::to_string(j + 1);
+		}
+
+		for (unsigned int i = 0; i < quaternionData_.size(); ++i) { // iteration through rows
+			// after the first 2 rows of text, start with a new line and put time values in the first column
+			outputFile << "\n" << timeVector_[i];
+			for (unsigned int j = 0; j < nSensors_; ++j) {
+				// then input quaternion values, separating them from time and other quaternion values with a tab
+				outputFile << "\t" << quaternionData_[i][j];
+			}
+		}
+		outputFile.close();
+		std::cout << "Quaternion time series written to file " << filePath << std::endl;
+	}
+	else {
+		std::cout << "Failed to open file " << filePath << std::endl;
+	}
+}
+
 
