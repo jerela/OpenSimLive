@@ -286,7 +286,10 @@ std::vector<XsQuaternion> XsensDataReader::GetQuaternionData(std::vector<XsQuate
 			quaternionData[i] = packet->orientationQuaternion();
 			// if saving quaternions to file, get the time of each data retrieval into a vector
 			if (saveQuaternionsToFile_ && !timeGot) {
-				timeVector_.push_back(packet->timeOfArrival().secTime());
+				if (initialTime_ == 0) {
+					initialTime_ = packet->timeOfArrival().secTime();
+				}
+				timeVector_.push_back(packet->timeOfArrival().secTime()-initialTime_);
 				timeGot = true;
 			}
 			mtwCallbacks_[i]->deleteOldestPacket();
@@ -392,6 +395,9 @@ void XsensDataReader::saveQuaternionsToFile(const std::string& rootDir, const st
 		std::cout << "In a normal situation we would save quaternions to file now, but because there are " << timeVector_.size() << " data points, for the sake of hard drive space we won't do it." << std::endl;
 		return;
 	}
+	else {
+		std::cout << "Saving quaternion time series to file..." << std::endl;
+	}
 
 	// create the complete path of the file, including the file itself, as a string
 	std::string filePath(rootDir + "/" + resultsDir + "/" + "QuaternionTimeSeriesXsens.txt");
@@ -406,7 +412,7 @@ void XsensDataReader::saveQuaternionsToFile(const std::string& rootDir, const st
 		outputFile << "Time (s)";
 
 		for (unsigned int j = 0; j < nSensors_; ++j) {
-			outputFile << "\t Q" + std::to_string(j + 1);
+			outputFile << "\t Quaternion" + std::to_string(j + 1);
 		}
 
 		for (unsigned int i = 0; i < quaternionData_.size(); ++i) { // iteration through rows

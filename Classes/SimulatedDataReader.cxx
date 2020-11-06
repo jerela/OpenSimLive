@@ -99,6 +99,9 @@ void SimulatedDataReader::saveQuaternionsToFile(const std::string& rootDir, cons
 		std::cout << "In a normal situation we would save quaternions to file now, but because there are " << timeVector_.size() << " data points, for the sake of hard drive space we won't do it." << std::endl;
 		return;
 	}
+	else {
+		std::cout << "Saving quaternion time series to file..." << std::endl;
+	}
 
 	// create the complete path of the file, including the file itself, as a string
 	std::string filePath(rootDir + "/" + resultsDir + "/" + "QuaternionTimeSeriesSimulated.txt");
@@ -113,7 +116,7 @@ void SimulatedDataReader::saveQuaternionsToFile(const std::string& rootDir, cons
 		outputFile << "Time (s)";
 
 		for (unsigned int j = 0; j < labelsSize_; ++j) {
-			outputFile << "\t Q" + std::to_string(j + 1);
+			outputFile << "\t Quaternion" + std::to_string(j + 1);
 		}
 
 		for (unsigned int i = 0; i < quaternionData_.size(); ++i) { // iteration through rows

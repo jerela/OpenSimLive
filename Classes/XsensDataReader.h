@@ -197,6 +197,8 @@ namespace OpenSimLive {
 		std::vector<double> timeVector_;
 		// stores number of sensors that are used to measure orientation
 		unsigned int nSensors_ = 0;
+		// stores the time from the first reading of IMU data, so that we can calculate duration by subtracting initialTime_ from all times that are read after the first
+		double initialTime_ = 0;
 
 	}; // end of class
 }
