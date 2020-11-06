@@ -174,6 +174,7 @@ namespace OpenSimLive {
 	private:
 		// PRIVATE METHODS
 		int findClosestUpdateRate(const XsIntArray& supportedUpdateRates, const int desiredUpdateRate); // Given a list of update rates and a desired update rate, returns the closest update rate to the desired one
+		std::string convertXsQuaternionToString(XsQuaternion quaternion); // A function to convert XsQuaternion to string before writing it to file; it can be written directly to file, but the formatting in this function will make its formatting identical to SimTK::Quaternions in file
 
 		// PRIVATE VARIABLES
 		// Callback for wireless master

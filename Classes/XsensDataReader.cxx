@@ -387,6 +387,13 @@ void XsensDataReader::CloseConnection(){
 
 
 
+// A function to convert XsQuaternion to string before writing it to file; it can be written directly to file, but the formatting in this function will make its formatting identical to SimTK::Quaternions in file
+std::string XsensDataReader::convertXsQuaternionToString(XsQuaternion quaternion) {
+	std::string str = "~[" + std::to_string(quaternion.w()) + "," + std::to_string(quaternion.x()) + "," + std::to_string(quaternion.y()) + "," + std::to_string(quaternion.z()) + "]";
+	return str;
+}
+
+
 
 // This function saves the time points and the corresponding quaternions to file for later examination.
 void XsensDataReader::saveQuaternionsToFile(const std::string& rootDir, const std::string& resultsDir) {
@@ -420,7 +427,7 @@ void XsensDataReader::saveQuaternionsToFile(const std::string& rootDir, const st
 			outputFile << "\n" << timeVector_[i];
 			for (unsigned int j = 0; j < nSensors_; ++j) {
 				// then input quaternion values, separating them from time and other quaternion values with a tab
-				outputFile << "\t" << quaternionData_[i][j];
+				outputFile << "\t" << convertXsQuaternionToString(quaternionData_[i][j]);
 			}
 		}
 		outputFile.close();
