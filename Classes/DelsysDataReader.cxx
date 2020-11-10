@@ -53,9 +53,9 @@ DelsysDataReader::~DelsysDataReader() {
 	if (EMGData_.size() > 0 && timeVector_.size() > 0) {
 		// report EMG throughput to console
 		std::cout << "EMG performance was " << (double)EMGData_.size() / timeVector_.back() << " read values per second." << std::endl;
-		// save the data in timeVector_ and EMGData_ to a .txt file in OpenSimLive/Delsys-data/
+		// save the data in timeVector_ and EMGData_ to a .txt file in OpenSimLive/OpenSimLive-results/
 		std::cout << "Saving EMG time series to file..." << std::endl;
-		saveEMGToFile(OPENSIMLIVE_ROOT, "Delsys-data");
+		saveEMGToFile(OPENSIMLIVE_ROOT, "OpenSimLive-results");
 	}
 	// if enabled, save quaternion time series to file
 	if (saveQuaternionsToFile_) {

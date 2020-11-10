@@ -17,3 +17,4 @@ Config/gait2392_shoulders_calibrated.osim
 OpenSimLive-results/QuaternionTimeSeriesSimulated.txt
 OpenSimLive-results/QuaternionTimeSeriesXsens.txt
 OpenSimLive-results/QuaternionTimeSeriesDelsys.txt
+OpenSimLive-results/EMGTimeSeries.txt
