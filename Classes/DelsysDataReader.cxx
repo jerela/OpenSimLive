@@ -22,6 +22,9 @@ DelsysDataReader::DelsysDataReader() {
 	// read all possible labels from the mappings file, even for sensors that are not currently used
 	labels_ = getLabelsFromFile();
 
+	// prepare time
+	prepareTime();
+
 	// get number of active sensors and their indices (1-16) from the mappings file
 	nActiveSensors_ = std::stoi(ConfigReader("DelsysMappings.xml", "number_of_active_sensors"));
 	std::string activeSensorNumbersString = ConfigReader("DelsysMappings.xml", "active_sensors");
@@ -37,7 +40,12 @@ DelsysDataReader::DelsysDataReader() {
 	}
 
 	// reserve a number of elements in the vector that contains EMG data arrays for all sensors
-	EMGData_.reserve(50000);
+	EMGData_.reserve(100000);
+
+	// reserve a number of elements in the vector that contains quaternions for all sensors
+	if (saveQuaternionsToFile_) {
+		quaternionData_.reserve(100000);
+	}
 }
 
 // DESTRUCTOR
@@ -45,9 +53,13 @@ DelsysDataReader::~DelsysDataReader() {
 	if (EMGData_.size() > 0 && timeVector_.size() > 0) {
 		// report EMG throughput to console
 		std::cout << "EMG performance was " << (double)EMGData_.size() / timeVector_.back() << " read values per second." << std::endl;
-		// save the data in timeVector_ and EMGData_ to a .txt file in OpenSimLive/Delsys-data/
+		// save the data in timeVector_ and EMGData_ to a .txt file in OpenSimLive/OpenSimLive-results/
 		std::cout << "Saving EMG time series to file..." << std::endl;
-		saveEMGToFile(OPENSIMLIVE_ROOT, "Delsys-data");
+		saveEMGToFile(OPENSIMLIVE_ROOT, "OpenSimLive-results");
+	}
+	// if enabled, save quaternion time series to file
+	if (saveQuaternionsToFile_) {
+		saveQuaternionsToFile(OPENSIMLIVE_ROOT, "OpenSimLive-results");
 	}
 }
 
@@ -297,10 +309,16 @@ void DelsysDataReader::updateQuaternionData()
 				// create a matrix with 1 row and nActiveSensors_ columns, then populate it with quaternions
 				SimTK::Matrix_<SimTK::Quaternion> quatMatrix(1, nActiveSensors_);
 				for (unsigned int m = 0; m < nActiveSensors_; ++m) {
+					// here m describes the "true" sensor index of the quaternion (going from 0 to 15 instead of 1 to 16 though) and x describes the index from (1 to 16) after offset is noted
 					int x = m - offset + 1;
+					// because x is from 1 to 16, we add 16 if we're below 1
 					if (x < 1)
 						x = x + 16;
 					quatMatrix.set(0, m, quatMap[x]);
+					// if we are saving quaternions to file later, put them into quaternionArray_ so they can be transferred to a vector after this quaternion updating loop is finished
+					if (saveQuaternionsToFile_) {
+						quaternionArray_[m] = quatMap[x];
+					}
 				}
 
 				std::vector<double> timeVector = { 0 };
@@ -312,6 +330,13 @@ void DelsysDataReader::updateQuaternionData()
 
 	} while (!success);
 	//std::cout << "Finished loop" << std::endl;
+
+	// if we are saving quaternions to file later, push them to quaternionData_
+	if (saveQuaternionsToFile_) {
+		quaternionData_.push_back(quaternionArray_);
+		// update timeVector_ with a new time point
+		updateTime();
+	}
 
 }
 
@@ -409,6 +434,46 @@ void DelsysDataReader::saveEMGToFile(const std::string& rootDir, const std::stri
 		}
 		outputFile.close();
 		std::cout << "EMG time series written to file " << filePath << std::endl;
+	}
+	else {
+		std::cout << "Failed to open file " << filePath << std::endl;
+	}
+}
+
+
+// This function saves the time points and the corresponding quaternions to file for later examination.
+void DelsysDataReader::saveQuaternionsToFile(const std::string& rootDir, const std::string& resultsDir) {
+
+	if (timeVector_.size() > 100000 || quaternionData_.size() > 100000) {
+		std::cout << "In a normal situation we would save quaternions to file now, but because there are " << timeVector_.size() << " data points, for the sake of hard drive space we won't do it." << std::endl;
+		return;
+	}
+	else {
+		std::cout << "Saving quaternion time series to file..." << std::endl;
+	}
+
+	// create the complete path of the file, including the file itself, as a string
+	std::string filePath(rootDir + "/" + resultsDir + "/" + "QuaternionTimeSeriesDelsys.txt");
+	// create an output file stream that is used to write into the file
+	std::ofstream outputFile;
+	// open and set file to discard any contents that existed in the file previously (truncate mode)
+	outputFile.open(filePath, std::ios_base::out | std::ios_base::trunc);
+	// check that the file was successfully opened and write into it
+	if (outputFile.is_open())
+	{
+		outputFile << "Time series of measured orientation data in quaternions:\n";
+		outputFile << "Time (s)\t Quaternion1 \t Quaternion2 \t Quaternion3 \t Quaternion4 \t Quaternion5 \t Quaternion6 \t Quaternion7 \t Quaternion8 \t Quaternion9 \t Quaternion10 \t Quaternion11 \t Quaternion12 \t Quaternion13 \t Quaternion14 \t Quaternion15 \t Quaternion16";
+
+		for (unsigned int i = 0; i < quaternionData_.size(); ++i) { // iteration through rows
+			// after the first 2 rows of text, start with a new line and put time values in the first column
+			outputFile << "\n" << timeVector_[i];
+			for (unsigned int j = 0; j < 16; ++j) {
+				// then input quaternion values, separating them from time and other quaternion values with a tab
+				outputFile << "\t" << quaternionData_[i][j];
+			}
+		}
+		outputFile.close();
+		std::cout << "Quaternion time series written to file " << filePath << std::endl;
 	}
 	else {
 		std::cout << "Failed to open file " << filePath << std::endl;

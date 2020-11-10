@@ -1,3 +1,4 @@
+// This class reads realtime orientation and EMG data from Delsys sensors.
 #pragma once
 
 #include <OpenSim.h>
@@ -30,6 +31,8 @@ namespace OpenSimLive {
 		unsigned int getNActiveSensors() { return nActiveSensors_; }
 		// append time to vector of time points
 		void appendTime(double time) { timeVector_.push_back(time); }
+		// enable or disable saving quaternion time series to file
+		void setSaveQuaternions(bool setting) { saveQuaternionsToFile_ = setting; }
 		
 	protected:
 			
@@ -61,6 +64,14 @@ namespace OpenSimLive {
 		std::vector<unsigned int> activeSensors_;
 		// number of active sensors
 		unsigned int nActiveSensors_ = 0;
+		// quaternions are saved here for later saving to file
+		std::vector<std::array<SimTK::Quaternion, 16>> quaternionData_;
+		// a quaternion array from a single data reading is stored here and overwritten each time
+		std::array<SimTK::Quaternion, 16> quaternionArray_;
+		// boolean to toggle if quaternions are saved to file or not
+		bool saveQuaternionsToFile_ = false;
+		// save quaternion time series as .txt
+		void saveQuaternionsToFile(const std::string& rootDir, const std::string& resultsDir);
 
 		// PRIVATE METHODS FOR EMG
 		// reads byte stream from IMUs and updates the float array of EMG data points (EMGDataPoints_), argument is the index of the sensor we use to plot EMG data

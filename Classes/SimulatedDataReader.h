@@ -19,6 +19,8 @@ namespace OpenSimLive {
 		void closeConnection();
 		// returns the time series table of quaternion orientations
 		OpenSim::TimeSeriesTable_<SimTK::Quaternion> getTimeSeriesTable() { return quatTable_; }
+		// enable or disable quaternion saving to file
+		void setSaveQuaternions(bool setting) { saveQuaternionsToFile_ = setting; }
 		
 	protected:
 			
@@ -35,6 +37,21 @@ namespace OpenSimLive {
 		std::vector<std::string> labels_;
 		// size of labels; fairly unimportant, but it helps to have this to prevent calling vector::size() twice whenever updateQuaternionTable() is called
 		unsigned int labelsSize_ = 0;
+
+		// time values are saved here for later saving to file
+		std::vector<double> timeVector_;
+		// quaternions are saved here for later saving to file
+		std::vector<std::vector<SimTK::Quaternion>> quaternionData_;
+		// a quaternion array from a single data reading is stored here and overwritten each time
+		std::vector<SimTK::Quaternion> quaternions_;
+		// boolean to toggle if quaternions are saved to file or not
+		bool saveQuaternionsToFile_ = false;
+		// save quaternion time series as .txt
+		void saveQuaternionsToFile(const std::string& rootDir, const std::string& resultsDir);
+		// the following chrono variables are used to track time for each simulated quaternion measurement
+		std::chrono::steady_clock::time_point clockNow_ = std::chrono::high_resolution_clock::now();
+		std::chrono::steady_clock::time_point clockStart_ = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<double> clockDuration_;
 
 	}; // end of class
 }

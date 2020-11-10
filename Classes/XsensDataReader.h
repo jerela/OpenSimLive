@@ -1,3 +1,4 @@
+// This class reads real-time orientation data from Xsens sensors.
 #pragma once
 
 #include <iostream>
@@ -157,32 +158,62 @@ namespace OpenSimLive {
 		~XsensDataReader();
 
 		// PUBLIC METHODS
-		unsigned int InitiateStartupPhase(); // starts the connection from scratch; returns 0 if unsuccessful, 1 if successful but we quit the program and 2 for successful and we continue the program
-		std::vector<XsQuaternion> XsensDataReader::GetQuaternionData(std::vector<XsQuaternion>& quaternionData); // returns IMU orientations as quaternions
-		std::vector<XsEuler> XsensDataReader::GetEulerData(std::vector<XsEuler>& eulerData); // returns IMU orientations as Euler angles
-		void CloseConnection(); // shuts down the connection
-		std::vector<MtwCallback*> GetMtwCallbacks() { return mtwCallbacks_; } // returns a pointer to mtwCallbacks (returns mtwCallbacks_, which is a pointer itself)
-		void SetDesiredUpdateRate(int rate) { desiredUpdateRate_ = rate; } // sets the desired orientation measurement frequency
-		void SetDesiredRadioChannel(int channel) { desiredRadioChannel_ = channel; } // sets the desired radio channel
-		bool GetNewDataAvailable() { return newDataAvailable_; } // returns true if new data is available since the last time we used a getter function for orientations
-		std::vector<XsQuaternion> XsensDataReader::getQuaternionData(); // returns IMU orientations as quaternions
+		// starts the connection from scratch; returns 0 if unsuccessful, 1 if successful but we should quit the program and 2 for successful and we continue the program
+		unsigned int InitiateStartupPhase();
+		// returns IMU orientations as quaternions
+		std::vector<XsQuaternion> XsensDataReader::GetQuaternionData(std::vector<XsQuaternion>& quaternionData);
+		// returns IMU orientations as Euler angles
+		std::vector<XsEuler> XsensDataReader::GetEulerData(std::vector<XsEuler>& eulerData);
+		// shuts down the connection
+		void CloseConnection();
+		// returns a pointer to mtwCallbacks (returns mtwCallbacks_, which is a pointer itself)
+		std::vector<MtwCallback*> GetMtwCallbacks() { return mtwCallbacks_; }
+		// sets the desired orientation measurement frequency
+		void SetDesiredUpdateRate(int rate) { desiredUpdateRate_ = rate; }
+		// sets the desired radio channel
+		void SetDesiredRadioChannel(int channel) { desiredRadioChannel_ = channel; }
+		// returns true if new data is available since the last time we used a getter function for orientations
+		bool GetNewDataAvailable() { return newDataAvailable_; }
+		// returns IMU orientations as quaternions
+		std::vector<XsQuaternion> XsensDataReader::getQuaternionData();
+		// saves quaternion time series to file
+		void saveQuaternionsToFile(const std::string& rootDir, const std::string& resultsDir);
+		// enable or disable quaternion saving
+		void setSaveQuaternions(bool setting) { saveQuaternionsToFile_ = setting; }
 
 	protected:
 			
 	private:
 		// PRIVATE METHODS
-		int findClosestUpdateRate(const XsIntArray& supportedUpdateRates, const int desiredUpdateRate); // Given a list of update rates and a desired update rate, returns the closest update rate to the desired one
-		
+		// Given a list of update rates and a desired update rate, returns the closest update rate to the desired one
+		int findClosestUpdateRate(const XsIntArray& supportedUpdateRates, const int desiredUpdateRate);
+		// A function to convert XsQuaternion to string before writing it to file; it can be written directly to file, but the formatting in this function will make its formatting identical to SimTK::Quaternions in file
+		std::string convertXsQuaternionToString(XsQuaternion quaternion);
 
 		// PRIVATE VARIABLES
-		WirelessMasterCallback wirelessMasterCallback_; // Callback for wireless master		
-		std::vector<MtwCallback*> mtwCallbacks_; // Callbacks for MTw devices
-		int desiredUpdateRate_ = 60; // orientation measurement frequency in hertz
-		int desiredRadioChannel_ = 19; // use radio channel 19 for wireless master
+		// Callback for wireless master
+		WirelessMasterCallback wirelessMasterCallback_;
+		// Callbacks for MTw devices
+		std::vector<MtwCallback*> mtwCallbacks_;
+		// orientation measurement frequency in hertz
+		int desiredUpdateRate_ = 60;
+		// use radio channel 19 for wireless master
+		int desiredRadioChannel_ = 19;
 		XsDevicePtrArray mtwDevices_;
 		XsDevicePtr wirelessMasterDevice_;
 		XsControl* control_;
-		bool newDataAvailable_; // boolean that indicates if new data is available since the last time we used a getter function to retrieve IMU orientations
+		// boolean that indicates if new data is available since the last time we used a getter function to retrieve IMU orientations
+		bool newDataAvailable_;
+		// boolean to toggle if quaternions are saved to file or not
+		bool saveQuaternionsToFile_ = false;
+		// quaternions are saved here for later saving to file
+		std::vector<std::vector<XsQuaternion>> quaternionData_;
+		// time values are saved here for later saving to file
+		std::vector<double> timeVector_;
+		// stores number of sensors that are used to measure orientation
+		unsigned int nSensors_ = 0;
+		// stores the time from the first reading of IMU data, so that we can calculate duration by subtracting initialTime_ from all times that are read after the first
+		double initialTime_ = 0;
 
 	}; // end of class
 }

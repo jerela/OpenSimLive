@@ -1,4 +1,4 @@
-// Miscellaneous functions that are used by several programs are declared here.
+// Miscellaneous Xsens-specific functions that are used by several programs are declared here.
 #pragma once
 #include <OpenSim.h>
 #include <string>

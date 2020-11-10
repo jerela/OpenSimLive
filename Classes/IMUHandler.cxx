@@ -17,15 +17,18 @@ IMUHandler::IMUHandler() {
 IMUHandler::~IMUHandler() {
 }
 
-// set IMUType_ as either xsens or delsys to guide what methods will be called later
+// set IMUType_ as xsens, delsys or simulated to guide what methods will be called later
 void IMUHandler::setManufacturer(IMUType manufacturer) {
 	IMUType_ = manufacturer;
 }
 
 // establish connection to the IMUs
 void IMUHandler::initialize() {
+	bool saveQuaternions = (ConfigReader("MainConfiguration.xml", "save_quaternions_to_file") == "true");
 	if (IMUType_ == xsens) {
 		xsensObject_.reset(new OpenSimLive::XsensDataReader);
+		xsensObject_->setSaveQuaternions(saveQuaternions);
+		// loop until startup is successful
 		unsigned int dataReaderResult = 0;
 		while (dataReaderResult == 0) {
 			dataReaderResult = xsensObject_->InitiateStartupPhase();
@@ -33,18 +36,21 @@ void IMUHandler::initialize() {
 		// if InitiateStartupPhase returned 1, we close the program
 		if (dataReaderResult == 1) {
 			xsensObject_->CloseConnection();
-			exit;
+			// exit with 0 indicating a successful exit
+			exit(0);
 		}
 		// initialize quatVector_
 		quatVector_ = xsensObject_->getQuaternionData();
-
 	}
 	else if (IMUType_ == delsys) {
 		delsysObject_.reset(new OpenSimLive::DelsysDataReader);
+		delsysObject_->setSaveQuaternions(saveQuaternions);
+		// loop until startup is successful
 		while (!delsysObject_->initiateConnection()) {}
 	}
 	else if (IMUType_ == simulated) {
 		simulatedObject_.reset(new OpenSimLive::SimulatedDataReader);
+		simulatedObject_->setSaveQuaternions(saveQuaternions);
 	}
 }
 
@@ -96,8 +102,7 @@ void IMUHandler::updateEMG() {
 
 // close the connection, save to file etc
 void IMUHandler::closeConnection() {
-	if (IMUType_ == xsens)
-	{
+	if (IMUType_ == xsens) {
 		xsensObject_->CloseConnection();
 	}
 	else if (IMUType_ == delsys) {
