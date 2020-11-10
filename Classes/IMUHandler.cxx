@@ -36,7 +36,8 @@ void IMUHandler::initialize() {
 		// if InitiateStartupPhase returned 1, we close the program
 		if (dataReaderResult == 1) {
 			xsensObject_->CloseConnection();
-			exit;
+			// exit with 0 indicating a successful exit
+			exit(0);
 		}
 		// initialize quatVector_
 		quatVector_ = xsensObject_->getQuaternionData();

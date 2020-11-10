@@ -5,6 +5,7 @@
   * [Installing](#installing)
   * [Running the tests](#running-the-tests)
 - [How it works](#how-it-works)
+- [Descriptions of files](#descriptions-of-files)
 - [Troubleshooting and FAQ](#troubleshooting-and-faq)
   * [General questions](#general-questions)
   * [Run-time issues](#run-time-issues)
@@ -157,7 +158,7 @@ For example, if we use sensors 1, 2 and 3, but the method starts reading the byt
 
 Now imagine that we use sensors 1, 2, 3, 4, 9, 10, 11 and 12. If the method starts reading the byte stream from the quaternion of sensor 9, it is detected as sensor 1 and without any offset incrementation we detect sensors 1, 2, 3, 4, 9, 10, 11 and 12, even though the actual indices of the sensors are 9, 10, 11, 12, 1, 2, 3 and 4. The method will return quaternions assigned to the wrong sensor indices. Therefore when selecting your sensors, you should avoid index sequences that contain this kind of symmetry.
 
-## SimulatedDataReader
+### SimulatedDataReader
 
 This is a very simple class that creates quaternions from a random distribution and lets the program use those quaternions as IMU orientations. It can be used in **OSL_common** if you do not wish to use actual IMUs.
 
@@ -185,6 +186,29 @@ Like Client, this class is also based on Keith Vertanen's work. It enables socke
 ### PythonPlotter
 
 This class can be used to plot data, but it requires Python3 with matplotplib. The main program freezes when embedded Python commands are interpreted and the procedure is not thread-safe. Thus using this class during any data loops will slow them down.
+
+## Descriptions of files
+
+OpenSimLive contains a number of configuration and output files. Configuration files can all be found in **.../OpenSimLive/Config/** and output files can be found in **.../OpenSimLive/OpenSimLive-results/** with the exception of EMG time series from Delsys, which can be found in **.../OpenSimLive/Delsys-data/**. A brief description of each file follows.
+
+### Files in Config folder
+
+#### gait2392_full.osim and gait2392_shoulders.osim
+
+These are the musculoskeletal models that we use as a base for calibration. Note that you can change this by modifying **model_file** IMUPlacerSetup.xml.
+
+#### gait2392_full_calibrated.osim and similar _calibrated.osim files
+
+This is the same model as gait2392_full.osim, but after calibration IMUs have been added to it with their initial orientations. Note that you can change the name of this file by modifying **output_model_file** IMUPlacerSetup.xml
+
+#### MainConfiguration.xml
+
+This XML file contains most user-defined settings that can be easily changed with a text editor without a need to rebuilt the project. The settings are as follows:
+- **desired_update_rate**: preferred orientations-per-second throughput that Xsens IMUs should send to OpenSimLive. Note that Xsens has a defined set of supported rates so your desired input might be corrected to the closest predefined rate. Relevant only with Xsens IMUs.
+- **mappings_file**: The XML file that contains the serial numbers / IDs or Xsens IMUs and the name of the body that the IMU is connected to in the model. Relevant only with Xsens IMUs.
+
+**WIP!!!**
+
 
 ## Troubleshooting and FAQ
 

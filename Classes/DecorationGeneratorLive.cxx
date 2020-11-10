@@ -7,6 +7,7 @@ DecorationGeneratorLive::DecorationGeneratorLive() {}
 
 DecorationGeneratorLive::~DecorationGeneratorLive() {}
 
+// This is called whenever a new state is about to be visualized.
 void DecorationGeneratorLive::generateDecorations(const SimTK::State& state, SimTK::Array_<SimTK::DecorativeGeometry>& geometry) {
 	// create an array to hold the decorative sphere
 	SimTK::Array_<SimTK::DecorativeGeometry> geomArray(2);

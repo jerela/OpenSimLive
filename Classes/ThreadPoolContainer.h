@@ -1,3 +1,4 @@
+// This class is a user-friendly interface to operate ThreadPool. It limits the number of concurrent threads and forces the oldest thread to finish if another thread is offered while a maximum number of threads is already running.
 
 #ifndef THREAD_POOL_CONTAINER_H
 #define THREAD_POOL_CONTAINER_H

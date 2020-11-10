@@ -1,4 +1,4 @@
-// IMUHandler.h
+// This class manages different IMU manufacturers and their methods, providing general methods that can be called in tests and other programs and then invoking manufacturer-specific methods through them.
 #pragma once
 #include <DelsysDataReader.h>
 #include <XsensDataReader.h>

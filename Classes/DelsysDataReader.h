@@ -1,3 +1,4 @@
+// This class reads realtime orientation and EMG data from Delsys sensors.
 #pragma once
 
 #include <OpenSim.h>
