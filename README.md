@@ -3,6 +3,7 @@
 - [Getting started](#getting-started)
   * [Prerequisites](#prerequisites)
   * [Installing](#installing)
+  * [Running the program](#running-the-program)
   * [Running the tests](#running-the-tests)
 - [How it works](#how-it-works)
 - [Descriptions of files](#descriptions-of-files)
@@ -206,9 +207,20 @@ This is the same model as gait2392_full.osim, but after calibration IMUs have be
 This XML file contains most user-defined settings that can be easily changed with a text editor without a need to rebuilt the project. The settings are as follows:
 - **desired_update_rate**: preferred orientations-per-second throughput that Xsens IMUs should send to OpenSimLive. Note that Xsens has a defined set of supported rates so your desired input might be corrected to the closest predefined rate. Relevant only with Xsens IMUs.
 - **mappings_file**: The XML file that contains the serial numbers / IDs or Xsens IMUs and the name of the body that the IMU is connected to in the model. Relevant only with Xsens IMUs.
-
-**WIP!!!**
-
+- **imu_placer_setup_file**: The XML file that contains information for model calibration. It is IMUPlacerSetup.xml by default and will not require changes unless you wish to have several setup files and switch between them this way.
+- **save_ik_results**: A simple true/false boolean to toggle if time series of solved joint angles and their errors should be saved to **.../OpenSimLive/OpenSimLive-results/** as IK_live.mot and IK-live_orientationErrors.sto, respectively.
+- **continuous_mode_ms_delay**: When reading data continuously from IMUs, this sets the minimum delay (in milliseconds) between consecutive time points for IK. If visualizing IK and this is too low, visualizer will "clog up", which shows as low FPS and a delay between the actual movement and the model's movement. Aim for a value that allows the FPS you want, but isn't much lower.
+- **print_roll_pitch_yaw**: When this is true, Xsens IMUs will print their roll, pitch and yaw angles to console.
+- **reset_clock_on_continuous_mode**: When this is true, the clock for IK time series will be restarted from zero whenever you re-enter continuous mode. When this is false, the clock will start running when you calibrate the model and then keep running no matter how many pauses from continuous mode you take.
+- **station_parent_body**: The body on the OpenSim model that we want to mirror, such as a rehabilitation patient's healthy hand whose movement we want to mirror. Relevant only if you use PointTracker for mirror therapy applications. Set to "none" if you don't need it.
+- **station_location**: Location of the station to be mirrored in the coordinate system of station_parent_body. Given in metres. Relevant only if you use mirror therapy applications, ignored otherwise.
+- **station_reference_body**: The body on the OpenSim model with respect to which we mirror station_parent body. The mirroring is done with respect to the XY plane of station_reference_body. Relevant only if you use mirror therapy applications, ignored otherwise.
+- **socket_port**: Port for socket communication between the server (OpenSimLive) and the client (such as a Java program that controls a robotic rehabilitation arm). Relevant only if you use mirror therapy applications, ignored otherwise.
+- **threads**: The number of CPU threads to use for multithreading.
+- **enable_EMG_plotting**: If set to true, real-time EMG data will be plotted as its read at a very low FPS. This will prevent the program to read EMG data at frequencies necessary for EMG analysis. Relevant only if you use EMG reading applications.
+- **IMU_manufacturer**: Either "simulated", "delsys" or "xsens". See [Running the program](#running-the-program) for more information.
+- **simulated_bodies**: List of bodies on the OpenSim Model, with suffix "_imu". If we are simulating IMU data, random orientations will be generated for these bodies. Irrelevant otherwise.
+- **save_quaternions_to_file**: Boolean to toggle if quaternion data should be saved to file after the program finishes.
 
 ## Troubleshooting and FAQ
 
