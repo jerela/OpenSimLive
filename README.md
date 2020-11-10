@@ -190,7 +190,7 @@ This class can be used to plot data, but it requires Python3 with matplotplib. T
 
 ## Descriptions of files
 
-OpenSimLive contains a number of configuration and output files. Configuration files can all be found in **.../OpenSimLive/Config/** and output files can be found in **.../OpenSimLive/OpenSimLive-results/** with the exception of EMG time series from Delsys, which can be found in **.../OpenSimLive/Delsys-data/**. A brief description of each file follows.
+OpenSimLive contains a number of configuration and output files. All configuration files can be found in **.../OpenSimLive/Config/** and output files can be found in **.../OpenSimLive/OpenSimLive-results/**. A brief description of each file follows.
 
 ### Files in Config folder
 
@@ -221,6 +221,20 @@ This XML file contains most user-defined settings that can be easily changed wit
 - **IMU_manufacturer**: Either "simulated", "delsys" or "xsens". See [Running the program](#running-the-program) for more information.
 - **simulated_bodies**: List of bodies on the OpenSim Model, with suffix "_imu". If we are simulating IMU data, random orientations will be generated for these bodies. Irrelevant otherwise.
 - **save_quaternions_to_file**: Boolean to toggle if quaternion data should be saved to file after the program finishes.
+
+### DelsysMappings.xml
+
+This XML file contains settings specific to Delsys IMUs. The settings are as follows:
+- **number_of_active_sensors**: The number of Delsys sensors that are online.
+- **active_sensors_**: The indices of the slots on Trigno Control Utility for sensors that are online. The number of these indices must equal number_of_active_sensors.
+- **sensor_x_label**: x is a number from 1 to 16, denoting the index of an active sensor. The value of these should be the name of a body on the OpenSim model with suffix "_imu". This links a sensor and its orientation output to a body on the OpenSim model. For example, if active_sensors is "1 2" then "sensor_1_label" could be "pelvis_imu", indicating that orientation from the sensor on TCU slot 1 is taken as the orientation of the IMU on pelvis.
+
+### SensorMappings.xml
+
+This XML file contains settings specific to Xsens IMUs. The settings are as follows:
+- **trial_prefix**: Not used in OpenSimLive and can be safely ignored. The reason this exists is because OpenSense uses an identical format of XML files to calculate inverse kinematics from prerecorded trials.
+- **name**: The serial code / ID on the physical IMU box.
+- **name_in_model**: The body on the OpenSim model, with suffix "_imu", that this IMU is connected to.
 
 ## Troubleshooting and FAQ
 
