@@ -22,6 +22,9 @@ DelsysDataReader::DelsysDataReader() {
 	// read all possible labels from the mappings file, even for sensors that are not currently used
 	labels_ = getLabelsFromFile();
 
+	// prepare time
+	prepareTime();
+
 	// get number of active sensors and their indices (1-16) from the mappings file
 	nActiveSensors_ = std::stoi(ConfigReader("DelsysMappings.xml", "number_of_active_sensors"));
 	std::string activeSensorNumbersString = ConfigReader("DelsysMappings.xml", "active_sensors");
@@ -53,10 +56,10 @@ DelsysDataReader::~DelsysDataReader() {
 		// save the data in timeVector_ and EMGData_ to a .txt file in OpenSimLive/Delsys-data/
 		std::cout << "Saving EMG time series to file..." << std::endl;
 		saveEMGToFile(OPENSIMLIVE_ROOT, "Delsys-data");
-		// if enabled, save quaternion time series to file
-		if (saveQuaternionsToFile_) {
-			saveQuaternionsToFile(OPENSIMLIVE_ROOT, "OpenSimLive-results");
-		}
+	}
+	// if enabled, save quaternion time series to file
+	if (saveQuaternionsToFile_) {
+		saveQuaternionsToFile(OPENSIMLIVE_ROOT, "OpenSimLive-results");
 	}
 }
 
@@ -331,6 +334,8 @@ void DelsysDataReader::updateQuaternionData()
 	// if we are saving quaternions to file later, push them to quaternionData_
 	if (saveQuaternionsToFile_) {
 		quaternionData_.push_back(quaternionArray_);
+		// update timeVector_ with a new time point
+		updateTime();
 	}
 
 }
