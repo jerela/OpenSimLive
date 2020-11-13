@@ -20,7 +20,9 @@ namespace OpenSimLive {
 		// sends the STOP command ...
 		bool closeConnection(); 
 		// reads byte stream from the IMUs and updates the time series table of quaternions (private variable quatTable_)
-		void updateQuaternionData(); 
+		void updateQuaternionData();
+		// reads byte stream from the IMUs and updates the time series table of quaternions (private variable quatTable_); a more elegant solution when we can assume there is no offset between detected sensor indices and actual sensors being used
+		void updateQuaternionDataNoOffset();
 		// returns the value of quatTable_
 		OpenSim::TimeSeriesTable_<SimTK::Quaternion> getTimeSeriesTable() { return *quatTable_; }
 		// reads byte stream from the IMUs and updates the EMG signal into a vector

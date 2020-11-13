@@ -185,6 +185,83 @@ bool DelsysDataReader::closeConnection() {
 
 
 // This function reads data from Delsys SDK and calculates a time series table of quaternions based on it.
+void DelsysDataReader::updateQuaternionDataNoOffset()
+{
+	// define endianness for converting bytes to float
+	int reverse = 0;
+
+	// number of elements between starting bytes of consecutive sensors
+	unsigned int dataGap = 36;
+
+	// The amount of bytes covering a single "cycle" of data for all 16 sensors is 576 (16 bytes per quaternion, 20 bytes of empty space after each quaternion byte sequence).
+	const unsigned int nBytes = 576; // (36)*16 = 576
+
+	// initialize array for holding bytes that are read from Trigno Control Utility / Delsys SDK
+	char receivedBytes[nBytes];
+	// whether the recvBytes returns true to indicate we successfully read bytes from Delsys SDK
+	bool success = false;
+
+	std::vector<SimTK::Quaternion> quatVector;
+	std::vector<bool> sensorRead;
+
+	for (unsigned int z = 0; z < nActiveSensors_; ++z) {
+		sensorRead.push_back(false);
+	}
+	do {
+
+		// returns 1 if bytes were successfully read
+		success = AUXPort_->RecvBytes(receivedBytes, nBytes, nBytes);
+
+		if (success)
+		{
+			// iterate through all active sensors
+			for (unsigned int sensorIndex = 0; sensorIndex < nActiveSensors_; ++sensorIndex) {
+				// get the starting index of bytes in the stream for sensor sensorIndex
+				unsigned int indexInByteStream = (activeSensors_[sensorIndex] - 1) * 36;
+				// form the quaternion
+				SimTK::Quaternion_<SimTK::Real> quat(convertBytesToFloat(receivedBytes[indexInByteStream], receivedBytes[indexInByteStream + 1], receivedBytes[indexInByteStream + 2], receivedBytes[indexInByteStream + 3], reverse), convertBytesToFloat(receivedBytes[indexInByteStream + 4], receivedBytes[indexInByteStream + 5], receivedBytes[indexInByteStream + 6], receivedBytes[indexInByteStream + 7], reverse), convertBytesToFloat(receivedBytes[indexInByteStream + 8], receivedBytes[indexInByteStream + 9], receivedBytes[indexInByteStream + 10], receivedBytes[indexInByteStream + 11], reverse), convertBytesToFloat(receivedBytes[indexInByteStream + 12], receivedBytes[indexInByteStream + 13], receivedBytes[indexInByteStream + 14], receivedBytes[indexInByteStream + 15], reverse));
+				quatVector.push_back(quat);
+				sensorRead[sensorIndex] = true;
+			}
+
+			// create a matrix with 1 row and nActiveSensors_ columns, then populate it with quaternions
+			SimTK::Matrix_<SimTK::Quaternion> quatMatrix(1, nActiveSensors_);
+			for (unsigned int m = 0; m < nActiveSensors_; ++m) {
+				quatMatrix.set(0, activeSensors_[m], quatVector[m]);
+				// if we are saving quaternions to file later, put them into quaternionArray_ so they can be transferred to a vector after this quaternion updating loop is finished
+				if (saveQuaternionsToFile_) {
+					quaternionArray_[m] = quatVector[m];
+				}
+			}
+
+			std::vector<double> timeVector = { 0 };
+
+			std::vector<std::string> labels = getSegmentLabelsForNumberLabels(activeSensors_);
+
+			quatTable_ = std::make_unique<OpenSim::TimeSeriesTable_<SimTK::Quaternion>>(timeVector, quatMatrix, labels);
+
+			// if any of sensorRead values is false, success is also false and we must try again
+			for (unsigned int z = 0; z < nActiveSensors_; ++z) {
+				if (!sensorRead[z])
+					success = false;
+			}
+
+		} // if statement for successful data retrieval ends
+
+	} while (!success);
+
+	// if we are saving quaternions to file later, push them to quaternionData_
+	if (saveQuaternionsToFile_) {
+		quaternionData_.push_back(quaternionArray_);
+		// update timeVector_ with a new time point
+		updateTime();
+	}
+
+}
+
+
+// Implement in this function that not all sensor data has to be read from the same byte stream; fill them whenever possible
+// This function reads data from Delsys SDK and calculates a time series table of quaternions based on it.
 void DelsysDataReader::updateQuaternionData()
 {
 	// define endianness for converting bytes to float
