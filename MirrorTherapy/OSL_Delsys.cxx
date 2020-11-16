@@ -100,7 +100,7 @@ void RunIKProcedure(OpenSimLive::DelsysDataReader& delsysDataReader, OpenSimLive
 
 void orientationThread(OpenSimLive::DelsysDataReader& delsysDataReader) {
 	std::unique_lock<std::mutex> delsysMutex(mainMutex);
-	delsysDataReader.updateQuaternionData();
+	delsysDataReader.updateQuaternionDataNoOffset();
 	delsysMutex.unlock();
 }
 

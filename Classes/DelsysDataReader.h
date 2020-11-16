@@ -20,7 +20,7 @@ namespace OpenSimLive {
 		// sends the STOP command ...
 		bool closeConnection(); 
 		// reads byte stream from the IMUs and updates the time series table of quaternions (private variable quatTable_)
-		void updateQuaternionData();
+		//void updateQuaternionData();
 		// reads byte stream from the IMUs and updates the time series table of quaternions (private variable quatTable_); a more elegant solution when we can assume there is no offset between detected sensor indices and actual sensors being used
 		void updateQuaternionDataNoOffset();
 		// returns the value of quatTable_
@@ -41,7 +41,7 @@ namespace OpenSimLive {
 	private:
 		// PRIVATE METHODS
 		// calculate the offset between detected sensor indices and actual sensor index labels
-		unsigned int correctSensorIndex(std::vector<unsigned int>& sensorIndices);
+		//unsigned int correctSensorIndex(std::vector<unsigned int>& sensorIndices);
 		// use a union data type to convert between floats and bytes
 		float convertBytesToFloat(char b1, char b2, char b3, char b4, int rev);
 		// reads an XML file and returns a vector of string labels that connect the index of each IMU to a body on the model (e.g. IMU label/index '1' -> 'pelvis_imu')

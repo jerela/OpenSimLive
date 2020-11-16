@@ -60,7 +60,8 @@ void IMUHandler::updateQuaternionTable() {
 		quaternionTimeSeriesTable_ = (fillQuaternionTable(xsensObject_->GetMtwCallbacks(), xsensObject_->GetQuaternionData(quatVector_)));
 	}
 	else if (IMUType_ == delsys) {
-		delsysObject_->updateQuaternionData();
+		//delsysObject_->updateQuaternionData();
+		delsysObject_->updateQuaternionDataNoOffset();
 		quaternionTimeSeriesTable_ = delsysObject_->getTimeSeriesTable();
 	}
 	else if (IMUType_ == simulated) {
@@ -75,7 +76,8 @@ OpenSim::TimeSeriesTableQuaternion IMUHandler::updateAndGetQuaternionTable() {
 		return (fillQuaternionTable(xsensObject_->GetMtwCallbacks(), xsensObject_->GetQuaternionData(quatVector_)));
 	}
 	else if (IMUType_ == delsys) {
-		delsysObject_->updateQuaternionData();
+		//delsysObject_->updateQuaternionData();
+		delsysObject_->updateQuaternionDataNoOffset();
 		return delsysObject_->getTimeSeriesTable();
 	}
 	else if (IMUType_ == simulated) {
