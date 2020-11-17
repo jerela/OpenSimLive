@@ -37,6 +37,8 @@ DelsysDataReader::DelsysDataReader() {
 		ss >> tempSensorNumber;
 		// convert string tempSensorNumber to integer and push it in a vector
 		activeSensors_.push_back(std::stoi(tempSensorNumber));
+		// populate the vector of active sensor labels
+		activeLabels_.push_back(labels_[activeSensors_.back()-1]);
 	}
 
 	// reserve a number of elements in the vector that contains EMG data arrays for all sensors
@@ -216,11 +218,24 @@ void DelsysDataReader::updateQuaternionDataNoOffset()
 			for (unsigned int sensorIndex = 0; sensorIndex < nActiveSensors_; ++sensorIndex) {
 				// get the starting index of bytes in the stream for sensor sensorIndex
 				unsigned int indexInByteStream = (activeSensors_[sensorIndex] - 1) * 36;
-				// form the quaternion
-				SimTK::Quaternion_<SimTK::Real> quat(convertBytesToFloat(receivedBytes[indexInByteStream], receivedBytes[indexInByteStream + 1], receivedBytes[indexInByteStream + 2], receivedBytes[indexInByteStream + 3], reverse), convertBytesToFloat(receivedBytes[indexInByteStream + 4], receivedBytes[indexInByteStream + 5], receivedBytes[indexInByteStream + 6], receivedBytes[indexInByteStream + 7], reverse), convertBytesToFloat(receivedBytes[indexInByteStream + 8], receivedBytes[indexInByteStream + 9], receivedBytes[indexInByteStream + 10], receivedBytes[indexInByteStream + 11], reverse), convertBytesToFloat(receivedBytes[indexInByteStream + 12], receivedBytes[indexInByteStream + 13], receivedBytes[indexInByteStream + 14], receivedBytes[indexInByteStream + 15], reverse));
-				//quatVector.push_back(quat);
-				quatVector[sensorIndex] = quat;
-				sensorRead[sensorIndex] = true;
+
+				// make sure that we're reading nonzero bytes
+				bool readable = true;
+				for (unsigned int n = 0; n < 16; ++n) {
+					if (receivedBytes[indexInByteStream + n] == 0)
+						readable = false;
+				}
+
+				// continue from here only if we're reading nonzero bytes
+				if (readable) {
+					// form the quaternion
+					SimTK::Quaternion_<SimTK::Real> quat(convertBytesToFloat(receivedBytes[indexInByteStream], receivedBytes[indexInByteStream + 1], receivedBytes[indexInByteStream + 2], receivedBytes[indexInByteStream + 3], reverse), convertBytesToFloat(receivedBytes[indexInByteStream + 4], receivedBytes[indexInByteStream + 5], receivedBytes[indexInByteStream + 6], receivedBytes[indexInByteStream + 7], reverse), convertBytesToFloat(receivedBytes[indexInByteStream + 8], receivedBytes[indexInByteStream + 9], receivedBytes[indexInByteStream + 10], receivedBytes[indexInByteStream + 11], reverse), convertBytesToFloat(receivedBytes[indexInByteStream + 12], receivedBytes[indexInByteStream + 13], receivedBytes[indexInByteStream + 14], receivedBytes[indexInByteStream + 15], reverse));
+					//quatVector.push_back(quat);
+					quatVector[sensorIndex] = quat;
+					sensorRead[sensorIndex] = true;
+					//std::cout << "Placing " << quatVector[sensorIndex] << " to " << sensorIndex << std::endl;
+				}
+					
 			}
 
 			// if any of sensorRead values is false, success is also false and we must try again
@@ -232,21 +247,20 @@ void DelsysDataReader::updateQuaternionDataNoOffset()
 
 	} while (!success);
 
-	std::vector<std::string> labels = getSegmentLabelsForNumberLabels(activeSensors_);
-
 	// create a matrix with 1 row and nActiveSensors_ columns, then populate it with quaternions
 	SimTK::Matrix_<SimTK::Quaternion> quatMatrix(1, nActiveSensors_);
 	for (unsigned int m = 0; m < nActiveSensors_; ++m) {
-		quatMatrix.set(0, activeSensors_[m], quatVector[m]);
+		quatMatrix.set(0, m, quatVector[m]);
 		// if we are saving quaternions to file later, put them into quaternionArray_ so they can be transferred to a vector after this quaternion updating loop is finished
 		if (saveQuaternionsToFile_) {
 			quaternionArray_[m] = quatVector[m];
 		}
 	}
 
+	// create a time vector with 0 as its only element for construction of TimeSeriesTable
 	std::vector<double> timeVector = { 0 };
 
-	quatTable_ = std::make_unique<OpenSim::TimeSeriesTable_<SimTK::Quaternion>>(timeVector, quatMatrix, labels);
+	quatTable_ = std::make_unique<OpenSim::TimeSeriesTable_<SimTK::Quaternion>>(timeVector, quatMatrix, activeLabels_);
 
 	// if we are saving quaternions to file later, push them to quaternionData_
 	if (saveQuaternionsToFile_) {

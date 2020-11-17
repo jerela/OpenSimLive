@@ -62,6 +62,8 @@ namespace OpenSimLive {
 		std::unique_ptr<OpenSim::TimeSeriesTable_<SimTK::Quaternion>> quatTable_;
 		// vector that contains labels of IMUs on the model, for example "pelvis_imu" and "femur_r_imu"
 		std::vector<std::string> labels_;
+		// vector that contains labels of IMUs on the model, but only those of active IMUs
+		std::vector<std::string> activeLabels_;
 		// vector that contains the labels (numbers 1-16) of the Delsys sensors that are being used, as defined in <active_sensors> in the mappings file
 		std::vector<unsigned int> activeSensors_;
 		// number of active sensors
