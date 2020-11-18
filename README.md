@@ -11,7 +11,7 @@
   * [General questions](#general-questions)
   * [Run-time issues](#run-time-issues)
 - [Authors](#authors)
-- [License](#license)
+- [License and copyright](#license-and-copyright)
 - [Acknowledgments](#acknowledgments)
 <!-- toc -->
 
@@ -262,7 +262,91 @@ OpenSimLive is waiting on client program that is receiving data to acknowledge i
 
 Jere Lavikainen, jere.lavikainen (at) uef.fi
 
-## License
+## License and copyright
+
+The following copyright disclaimer applies to all files in this repository with the exception of **ThreadPool.h**, **XsensDataReader.h**, **XsensDataReader.cpp**, **Client.h**, **Client.cpp**, **Server.h** and **Server.cpp**.
+
+### Copyright disclaimer / EULA
+
+```
+Copyright (c) Unpublished work, 2020, University of Eastern Finland. This software is provided 'as-is', without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and nonfringement. In no event shall the authors or copyright holders be liable for any claim, damages or other liability, whether in an action of contract, tort or otehrwise, arising from, out of or in connection with the software or the use or other dealings in the software.
+
+Modification and use of this software in source and binary forms is permitted, subject to the following restrictions:
+1. You may not claim this work as your own.
+2. You may not redistribute or publish this work.
+3. You may not transfer or otherwise allow access to the software to any person who does not have access to this private repository.
+```
+
+### Copyright for Client.h, Client.cpp, Server.h and Server.h
+
+The author of OpenSimLive would like to acknowledge that Client.h, Client.cpp, Server.h and Server.cpp are originally the work of Keith Vertanen and may have been modified by the author of OpenSimLive in this distribution. Keith Vertanen has stated regarding his work: "You may use this code for whatever you like."
+
+### Copyright for XsensDataReader.h and XsensDataReader.cpp
+
+The author of OpenSimLive would like to state that XsensDataReader.h and XsensDataReader.cpp are based on example code provided by Xsens. The example code has been modified by the author of OpenSimLive in this distribution. The following disclaimer applies for modified versions of the example code:
+
+```
+Copyright (c) 2003-2019 Xsens Technologies B.V. or subsidiaries worldwide.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+1.	Redistributions of source code must retain the above copyright notice,
+this list of conditions, and the following disclaimer.
+
+2.	Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions, and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+
+3.	Neither the names of the copyright holders nor the names of their contributors
+may be used to endorse or promote products derived from this software without
+specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+THE COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT 
+OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY OR
+TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.THE LAWS OF THE NETHERLANDS 
+SHALL BE EXCLUSIVELY APPLICABLE AND ANY DISPUTES SHALL BE FINALLY SETTLED UNDER THE RULES 
+OF ARBITRATION OF THE INTERNATIONAL CHAMBER OF COMMERCE IN THE HAGUE BY ONE OR MORE 
+ARBITRATORS APPOINTED IN ACCORDANCE WITH SAID RULES.
+```
+
+### Copyright for ThreadPool.h
+
+The author of OpenSimLive would like to state that ThreadPool.h is the work of Jakob Progsch and Václav Zeman and may have been modified by the author of OpenSimLive in this distribution. The following disclaimer applies for ThreadPool.h:
+
+```
+Copyright (c) 2012 Jakob Progsch, Václav Zeman
+
+This software is provided 'as-is', without any express or implied
+warranty. In no event will the authors be held liable for any damages
+arising from the use of this software.
+
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it
+freely, subject to the following restrictions:
+
+   1. The origin of this software must not be misrepresented; you must not
+   claim that you wrote the original software. If you use this software
+   in a product, an acknowledgment in the product documentation would be
+   appreciated but is not required.
+
+   2. Altered source versions must be plainly marked as such, and must not be
+   misrepresented as being the original software.
+
+   3. This notice may not be removed or altered from any source
+   distribution.
+```
+
+### Copyright for OpenSim
+
+WIP: IMUInverseKinematicsToolLive, IMUPlacerLive, general API license
 
 ## Acknowledgments
 
