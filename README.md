@@ -16,7 +16,7 @@
 <!-- toc -->
 
 
-OpenSimLive is a C++ package that streams orientation data from inertial measurement units and calculates inverse kinematics based on that data. It relies on OpenSim for biomechanical analyses and related tools. The current version uses OpenSim 4.1 API. Two types of IMUs are supported: Xsens MTw Awinda and Delsys Trigno Avanti. Xsens IMUs use XDA 4.6 and Delsys IMUs use Delsys Trigno Control Utility.
+OpenSimLive is a C++ package that streams orientation data from inertial measurement units and calculates inverse kinematics based on that data. It relies on OpenSim for biomechanical analyses and related tools. The current version uses [OpenSim 4.1 API](https://simtk.org/api_docs/opensim/api_docs/index.html). Two types of IMUs are supported: Xsens MTw Awinda and Delsys Trigno Avanti. Xsens IMUs use XDA 4.6 and Delsys IMUs use Delsys Trigno Control Utility.
 
 Some of OpenSimLive's features can be tested without actual IMUs by using fake IMU data that that OpenSimLive generates as random unit quaternions.
 
@@ -264,7 +264,7 @@ Jere Lavikainen, jere.lavikainen (at) uef.fi
 
 ## License and copyright
 
-The following copyright disclaimer applies to all files in this repository with the exception of **ThreadPool.h**, **XsensDataReader.h**, **XsensDataReader.cpp**, **Client.h**, **Client.cpp**, **Server.h** and **Server.cpp**.
+The following copyright disclaimer applies to all files in this repository with the exception of **ThreadPool.h**, **XsensDataReader.h**, **XsensDataReader.cpp**, **Client.h**, **Client.cpp**, **Server.h**, **Server.cpp**, **IMUInverseKinematicsToolLive.h**, **IMUInverseKinematicsToolLive.cpp**, **IMUPlacerLive.h** and **IMUPlacerLive.cpp**.
 
 ### Copyright disclaimer / EULA
 
@@ -344,12 +344,13 @@ freely, subject to the following restrictions:
    distribution.
 ```
 
-### Copyright for OpenSim
+### Copyright for IMUInversekinematicsToolLive.h, IMUInverseKinematicsToolLive.cpp, IMUPlacerLive.h and IMUPlacerLive.cpp
 
-WIP: IMUInverseKinematicsToolLive, IMUPlacerLive, general API license
+These four files are originally the work of the developers and contributors of [OpenSim](https://github.com/opensim-org/opensim-core), subject to [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0). The author of OpenSimLive has modified these files.
 
 ## Acknowledgments
 
+Huge thanks to the people behind the [OpenSim](https://simtk.org/projects/opensim) project.
 Thanks to GitHub user PurpleBooth for providing an excellent [readme template](https://gist.github.com/PurpleBooth/109311bb0361f32d87a2).
 Thanks to Keith Vertanen for his [Java and C++ socket class](https://www.keithv.com/software/socket/).
 Thanks to Jacob Progsch and Václav Zeman for their [thread pool class](https://github.com/progschj/ThreadPool).
