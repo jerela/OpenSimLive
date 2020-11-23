@@ -223,7 +223,7 @@ void IMUInverseKinematicsToolLive::updateJointAngleVariable(SimTK::State& s, Ope
 }
 
 
-std::mutex m;
+std::mutex IKMutex;
 
 // This function calculates the joint angle values for a new state s0, then updates state s with those values and redraws the visualization.
 void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults) {
@@ -255,7 +255,7 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
     bool threadExpired = false;
 
     // lock a part of the code from being run by several threads in parallel
-    std::unique_lock<std::mutex> concurrentIKMutex(m);
+    std::unique_lock<std::mutex> concurrentIKMutex(IKMutex);
     // give s_ an initial time for assembling it with ikSolver_
     s_.updTime() = times[0];
     concurrentIKMutex.unlock();
