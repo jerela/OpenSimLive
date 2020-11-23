@@ -1,19 +1,3 @@
-/*
-+ indicates thread protected operations
-
-thread 1
-- get new IMU data
-- create a quaternion time series table based on the IMU data
-+ time series table is put into a shared buffer
-+ if the maximum capacity of the buffer would be exceeded, remove the oldest point from the buffer
-
-
-thread 2
-- wait for a new quaternion time series table to become available
-+ when available, read the oldest time series data point from the shared buffer and remove it from the buffer
-- perform IK using the time series data
-*/
-
 #include <OpenSimLiveConfig.h>
 #include <OpenSim.h>
 #include <IMUPlacerLive.h>
@@ -26,7 +10,6 @@ thread 2
 #include <future>
 #include <functional>
 #include <IMUHandler.h>
-#include <condition_variable>
 
 const std::string OPENSIMLIVE_ROOT = OPENSIMLIVE_ROOT_PATH;
 
@@ -48,92 +31,53 @@ void updateConcurrentIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, s
 
 
 std::mutex mainMutex;
-std::condition_variable conVar;
 std::queue<OpenSim::TimeSeriesTableQuaternion> bufferContainer;
-bool bufferWritten = false;
-bool bufferRead = false;
 bool bufferInUse = false;
-unsigned int maxBufferSize = 32;
+unsigned int maxBufferSize = 8;
 unsigned int nIK = 0;
 bool trialDone = false;
 
+// This function reads quaternion values in a loop and saves them in a queue buffer.
 void producerThread(std::chrono::duration<double>& clockDuration, double inputSeconds, OpenSimLive::IMUHandler& genericDataReader) {
-
 	do {
-
-
-
+		// update new quaternion table but don't get it yet
 		genericDataReader.updateQuaternionTable();
-		OpenSim::TimeSeriesTableQuaternion quatTable(genericDataReader.getQuaternionTable());
-
+		
+		// if consumer is not accessing the buffer and the buffer size is not maximal
 		if (!bufferInUse && bufferContainer.size() < maxBufferSize)
 		{
+			// set bufferInUse to true to prevent consumer from accessing the buffer
 			bufferInUse = true;
 			std::lock_guard<std::mutex> lock(mainMutex);
 			// push the time series table to the shared buffer
-			bufferContainer.push(quatTable);
+			bufferContainer.push(genericDataReader.getQuaternionTable());
 			bufferInUse = false;
-
-			//std::cout << "New data pushed to buffer by producer." << std::endl;
-
-			bufferWritten = true;
-			conVar.notify_one();
 		}
-
-		// wait for consumer
-		/*{
-			std::unique_lock<std::mutex> lock(mainMutex);
-			conVar.wait(lock, [] { return bufferRead; });
-		}*/
 
 	} while (clockDuration.count() < inputSeconds);
 
 	std::cout << "Producer done!" << std::endl;
-
 }
 
+// This function reads quaternion tables from a queue buffer and performs IK on them.
 void consumerThread(std::chrono::duration<double>& clockDuration, std::chrono::steady_clock::time_point& clockStart, double inputSeconds, OpenSimLive::IMUInverseKinematicsToolLive& IKTool, OpenSimLive::ThreadPoolContainer& threadPoolContainer) {
-	
 	do {
+		// if producer is not accessing hte buffer and the buffer contains values
+		if (!bufferInUse && bufferContainer.size() > 0) {
+			bufferInUse = true;
+			std::lock_guard<std::mutex> lock(mainMutex);
+			// get and pop the front of the queue
+			OpenSim::TimeSeriesTableQuaternion quatTable(bufferContainer.front());
+			bufferContainer.pop();
+			bufferInUse = false;
 
-
-		//std::cout << "Consumer begins to wait for producer." << std::endl;
-
-		// wait until data is sent by producer
-		std::unique_lock<std::mutex> lock(mainMutex);
-		conVar.wait(lock, [] { return bufferWritten; }); // this wait could be removed; we don't want to wait until producer produces new data, we want to wait until there is data available in the buffer
-
-		//std::cout << "Consumer stopped waiting. Accessing buffer." << std::endl;
-
-		bufferInUse = true;
-		// get and pop the front of the queue
-		OpenSim::TimeSeriesTableQuaternion quatTable(bufferContainer.front());
-		bufferContainer.pop();
-		if (bufferContainer.size() == 0) {
-			bufferWritten = false;
+			// start a new thread where the IK is calculated and increment the number of IK operations done
+			threadPoolContainer.offerFuture(updateConcurrentIKTool, std::ref(IKTool), std::ref(clockStart), std::ref(clockDuration), quatTable);
+			++nIK;
 		}
-		bufferInUse = false;
-
-		// we're done with the buffer for now
-		bufferRead = true;
-		//std::cout << "Consumer has finished processing data from the buffer." << std::endl;
-
-		lock.unlock();
-		conVar.notify_one();
-
-		// perform IK
-		//std::cout << "Consumer beginning IK." << std::endl;
-		//updateConcurrentIKTool(std::ref(IKTool), std::ref(clockStart), std::ref(clockDuration), quatTable);
-		threadPoolContainer.offerFuture(updateConcurrentIKTool, std::ref(IKTool), std::ref(clockStart), std::ref(clockDuration), quatTable);
-		//std::cout << "Consumer finished IK." << std::endl;
-		++nIK;
-
 	} while (clockDuration.count() < inputSeconds);
 
-	//trialDone = true;
 	std::cout << "Consumer done!" << std::endl;
-	//conVar.notify_one();
-
 }
 
 
@@ -202,40 +146,16 @@ void ConnectToDataStream(double inputSeconds, int inputThreads) {
 	OpenSimLive::ThreadPoolContainer threadPoolContainer(maxThreads);
 
 	std::cout << "Entering measurement loop." << std::endl;
-	int iteration = 0;
 	auto clockStart = std::chrono::high_resolution_clock::now(); // get the starting time of IMU measurement loop
 	std::chrono::duration<double> clockDuration;
 
 	std::cout << clockDuration.count() << std::endl;
 
 	// begin producer-consumer loops
-	//threadPoolContainer.offerFuture(producerThread, std::ref(clockDuration), inputSeconds, std::ref(genericDataReader));
-	//threadPoolContainer.offerFuture(consumerThread, std::ref(clockDuration), std::ref(clockStart), inputSeconds, std::ref(IKTool));
 	std::thread producer(producerThread, std::ref(clockDuration), inputSeconds, std::ref(genericDataReader));
 	std::thread consumer(consumerThread, std::ref(clockDuration), std::ref(clockStart), inputSeconds, std::ref(IKTool), std::ref(threadPoolContainer));
 
-	// loop until enough time has been elapsed
-	/*do {
-
-
-
-		// update quaternions for IKTool
-		//genericDataReader.updateQuaternionTable();
-		//IKTool.setQuaternion(genericDataReader.getQuaternionTable());
-		
-		// begin multithreading a function that consists of IK calculations + PointTracker
-		//threadPoolContainer.offerFuture(updateConcurrentIKTool, std::ref(IKTool), std::ref(clockStart), std::ref(clockDuration), genericDataReader.updateAndGetQuaternionTable());
-
-		// increment iterations number
-		++iteration;
-
-	} while (clockDuration.count() < inputSeconds);*/
-
-	// wait for the threads
-	/*{
-		std::unique_lock<std::mutex> lock(mainMutex);
-		conVar.wait(lock, [] {return trialDone; });
-	}*/
+	// wait until the threads are finished
 	producer.join();
 	consumer.join();
 
@@ -246,12 +166,12 @@ void ConnectToDataStream(double inputSeconds, int inputThreads) {
 
 	if (saveIKResults) {
 		std::cout << "Saving IK results to file..." << std::endl;
-		if (iteration < 10000) {
+		if (nIK < 100000) {
 			IKTool.reportToFile();
 		}
 		else
 		{
-			std::cout << "More than 10000 iterations calculated, as a safety precaution program is not saving results to file!" << std::endl;
+			std::cout << "More than 100000 iterations calculated, as a safety precaution program is not saving results to file!" << std::endl;
 		}
 	}
 
