@@ -127,3 +127,5 @@ add_subdirectory("MirrorTherapy")
 add_subdirectory("Tests")
 # add config CMakeLists subfolder
 add_subdirectory("Config")
+# add subfolder for analysis utilities
+add_subdirectory("Utilities")
