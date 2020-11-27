@@ -25,8 +25,8 @@ namespace OpenSimLive {
 		// PUBLIC METHODS DEFINED IN THE .CXX FILE
 		void runInverseKinematicsWithLiveOrientations(OpenSim::Model& model, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults = false);
 		bool IMUInverseKinematicsToolLive::run(const bool visualizeResults);
-		void IMUInverseKinematicsToolLive::update(const bool visualizeResults);
-		void IMUInverseKinematicsToolLive::update(const bool visualizeResults, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quat);
+		void IMUInverseKinematicsToolLive::update(const bool visualizeResults, const bool offline = false);
+		void IMUInverseKinematicsToolLive::update(const bool visualizeResults, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quat, const bool offline = false);
 		void reportToFile();
 
 		// PUBLIC METHODS DEFINED HERE
@@ -74,7 +74,7 @@ namespace OpenSimLive {
 		std::string getPointTrackerReferenceBodyName() { return pointTrackerReferenceBodyName_; }
 
 		// PRIVATE METHODS DEFINED IN THE .CXX FILE
-		void updateInverseKinematics(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults = false);
+		void updateInverseKinematics(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults = false, const bool offline = false);
 		void updateJointAngleVariable(SimTK::State& s, OpenSim::Model& model);
 		void updatePointTracker(SimTK::State s);
 		void startDecorationGenerator();
