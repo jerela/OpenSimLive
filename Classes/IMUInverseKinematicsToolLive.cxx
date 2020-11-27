@@ -226,7 +226,7 @@ void IMUInverseKinematicsToolLive::updateJointAngleVariable(SimTK::State& s, Ope
 std::mutex IKMutex;
 
 // This function calculates the joint angle values for a new state s0, then updates state s with those values and redraws the visualization.
-void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults) {
+void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults, bool offline) {
     // this may prevent time_ getting updated mid-IK by another thread, resulting in PointTracker from that IK to get the time from the more recent IK from another thread
     double time = time_;
 
@@ -256,16 +256,25 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
 
     // lock a part of the code from being run by several threads in parallel
     std::unique_lock<std::mutex> concurrentIKMutex(IKMutex);
-    // give s_ an initial time for assembling it with ikSolver_
-    s_.updTime() = times[0];
+    if (!offline) {
+        // give s_ an initial time for assembling it with ikSolver_
+        s_.updTime() = times[0];
+    }
+    else if (offline) {
+        // if we're doing offline IK, make the time of the state the current time
+        s_.updTime() = time;
+    }
     concurrentIKMutex.unlock();
 
     // assemble state s_, solving the initial joint angles in the least squares sense
     ikSolver.assemble(s_);
     // create a copy of s_ so we can use methods that modify the propreties of s without modifying the properties s_ (which may be modified by another thread, leading to exceptions if multiple threads modify it in parallel)
     SimTK::State s = s_;
-    // update the time to be shown in the visualization and so that when we realize the report, the correct timestamp is used for the joint angle values
-    s.updTime() = time;
+    if (!offline)
+    {
+        // update the time to be shown in the visualization and so that when we realize the report, the correct timestamp is used for the joint angle values
+        s.updTime() = time;
+    }
     
     // save joint angles to q_
     //updateJointAngleVariable(s_, model_);
@@ -395,14 +404,14 @@ bool IMUInverseKinematicsToolLive::run(const bool visualizeResults)
 }
 
 // This function updates the IK after it's been initially run
-void IMUInverseKinematicsToolLive::update(const bool visualizeResults)
+void IMUInverseKinematicsToolLive::update(const bool visualizeResults, const bool offline)
 {
-    updateInverseKinematics(get_quat(), visualizeResults);
+    updateInverseKinematics(get_quat(), visualizeResults, offline);
 }
 
 
 // This function updates the IK after it's been initially run
-void IMUInverseKinematicsToolLive::update(const bool visualizeResults, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quat)
+void IMUInverseKinematicsToolLive::update(const bool visualizeResults, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quat, const bool offline)
 {
-    updateInverseKinematics(quat, visualizeResults);
+    updateInverseKinematics(quat, visualizeResults, offline);
 }

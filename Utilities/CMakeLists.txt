@@ -8,7 +8,11 @@ set(OFFLINE_IK_TOOL_SOURCES
 	"${INCLUDE_CLASSES_PATH}/PointTracker.h"
 	"${INCLUDE_CLASSES_PATH}/PointTracker.cxx"
 	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctions.h"
-	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctions.cxx")
+	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctions.cxx"
+	"${INCLUDE_CLASSES_PATH}/ThreadPool.h"
+	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.h"
+	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.cxx"
+	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.tpp")
 
 # add executable based on the source files determined in OFFLINE_IK_TOOL_SOURCES
 add_executable(offline_IK_tool offline_IK_tool.cxx "${OFFLINE_IK_TOOL_SOURCES}")
