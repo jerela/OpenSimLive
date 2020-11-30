@@ -154,6 +154,9 @@ int main(int argc, char* argv[])
 		std::cout << "Client program connected." << std::endl;
 	}
 
+	auto givemetime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	std::cout << ctime(&givemetime) << std::endl;
+
 	std::cout << "Entering data streaming and IK loop. Press C to calibrate model, Z to calculate IK once, N to enter continuous mode, M to exit continuous mode, V to enter send mode, B to exit send mode, L to save base reference orientation and X to quit." << std::endl;
 
 	do

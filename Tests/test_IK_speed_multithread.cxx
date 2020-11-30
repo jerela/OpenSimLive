@@ -15,6 +15,9 @@
 
 const std::string OPENSIMLIVE_ROOT = OPENSIMLIVE_ROOT_PATH;
 
+//std::vector<double> enterTimes;
+//std::vector<double> finishTimes;
+
 void updateConcurrentIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, std::chrono::steady_clock::time_point& clockStart, std::chrono::duration<double>& clockDuration, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable) {
 	
 	// calculate current duration
@@ -27,10 +30,12 @@ void updateConcurrentIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, s
 	std::array<double, 6> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
 	//double* mirrorTherapyPacket = &trackerResults[0];
 	double* mirrorTherapyPacket = trackerResults.data();
+	//finishTimes.push_back((std::chrono::high_resolution_clock::now() - clockStart).count());
 }
 
 void ConnectToDataStream(double inputSeconds, int inputThreads) {
-
+	//enterTimes.reserve(100000);
+	//finishTimes.reserve(100000);
 	OpenSimLive::IMUHandler genericDataReader;
 
 	std::string manufacturerStr = ConfigReader("MainConfiguration.xml", "IMU_manufacturer");
@@ -97,14 +102,15 @@ void ConnectToDataStream(double inputSeconds, int inputThreads) {
 
 	std::cout << clockDuration.count() << std::endl;
 	// loop until enough time has been elapsed
+	auto table = genericDataReader.updateAndGetQuaternionTable();
 	do {
 
 		// update quaternions for IKTool
 		//genericDataReader.updateQuaternionTable();
 		//IKTool.setQuaternion(genericDataReader.getQuaternionTable());
-		
+		//enterTimes.push_back((std::chrono::high_resolution_clock::now() - clockStart).count());
 		// begin multithreading a function that consists of IK calculations + PointTracker
-		threadPoolContainer.offerFuture(updateConcurrentIKTool, std::ref(IKTool), std::ref(clockStart), std::ref(clockDuration), genericDataReader.updateAndGetQuaternionTable());
+		threadPoolContainer.offerFuture(updateConcurrentIKTool, std::ref(IKTool), std::ref(clockStart), std::ref(clockDuration), table);
 
 		// increment iterations number
 		++iteration;
@@ -118,14 +124,23 @@ void ConnectToDataStream(double inputSeconds, int inputThreads) {
 
 	if (saveIKResults) {
 		std::cout << "Saving IK results to file..." << std::endl;
-		if (iteration < 10000) {
+		if (iteration < 100000) {
 			IKTool.reportToFile();
 		}
 		else
 		{
-			std::cout << "More than 10000 iterations calculated, as a safety precaution program is not saving results to file!" << std::endl;
+			std::cout << "More than 100 000 iterations calculated, as a safety precaution program is not saving results to file!" << std::endl;
 		}
 	}
+
+	/*std::vector<double> IKTimes;
+	double mean = 0;
+	for (unsigned int j = 0; j < finishTimes.size(); ++j) {
+		IKTimes.push_back(finishTimes[j]-enterTimes[j]);
+		std::cout << finishTimes[j] << " - " << enterTimes[j] << " = " << IKTimes[j] << std::endl;
+		mean += IKTimes[j];
+	}
+	std::cout << "Mean: " << mean/(double)finishTimes.size() << std::endl;*/
 
 	// close the connection to IMUs
 	genericDataReader.closeConnection();
@@ -146,7 +161,7 @@ int main(int argc, char *argv[])
 	std::cin >> inputThreadsStr;
 	int inputThreads = stoi(inputThreadsStr);
 
-	std::cout << "Connecting to MTw Awinda data stream..." << std::endl;
+	std::cout << "Connecting..." << std::endl;
 	// connect to XSens IMUs, perform IK etc
 	ConnectToDataStream(inputSecs, inputThreads);
 

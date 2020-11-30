@@ -31,7 +31,7 @@
 	<!--If given the option to choose, use Xsens IMUs, Delsys IMUs or simulated data?-->
 	<IMU_manufacturer>simulated</IMU_manufacturer>
 	<!--If using simulated IMU data, which IMUs do we simulate?-->
-	<simulated_bodies>pelvis_imu torso_imu femur_r_imu femur_l_imu</simulated_bodies>
+	<simulated_bodies>pelvis_imu femur_r femur_l tibia_r tibia_l</simulated_bodies>
 	<!--Whether to save quaternions that represent IMU orientations to file.-->
-	<save_quaternions_to_file>true</save_quaternions_to_file>
+	<save_quaternions_to_file>false</save_quaternions_to_file>
 </MainConfiguration>
