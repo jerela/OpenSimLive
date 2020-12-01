@@ -156,6 +156,15 @@ int main(int argc, char* argv[])
 
 	auto givemetime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	std::cout << ctime(&givemetime) << std::endl;
+	std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+	//auto days = (ms.count() / 86400000) % 365;
+	auto hours = (ms.count() / 3600000) % 24;
+	auto minutes = (ms.count() / 60000) % 60;
+	auto seconds = (ms.count() / 1000) % 60;
+	auto millisecs = ms.count() % 1000;
+	auto GMTOffset = 2;
+	std::cout << ms.count() << std::endl;
+	std::cout << hours+GMTOffset << ":" << minutes << ":" << seconds << "." << millisecs << std::endl;
 
 	std::cout << "Entering data streaming and IK loop. Press C to calibrate model, Z to calculate IK once, N to enter continuous mode, M to exit continuous mode, V to enter send mode, B to exit send mode, L to save base reference orientation and X to quit." << std::endl;
 
