@@ -31,68 +31,75 @@ struct VariableManager {
 	std::chrono::steady_clock::time_point clockPrev = clockStart; // this value will be updated in the loop to present the time point of the previous IK calculation
 	std::chrono::duration<double> clockDuration;
 	std::chrono::duration<double> prevDuration;
+
+	unsigned int orderIndex = 0;
+	std::queue<OpenSim::TimeSeriesTableQuaternion> orientationBuffer;
+	std::queue<double> timeBuffer;
+	bool bufferInUse = false;
+	unsigned int maxBufferSize = 8;
+	bool trialDone = false;
+	bool runProducerThread = true;
+	bool runIKThread = true;
+
 }; // struct dataHolder ends
 
 
-
-void updateConcurrentIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, VariableManager& vm, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable) {
-	// calculate current duration
-	vm.clockDuration = (std::chrono::high_resolution_clock::now() - vm.clockStart);
-	// update current duration as time in IKTool
-	IKTool.setTime(vm.clockDuration.count());
-
-	IKTool.update(true, quatTable);
+void updateConcurrentIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, VariableManager& vm, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable, double time, unsigned int orderIndex) {
+	IKTool.updateOrdered(true, quatTable, orderIndex, time);
 }
 
 
 std::mutex mainMutex;
-std::queue<OpenSim::TimeSeriesTableQuaternion> bufferContainer;
-bool bufferInUse = false;
-unsigned int maxBufferSize = 8;
-unsigned int nIK = 0;
-bool trialDone = false;
-bool runProducerThread = true;
-bool runIKThread = true;
 
 // This function reads quaternion values in a loop and saves them in a queue buffer.
-void producerThread(OpenSimLive::IMUHandler& genericDataReader) {
+void producerThread(OpenSimLive::IMUHandler& genericDataReader, VariableManager& vm) {
 	do {
+
+		// get time stamp
+		std::chrono::duration<double> duration = std::chrono::high_resolution_clock::now() - vm.clockStart;
+		double time = duration.count();
+
 		// update new quaternion table but don't get it yet
 		genericDataReader.updateQuaternionTable();
 
 		// if consumer is not accessing the buffer and the buffer size is not maximal
-		if (!bufferInUse && bufferContainer.size() < maxBufferSize)
+		if (!vm.bufferInUse && vm.orientationBuffer.size() < vm.maxBufferSize)
 		{
 			// set bufferInUse to true to prevent consumer from accessing the buffer
-			bufferInUse = true;
+			vm.bufferInUse = true;
 			std::lock_guard<std::mutex> lock(mainMutex);
+			// push time stamp to the shared buffer
+			vm.timeBuffer.push(time);
 			// push the time series table to the shared buffer
-			bufferContainer.push(genericDataReader.getQuaternionTable());
-			bufferInUse = false;
+			vm.orientationBuffer.push(genericDataReader.getQuaternionTable());
+			vm.bufferInUse = false;
 		}
 
-	} while (runProducerThread);
+	} while (vm.runProducerThread);
 
 	std::cout << "Producer done!" << std::endl;
 }
 
 // This function reads quaternion tables from a queue buffer and performs IK on them.
 void consumerThread(VariableManager& vm, OpenSimLive::IMUInverseKinematicsToolLive& IKTool, OpenSimLive::ThreadPoolContainer& threadPoolContainer) {
-		do {
-			// if producer is not accessing the buffer and the buffer contains values
-			if (!bufferInUse && bufferContainer.size() > 0) {
-				bufferInUse = true;
-				std::lock_guard<std::mutex> lock(mainMutex);
-				// get and pop the front of the queue
-				OpenSim::TimeSeriesTableQuaternion quatTable(bufferContainer.front());
-				bufferContainer.pop();
-				bufferInUse = false;
 
-				// start a new thread where the IK is calculated and increment the number of IK operations done
-				threadPoolContainer.offerFuture(updateConcurrentIKTool, std::ref(IKTool), std::ref(vm), quatTable);
-				++nIK;
-			}
-		} while (runIKThread);
+	do {
+		// if producer is not accessing the buffer and the buffer contains values
+		if (!vm.bufferInUse && vm.orientationBuffer.size() > 0) {
+			vm.bufferInUse = true;
+			std::lock_guard<std::mutex> lock(mainMutex);
+			// get and pop time from the buffer
+			double time = vm.timeBuffer.front();
+			vm.timeBuffer.pop();
+			// get and pop the front of the queue
+			OpenSim::TimeSeriesTableQuaternion quatTable(vm.orientationBuffer.front());
+			vm.orientationBuffer.pop();
+			vm.bufferInUse = false;
+			++vm.orderIndex;
+			// start a new thread where the IK is calculated and increment the number of IK operations done
+			threadPoolContainer.offerFuture(updateConcurrentIKTool, std::ref(IKTool), std::ref(vm), quatTable, time, vm.orderIndex);
+		}
+	} while (vm.runIKThread);
 	std::cout << "Consumer done!" << std::endl;
 }
 
@@ -159,7 +166,7 @@ int main(int argc, char* argv[])
 
 	std::cout << "Entering data streaming and IK loop. Press C to calibrate model, Z to calculate IK once, N to enter continuous mode, M to exit continuous mode, V to enter send mode, B to exit send mode, L to save base reference orientation and X to quit." << std::endl;
 
-	std::thread producer(producerThread, std::ref(genericDataReader));
+	std::thread producer(producerThread, std::ref(genericDataReader), std::ref(vm));
 
 	do
 	{
@@ -195,9 +202,9 @@ int main(int argc, char* argv[])
 			// use high resolution clock to count time since the IMU measurement began
 			vm.clockNow = std::chrono::high_resolution_clock::now();
 			vm.clockDuration = vm.clockNow - vm.clockStart; // time since calibration
-			runIKThread = true;
+			vm.runIKThread = true;
 			std::thread consumer(consumerThread, std::ref(vm), std::ref(IKTool), std::ref(threadPoolContainer));
-			runIKThread = false;
+			vm.runIKThread = false;
 			consumer.join();
 			getDataKeyHit = false;
 		}
@@ -208,14 +215,14 @@ int main(int argc, char* argv[])
 			startContinuousModeKeyHit = false;
 			if (vm.resetClockOnContinuousMode && !(vm.clockDuration.count() > 0)) // ensure that the config setting is set to true and that this is the first time continuous mode is entered
 				vm.clockStart = std::chrono::high_resolution_clock::now();
-			runIKThread = true;
+			vm.runIKThread = true;
 			std::thread consumer(consumerThread, std::ref(vm), std::ref(IKTool), std::ref(threadPoolContainer));
 			consumer.detach();
 		}
 
 		if (vm.continuousMode && stopContinuousModeKeyHit) {
 			std::cout << "Exiting continuous mode." << std::endl;
-			runIKThread = false;
+			vm.runIKThread = false;
 			vm.continuousMode = false;
 			stopContinuousModeKeyHit = false;
 		}
@@ -233,10 +240,12 @@ int main(int argc, char* argv[])
 
 	} while (vm.mainDataLoop);
 
-	runProducerThread = false;
-	runIKThread = false;
+	vm.runProducerThread = false;
+	vm.runIKThread = false;
 
 	std::cout << "Exiting main data loop!" << std::endl;
+
+	std::cout << "Performed " << vm.orderIndex << " IK operations." << std::endl;
 
 	// when exiting, save acquired data to file
 	if (IKTool.get_report_errors())

@@ -357,10 +357,164 @@ void IMUInverseKinematicsToolLive::updatePointTracker(SimTK::State s) {
 
 
 
+
+
+// This function calculates the joint angle values for a new state s0, then updates state s with those values and redraws the visualization.
+void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, unsigned int orderIndex, double time, const bool visualizeResults, bool offline) {
+    // this may prevent time_ getting updated mid-IK by another thread, resulting in PointTracker from that IK to get the time from the more recent IK from another thread
+    //double time = time_;
+
+    // Convert to OpenSim Frame
+    const SimTK::Vec3& rotations = get_sensor_to_opensim_rotations();
+    SimTK::Rotation sensorToOpenSim = SimTK::Rotation(SimTK::BodyOrSpaceType::SpaceRotationSequence, rotations[0], SimTK::XAxis, rotations[1], SimTK::YAxis, rotations[2], SimTK::ZAxis);
+
+    // Rotate data so Y-Axis is up
+    OpenSim::OpenSenseUtilities::rotateOrientationTable(quatTable, sensorToOpenSim);
+
+    // convert quaternion orientation data of IMUs to rotation matrix form
+    OpenSim::TimeSeriesTable_<SimTK::Rotation> orientationsData = OpenSim::OpenSenseUtilities::convertQuaternionsToRotations(quatTable);
+
+    OpenSim::OrientationsReference oRefs(orientationsData, &get_orientation_weights());
+    OpenSim::MarkersReference mRefs{};
+    SimTK::Array_<OpenSim::CoordinateReference> coordinateReferences;
+
+    // create the solver given the input data
+    OpenSim::InverseKinematicsSolver ikSolver(model_, mRefs, oRefs, coordinateReferences);
+    ikSolver.setAccuracy(accuracy_);
+
+    // set the time of state s0
+    auto& times = oRefs.getTimes();
+
+    // check if another thread has already set the time of state s_ to a more advanced time point
+    bool threadExpired = false;
+
+    // lock a part of the code from being run by several threads in parallel
+    std::unique_lock<std::mutex> concurrentIKMutex(IKMutex);
+    if (!offline) {
+        // give s_ an initial time for assembling it with ikSolver_
+        s_.updTime() = times[0];
+    }
+    else if (offline) {
+        // if we're doing offline IK, make the time of the state the current time
+        s_.updTime() = time;
+    }
+    concurrentIKMutex.unlock();
+
+    // assemble state s_, solving the initial joint angles in the least squares sense
+    ikSolver.assemble(s_);
+    // create a copy of s_ so we can use methods that modify the properties of s without modifying the properties s_ (which may be modified by another thread, leading to exceptions if multiple threads modify it in parallel)
+    SimTK::State s = s_;
+    if (!offline)
+    {
+        // update the time to be shown in the visualization and so that when we realize the report, the correct timestamp is used for the joint angle values
+        s.updTime() = time;
+    }
+
+    // save joint angles to q_
+    //updateJointAngleVariable(s_, model_);
+
+    // show a visualization of the state
+    if (visualizeResults) {
+        try {
+            concurrentIKMutex.lock();
+            // ikTool.assemble() is using s_ and needs its time value, so we couldn't change it for s_; instead we created s for the visualization
+            model_.getVisualizer().show(s);
+            concurrentIKMutex.unlock();
+        }
+        catch (std::exception& e) {
+            std::cerr << "Exception in visualizing: " << e.what() << std::endl;
+        }
+        catch (...) {
+            std::cerr << "Unknown exception in visualizer" << std::endl;
+        }
+    }
+
+    // update the time of s_
+    if (get_report_errors()) {
+        concurrentIKMutex.lock();
+
+        orderedTimeVector_.push_back(time);
+        orderedIndexVector_.push_back(orderIndex);
+
+        int nos = ikSolver.getNumOrientationSensorsInUse();
+        SimTK::Array_<double> orientationErrors(nos, 0.0);
+        // calculate orientation errors into orientationErrors
+        ikSolver.computeCurrentOrientationErrors(orientationErrors);
+        orderedOrientationErrors_.push_back(orientationErrors);
+
+        concurrentIKMutex.unlock();
+
+    }
+
+    // if this thread hadn't expired already before visualization, run PointTracker
+    if (getPointTrackerEnabled() && !threadExpired) {
+        concurrentIKMutex.lock();
+        // give time to PointTracker only if we need it
+        if (getSavePointTrackerResults()) {
+            setPointTrackerCurrentTime(time);
+        }
+        updatePointTracker(s);
+        concurrentIKMutex.unlock();
+    }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void IMUInverseKinematicsToolLive::reportToFile() {
 
+    // if we used updateOrderedInverseKinematics, then ordered time vector has more than zero elements
+    if (orderedTimeVector_.size() > 0) {
+        // index in order of IK calculations that we are looking for
+        unsigned int index = 0;
+        unsigned int size = orderedIndexVector_.size();
+        SimTK::Array_<SimTK::Real> orientationErrors;
+        double time;
+        // loop through all calculated IK points
+        for (unsigned int i = 0; i < size; ++i) {
+            ++index;
+            // loop through the vector of ordered indices to find the correct time
+            for (unsigned int j = 0; j < size; ++j) {
+                // if the currently desired table index is found, break out of the nested for-loop and update state time
+                if (index == orderedIndexVector_[j]) {
+                    time = orderedTimeVector_[j];
+                    orientationErrors = orderedOrientationErrors_[j];
+                    break;
+                }
+            }
+            // update state time
+            s_.updTime() = time;
+            try {
+                // append orientationErrors into modelOrientationErrors_
+                modelOrientationErrors_->appendRow(time, orientationErrors);
+                // set s into a stage where report is realized; required for IK reporting
+                model_.realizeReport(s_);
+            }
+            catch (std::exception& e) {
+                std::cerr << "Error in reporting IK errors: " << e.what() << std::endl;
+            }
+            catch (...) {
+                std::cerr << "Unknown error in reporting IK errors." << std::endl;
+            }
+
+        }
+        
+    }
+
     // if time equals its initial value 0, then no IK has been performed and there is nothing to save to file, resulting in an exception; therefore we only save to file when time is nonzero
-    if (time_ != 0) {
+    if (modelOrientationErrors_->getNumRows() > 0) {
         auto report = ikReporter_->getTable();
         // set the name of the results directory and create it
         std::string resultsDirectoryName = "OpenSimLive-results";
@@ -370,9 +524,17 @@ void IMUInverseKinematicsToolLive::reportToFile() {
         model_.getSimbodyEngine().convertRadiansToDegrees(report);
         // set the value for name (not the name of the file) in the .mot file to be created
         report.updTableMetaData().setValueForKey<string>("name", "IK-live");
-        // write the .mot file to hard drive
-        OpenSim::STOFileAdapter_<double>::write(report, OpenSimLiveRootDirectory_ + "/" + resultsDirectoryName + "/" + "IK-live.mot");
-        OpenSim::STOFileAdapter_<double>::write(*modelOrientationErrors_, OpenSimLiveRootDirectory_ + "/" + resultsDirectoryName + "/" + "IK-live" + "_orientationErrors.sto");
+        try {
+            // write the .mot file to hard drive
+            OpenSim::STOFileAdapter_<double>::write(report, OpenSimLiveRootDirectory_ + "/" + resultsDirectoryName + "/" + "IK-live.mot");
+            OpenSim::STOFileAdapter_<double>::write(*modelOrientationErrors_, OpenSimLiveRootDirectory_ + "/" + resultsDirectoryName + "/" + "IK-live" + "_orientationErrors.sto");
+        }
+        catch (std::exception& e) {
+            std::cerr << "Error in saving output to file: " << e.what() << std::endl;
+        }
+        catch (...) {
+            std::cerr << "Unkown error in saving output to file!" << std::endl;
+        }
         // Results written to file, clear in case we run again
         ikReporter_->clearTable();
 
@@ -409,9 +571,14 @@ void IMUInverseKinematicsToolLive::update(const bool visualizeResults, const boo
     updateInverseKinematics(get_quat(), visualizeResults, offline);
 }
 
-
 // This function updates the IK after it's been initially run
 void IMUInverseKinematicsToolLive::update(const bool visualizeResults, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quat, const bool offline)
 {
     updateInverseKinematics(quat, visualizeResults, offline);
+}
+
+// This function updates the IK after it's been initially run
+void IMUInverseKinematicsToolLive::updateOrdered(const bool visualizeResults, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quat, unsigned int orderIndex, double time, const bool offline)
+{
+    updateOrderedInverseKinematics(quat, orderIndex, time, visualizeResults, offline);
 }

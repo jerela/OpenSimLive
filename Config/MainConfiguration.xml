@@ -4,8 +4,6 @@
 	<desired_update_rate>60</desired_update_rate>
 	<!--File containing Xsens IMU labels on the model corresponding to IMU IDs.-->
 	<mappings_file>SensorMappings_full.xml</mappings_file>
-	<!--Uncalibrated OpenSim model to be used.-->
-	<opensim_model_file>gait2392_full.osim</opensim_model_file>
 	<!--File that configures IMUPlacer.-->
 	<imu_placer_setup_file>IMUPlacerSetup.xml</imu_placer_setup_file>
 	<!--Boolean that determines if we want to save IK results (joint angles and their errors) to file when the program finishes. This can be very memory-heavy especially with long measurements.-->
@@ -31,7 +29,7 @@
 	<!--If given the option to choose, use Xsens IMUs, Delsys IMUs or simulated data?-->
 	<IMU_manufacturer>simulated</IMU_manufacturer>
 	<!--If using simulated IMU data, which IMUs do we simulate?-->
-	<simulated_bodies>pelvis_imu femur_r femur_l tibia_r tibia_l</simulated_bodies>
+	<simulated_bodies>pelvis_imu femur_r femur_l tibia_r tibia_l calcn_r calnc_l</simulated_bodies>
 	<!--Whether to save quaternions that represent IMU orientations to file.-->
 	<save_quaternions_to_file>false</save_quaternions_to_file>
 </MainConfiguration>

@@ -27,6 +27,7 @@ namespace OpenSimLive {
 		bool IMUInverseKinematicsToolLive::run(const bool visualizeResults);
 		void IMUInverseKinematicsToolLive::update(const bool visualizeResults, const bool offline = false);
 		void IMUInverseKinematicsToolLive::update(const bool visualizeResults, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quat, const bool offline = false);
+		void IMUInverseKinematicsToolLive::updateOrdered(const bool visualizeResults, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quat, unsigned int orderIndex, double time, const bool offline = false);
 		void reportToFile();
 
 		// PUBLIC METHODS DEFINED HERE
@@ -34,6 +35,7 @@ namespace OpenSimLive {
 		std::vector<double> getQ() { return q_; }
 		std::array<double, 6> getPointTrackerPositionsAndOrientations() { return pointTrackerPositionsAndOrientations_; }
 		void setTime(const double time) { time_ = time; }
+		double getTime() { return time_; }
 		void setQuaternion(const OpenSim::TimeSeriesTable_<SimTK::Quaternion>& newQuat) { quat_ = newQuat; }
 		void setModel(const OpenSim::Model& newModel) { model_ = newModel; }
 		void setModelFile(const std::string& newModelFile) { model_ = OpenSim::Model(newModelFile); }
@@ -62,6 +64,11 @@ namespace OpenSimLive {
 		std::string pointTrackerBodyName_ = "";
 		std::string pointTrackerReferenceBodyName_ = "pelvis";
 		double lastUpdatedTime_ = 0;
+		
+		// for ordered IK
+		std::vector<unsigned int> orderedIndexVector_;
+		std::vector<double> orderedTimeVector_;
+		std::vector<SimTK::Array_<double>> orderedOrientationErrors_;
 
 		// PRIVATE METHODS DEFINED HERE
 		SimTK::Vec3 get_sensor_to_opensim_rotations() { return sensor_to_opensim_rotations; }
@@ -75,6 +82,7 @@ namespace OpenSimLive {
 
 		// PRIVATE METHODS DEFINED IN THE .CXX FILE
 		void updateInverseKinematics(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults = false, const bool offline = false);
+		void updateOrderedInverseKinematics(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, unsigned int orderIndex, double time, const bool visualizeResults = false, const bool offline = false);
 		void updateJointAngleVariable(SimTK::State& s, OpenSim::Model& model);
 		void updatePointTracker(SimTK::State s);
 		void startDecorationGenerator();
