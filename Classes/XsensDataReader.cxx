@@ -318,8 +318,14 @@ std::vector<XsQuaternion> XsensDataReader::getQuaternionData() {
 		XsDataPacket const* packet = mtwCallbacks_[i]->getOldestPacket();
 		quaternionData[i] = packet->orientationQuaternion();
 		mtwCallbacks_[i]->deleteOldestPacket();
-		
+		if (i == 0) {
+			if (initialTime_ == 0) {
+				initialTime_ = packet->timeOfArrival().secTime();
+			}
+			timeVector_.push_back(packet->timeOfArrival().secTime() - initialTime_);
+		}
 	}
+	quaternionData_.push_back(quaternionData);
 	return quaternionData;
 }
 

@@ -157,6 +157,62 @@ target_include_directories(test_EMG PUBLIC
 
 
 
+set(TEST_IK_SPEED_MULTITHREAD_NEW_SOURCES
+	"${INCLUDE_CLASSES_PATH}/IMUPlacerLive.h"
+	"${INCLUDE_CLASSES_PATH}/IMUPlacerLive.cxx"
+	"${INCLUDE_CLASSES_PATH}/IMUInverseKinematicsToolLive.h"
+	"${INCLUDE_CLASSES_PATH}/IMUInverseKinematicsToolLive.cxx"
+	"${INCLUDE_CLASSES_PATH}/PointTracker.h"
+	"${INCLUDE_CLASSES_PATH}/PointTracker.cxx"
+	"${INCLUDE_CLASSES_PATH}/DecorationGeneratorLive.h"
+	"${INCLUDE_CLASSES_PATH}/DecorationGeneratorLive.cxx"
+	"${INCLUDE_CLASSES_PATH}/XsensDataReader.h"
+	"${INCLUDE_CLASSES_PATH}/XsensDataReader.cxx"
+	"${INCLUDE_CLASSES_PATH}/Client.h"						   
+	"${INCLUDE_CLASSES_PATH}/Client.cpp"
+	"${INCLUDE_CLASSES_PATH}/DelsysDataReader.h"
+	"${INCLUDE_CLASSES_PATH}/DelsysDataReader.cxx"
+	"${INCLUDE_CLASSES_PATH}/SimulatedDataReader.h"
+	"${INCLUDE_CLASSES_PATH}/SimulatedDataReader.cxx"
+	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctions.h"
+	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctions.cxx"
+	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctionsXsens.h"
+	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctionsXsens.cxx"
+	"${INCLUDE_CLASSES_PATH}/ThreadPool.h"
+	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.h"
+	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.tpp"
+	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.cxx"
+	"${INCLUDE_CLASSES_PATH}/IMUHandler.h"
+	"${INCLUDE_CLASSES_PATH}/IMUHandler.cxx"
+	)	
+
+
+add_executable(test_IK_speed_multithread_new
+			   test_IK_speed_multithread_new.cxx
+			   "${TEST_IK_SPEED_MULTITHREAD_NEW_SOURCES}")
+
+target_link_libraries(test_IK_speed_multithread_new
+						PRIVATE "${MT_LIBRARY}"
+						PRIVATE "${OPENSIM_LIBRARY}"
+						PRIVATE "${SIMBODY_LIBRARY}"
+						PRIVATE "ws2_32.lib")
+						
+target_include_directories(test_IK_speed_multithread_new PRIVATE
+						"${INCLUDE_CLASSES_PATH}"
+						"${INCLUDE_FUNCTIONS_PATH}")
+						
+target_include_directories(test_IK_speed_multithread_new PUBLIC
+						   "${PROJECT_BINARY_DIR}"
+						   "${OPENSIM_INCLUDE_PATH}"
+						   "${OPENSIM_INCLUDE_PATH_TWO}"
+						   "${SIMBODY_INCLUDE_PATH}"
+						   "${MTSDK_PATH}"
+						   "${MT_LIB_PATH}"
+						   )						   
+						   
+
+
+
 set(TEST_IK_SPEED_MULTITHREAD_SOURCES
 	"${INCLUDE_CLASSES_PATH}/IMUPlacerLive.h"
 	"${INCLUDE_CLASSES_PATH}/IMUPlacerLive.cxx"
@@ -209,7 +265,7 @@ target_include_directories(test_IK_speed_multithread PUBLIC
 						   "${MTSDK_PATH}"
 						   "${MT_LIB_PATH}"
 						   )						   
-						   
+
 
 
 

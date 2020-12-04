@@ -148,7 +148,8 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
         // if we want to visualize results, set visualizer into sampling mode so we can update the joint angle values later
         //SimTK::Visualizer& viz = model_.updVisualizer().updSimbodyVisualizer();
         model_.updVisualizer().updSimbodyVisualizer().setMode(SimTK::Visualizer::Mode::PassThrough); // try RealTime mode instead for better FPS?
-        model_.updVisualizer().updSimbodyVisualizer().setDesiredFrameRate(60);
+        model_.updVisualizer().updSimbodyVisualizer().setDesiredFrameRate(100);
+        model_.updVisualizer().updSimbodyVisualizer().setDesiredBufferLengthInSec(0);
         // prepare to visualize the mirrored point
         if (getPointTrackerEnabled())
         {

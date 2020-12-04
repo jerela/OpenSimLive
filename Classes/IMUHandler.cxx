@@ -27,6 +27,7 @@ void IMUHandler::initialize() {
 	bool saveQuaternions = (ConfigReader("MainConfiguration.xml", "save_quaternions_to_file") == "true");
 	if (IMUType_ == xsens) {
 		xsensObject_.reset(new OpenSimLive::XsensDataReader);
+		xsensObject_->SetDesiredUpdateRate(stoi(ConfigReader("MainConfiguration.xml", "desired_update_rate")));
 		xsensObject_->setSaveQuaternions(saveQuaternions);
 		// loop until startup is successful
 		unsigned int dataReaderResult = 0;
@@ -57,7 +58,8 @@ void IMUHandler::initialize() {
 // update the value of quaternionTimeSeriesTable_
 void IMUHandler::updateQuaternionTable() {
 	if (IMUType_ == xsens) {
-		quaternionTimeSeriesTable_ = (fillQuaternionTable(xsensObject_->GetMtwCallbacks(), xsensObject_->GetQuaternionData(quatVector_)));
+		//quaternionTimeSeriesTable_ = (fillQuaternionTable(xsensObject_->GetMtwCallbacks(), xsensObject_->GetQuaternionData(quatVector_)));
+		quaternionTimeSeriesTable_ = (fillQuaternionTable(xsensObject_->GetMtwCallbacks(), xsensObject_->getQuaternionData()));
 	}
 	else if (IMUType_ == delsys) {
 		//delsysObject_->updateQuaternionData();

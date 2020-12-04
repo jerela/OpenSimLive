@@ -102,7 +102,7 @@ void ConnectToDataStream(double inputSeconds, int inputThreads) {
 
 	std::cout << clockDuration.count() << std::endl;
 	// loop until enough time has been elapsed
-	auto table = genericDataReader.updateAndGetQuaternionTable();
+	//auto table = genericDataReader.updateAndGetQuaternionTable();
 	do {
 
 		// update quaternions for IKTool
@@ -110,7 +110,7 @@ void ConnectToDataStream(double inputSeconds, int inputThreads) {
 		//IKTool.setQuaternion(genericDataReader.getQuaternionTable());
 		//enterTimes.push_back((std::chrono::high_resolution_clock::now() - clockStart).count());
 		// begin multithreading a function that consists of IK calculations + PointTracker
-		threadPoolContainer.offerFuture(updateConcurrentIKTool, std::ref(IKTool), std::ref(clockStart), std::ref(clockDuration), table);
+		threadPoolContainer.offerFuture(updateConcurrentIKTool, std::ref(IKTool), std::ref(clockStart), std::ref(clockDuration), genericDataReader.updateAndGetQuaternionTable());
 
 		// increment iterations number
 		++iteration;

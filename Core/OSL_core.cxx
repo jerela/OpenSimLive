@@ -38,14 +38,15 @@ struct VariableManager {
 	bool bufferInUse = false;
 	unsigned int maxBufferSize = 8;
 	bool trialDone = false;
-	bool runProducerThread = true;
-	bool runIKThread = true;
-
+	std::atomic<bool> runProducerThread = true;
+	std::atomic<bool> runIKThread = true;
+	
 }; // struct dataHolder ends
 
+bool visualize = false;
 
 void updateConcurrentIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, VariableManager& vm, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable, double time, unsigned int orderIndex) {
-	IKTool.updateOrdered(true, quatTable, orderIndex, time);
+	IKTool.updateOrdered(visualize, quatTable, orderIndex, time);
 }
 
 
@@ -192,7 +193,7 @@ int main(int argc, char* argv[])
 			IKTool.setOpenSimLiveRootDirectory(OPENSIMLIVE_ROOT); // this is needed for saving the IK report to file
 			// set private variables to be accessed in IK calculations
 			IKTool.setPointTrackerEnabled(false);
-			IKTool.run(true); // true for visualization
+			IKTool.run(visualize); // true for visualization
 			std::cout << "Model has been calibrated." << std::endl;
 		}
 
@@ -241,6 +242,7 @@ int main(int argc, char* argv[])
 	} while (vm.mainDataLoop);
 
 	vm.runProducerThread = false;
+	producer.join();
 	vm.runIKThread = false;
 
 	std::cout << "Exiting main data loop!" << std::endl;
