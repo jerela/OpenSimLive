@@ -437,6 +437,17 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
         orderedTimeVector_.push_back(time);
         orderedIndexVector_.push_back(orderIndex);
 
+        SimTK::Vector stateQ(s_.getQ());
+        // get number of coordinates (joint angles) in the model
+        int numCoordinates = model_.getNumCoordinates();
+        // initialize vector that holds the joint angle values
+        std::vector<double> q(numCoordinates);
+        for (int j = 0; j < numCoordinates; j++) {
+            // fill q with angle values for different joint angles
+            q[j] = stateQ[j];
+        }
+        qVec_.push_back(q);
+
         int nos = ikSolver.getNumOrientationSensorsInUse();
         SimTK::Array_<double> orientationErrors(nos, 0.0);
         // calculate orientation errors into orientationErrors
@@ -475,13 +486,16 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
 
 
 void IMUInverseKinematicsToolLive::reportToFile() {
-
+    std::vector<std::vector<double>> newQVec;
+    std::vector<double> newTimeVec;
     // if we used updateOrderedInverseKinematics, then ordered time vector has more than zero elements
     if (orderedTimeVector_.size() > 0) {
         // index in order of IK calculations that we are looking for
         unsigned int index = 0;
         unsigned int size = orderedIndexVector_.size();
         SimTK::Array_<SimTK::Real> orientationErrors;
+        std::vector<double> q;
+
         double time;
         // loop through all calculated IK points
         for (unsigned int i = 0; i < size; ++i) {
@@ -491,7 +505,9 @@ void IMUInverseKinematicsToolLive::reportToFile() {
                 // if the currently desired table index is found, break out of the nested for-loop and update state time
                 if (index == orderedIndexVector_[j]) {
                     time = orderedTimeVector_[j];
+                    std::cout << time << std::endl;
                     orientationErrors = orderedOrientationErrors_[j];
+                    q = qVec_[j];
                     break;
                 }
             }
@@ -501,7 +517,19 @@ void IMUInverseKinematicsToolLive::reportToFile() {
                 // append orientationErrors into modelOrientationErrors_
                 modelOrientationErrors_->appendRow(time, orientationErrors);
                 // set s into a stage where report is realized; required for IK reporting
+                
+                newQVec.push_back(q);
+                newTimeVec.push_back(time);
+
                 model_.realizeReport(s_);
+
+
+                // get coordinates from state s
+                
+                // set private variable q_ to equal q so that we can get the latest joint angle values with getQ
+                //setQ(q);
+
+
             }
             catch (std::exception& e) {
                 std::cerr << "Error in reporting IK errors: " << e.what() << std::endl;
@@ -513,6 +541,24 @@ void IMUInverseKinematicsToolLive::reportToFile() {
         }
         
     }
+
+
+    std::string filePath(OpenSimLiveRootDirectory_ + "/" + "OpenSimLive-results" + "/Alt-IK.txt");
+    std::ofstream outputFile;
+    outputFile.open(filePath, std::ios_base::out | std::ios_base::trunc);
+    if (outputFile.is_open()) {
+        for (unsigned int z = 0; z < qVec_.size(); ++z) {
+            outputFile << newTimeVec[z] << "\t";
+            for (unsigned int c = 0; c < qVec_[z].size(); ++c) {
+                outputFile << newQVec[z][c] << "\t";
+            }
+            outputFile << std::endl;
+        }
+    }
+    else {
+        std::cout << "Failed to open file for IK saving." << std::endl;
+    }
+
 
     // if time equals its initial value 0, then no IK has been performed and there is nothing to save to file, resulting in an exception; therefore we only save to file when time is nonzero
     if (modelOrientationErrors_->getNumRows() > 0) {

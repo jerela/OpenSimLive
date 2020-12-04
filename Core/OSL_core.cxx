@@ -43,7 +43,7 @@ struct VariableManager {
 	
 }; // struct dataHolder ends
 
-bool visualize = false;
+bool visualize = true;
 
 void updateConcurrentIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, VariableManager& vm, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable, double time, unsigned int orderIndex) {
 	IKTool.updateOrdered(visualize, quatTable, orderIndex, time);
@@ -153,8 +153,9 @@ int main(int argc, char* argv[])
 	SimTK::Vec3 sensorToOpenSimRotations = get_sensor_to_opensim_rotations();
 
 
-	auto givemetime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-	std::cout << ctime(&givemetime) << std::endl;
+	std::chrono::milliseconds msCalib;
+	//auto givemetime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	//std::cout << ctime(&givemetime) << std::endl;
 	std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
 	//auto days = (ms.count() / 86400000) % 365;
 	auto hours = (ms.count() / 3600000) % 24;
@@ -195,6 +196,7 @@ int main(int argc, char* argv[])
 			IKTool.setPointTrackerEnabled(false);
 			IKTool.run(visualize); // true for visualization
 			std::cout << "Model has been calibrated." << std::endl;
+			msCalib = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
 		}
 
 		// if user hits the single IK calculation key, new data is available and the model has been calibrated
@@ -245,6 +247,8 @@ int main(int argc, char* argv[])
 	producer.join();
 	vm.runIKThread = false;
 
+	std::chrono::milliseconds msEnd = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+
 	std::cout << "Exiting main data loop!" << std::endl;
 
 	std::cout << "Performed " << vm.orderIndex << " IK operations." << std::endl;
@@ -254,6 +258,33 @@ int main(int argc, char* argv[])
 	{
 		std::cout << "Reporting IK to file..." << std::endl;
 		IKTool.reportToFile();
+	}
+
+	// print time to file
+	std::string filePath(OPENSIMLIVE_ROOT + "/" + "TimePoints-" + std::to_string(hours+GMTOffset) + "-" + std::to_string(minutes) +".txt");
+	std::ofstream outputFile;
+	outputFile.open(filePath, std::ios_base::out | std::ios_base::trunc);
+	if (outputFile.is_open()) {
+		outputFile << "Main loop start time:" << std::endl;
+		outputFile << (hours+GMTOffset) << ":" << minutes << ":" << seconds << ":" << millisecs << std::endl;
+		
+		auto hoursC = (msCalib.count() / 3600000) % 24;
+		auto minutesC = (msCalib.count() / 60000) % 60;
+		auto secondsC = (msCalib.count() / 1000) % 60;
+		auto millisecsC = msCalib.count() % 1000;
+		outputFile << "Calibration time:" << std::endl;
+		outputFile << (hoursC+GMTOffset) << ":" << minutesC << ":" << secondsC << ":" << millisecsC << std::endl;
+
+		auto hoursE = (msEnd.count() / 3600000) % 24;
+		auto minutesE = (msEnd.count() / 60000) % 60;
+		auto secondsE = (msEnd.count() / 1000) % 60;
+		auto millisecsE = msEnd.count() % 1000;
+		outputFile << "End time:" << std::endl;
+		outputFile << (hoursE+GMTOffset) << ":" << minutesE << ":" << secondsE << ":" << millisecsE << std::endl;
+		outputFile.close();
+	}
+	else {
+		std::cout << "Failed to open file for time point saving." << std::endl;
 	}
 
 	// close the connection to IMUs

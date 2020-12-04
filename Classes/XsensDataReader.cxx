@@ -404,7 +404,7 @@ std::string XsensDataReader::convertXsQuaternionToString(XsQuaternion quaternion
 // This function saves the time points and the corresponding quaternions to file for later examination.
 void XsensDataReader::saveQuaternionsToFile(const std::string& rootDir, const std::string& resultsDir) {
 
-	if (timeVector_.size() > 100000 || quaternionData_.size() > 100000) {
+	if (timeVector_.size() > 1000000 || quaternionData_.size() > 1000000) {
 		std::cout << "In a normal situation we would save quaternions to file now, but because there are " << timeVector_.size() << " data points, for the sake of hard drive space we won't do it." << std::endl;
 		return;
 	}

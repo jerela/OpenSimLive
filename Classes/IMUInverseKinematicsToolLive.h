@@ -60,6 +60,7 @@ namespace OpenSimLive {
 		bool report_errors = true;
 		OpenSim::Model model_; // the OpenSim model that state s_ depicts
 		std::vector<double> q_; // joint angles calculated from IK are stored here
+		std::vector<std::vector<double>> qVec_;
 		std::array<double, 6> pointTrackerPositionsAndOrientations_;
 		std::string pointTrackerBodyName_ = "";
 		std::string pointTrackerReferenceBodyName_ = "pelvis";
