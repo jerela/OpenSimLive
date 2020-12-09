@@ -13,6 +13,8 @@ using namespace OpenSimLive;
 // CONSTRUCTOR
 SimulatedDataReader::SimulatedDataReader() {
 	populateLabelVector();
+	// randomize seed based on current time
+	srand(std::time(NULL));
 }
 
 // DESTRUCTOR
