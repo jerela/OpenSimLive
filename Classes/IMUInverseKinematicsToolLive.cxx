@@ -505,7 +505,7 @@ void IMUInverseKinematicsToolLive::reportToFile() {
                 // if the currently desired table index is found, break out of the nested for-loop and update state time
                 if (index == orderedIndexVector_[j]) {
                     time = orderedTimeVector_[j];
-                    std::cout << time << std::endl;
+                    //std::cout << time << std::endl;
                     orientationErrors = orderedOrientationErrors_[j];
                     q = qVec_[j];
                     break;
