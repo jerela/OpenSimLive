@@ -21,6 +21,8 @@ namespace OpenSimLive {
 		OpenSim::TimeSeriesTable_<SimTK::Quaternion> getTimeSeriesTable() { return quatTable_; }
 		// enable or disable quaternion saving to file
 		void setSaveQuaternions(bool setting) { saveQuaternionsToFile_ = setting; }
+		// generates identity quaternions (for example for IK throughput testing)
+		void generateIdentityQuaternions();
 		
 	protected:
 			

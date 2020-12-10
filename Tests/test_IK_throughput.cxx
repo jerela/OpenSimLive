@@ -62,11 +62,11 @@ void updateConcurrentIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, V
 std::mutex mainMutex;
 
 // This function reads quaternion values in a loop and saves them in a queue buffer.
-void producerThread(OpenSimLive::IMUHandler& genericDataReader, VariableManager& vm) {
+void producerThread(OpenSimLive::SimulatedDataReader& simulatedDataReader, VariableManager& vm) {
 	
 	
 	// update new quaternion table but don't get it yet; do this ONLY ONCE to do all the IK with the same orientations
-	genericDataReader.updateQuaternionTable();
+	simulatedDataReader.generateIdentityQuaternions();
 	
 	do {
 
@@ -85,7 +85,7 @@ void producerThread(OpenSimLive::IMUHandler& genericDataReader, VariableManager&
 			// push time stamp to the shared buffer
 			vm.timeBuffer.push(time);
 			// push the time series table to the shared buffer
-			vm.orientationBuffer.push(genericDataReader.getQuaternionTable());
+			vm.orientationBuffer.push(simulatedDataReader.getTimeSeriesTable());
 			vm.bufferInUse = false;
 		}
 		if (time > vm.trialDuration) {
@@ -132,20 +132,10 @@ void consumerThread(VariableManager& vm, OpenSimLive::IMUInverseKinematicsToolLi
 void ConnectToDataStream(double inputSeconds, int inputThreads) {
 	//enterTimes.reserve(100000);
 	//finishTimes.reserve(100000);
-	OpenSimLive::IMUHandler genericDataReader;
+	OpenSimLive::SimulatedDataReader simulatedDataReader;
 
-	std::string manufacturerStr = ConfigReader("MainConfiguration.xml", "IMU_manufacturer");
-	IMUType manufacturer = simulated; // default to simulated in case the following if-statements fail
-	if (manufacturerStr == "delsys")
-		manufacturer = delsys;
-	else if (manufacturerStr == "xsens")
-		manufacturer = xsens;
-	else if (manufacturerStr == "simulated")
-		manufacturer = simulated;
-
-	genericDataReader.setManufacturer(manufacturer);
-
-	genericDataReader.initialize();
+	bool saveQuaternions = (ConfigReader("MainConfiguration.xml", "save_quaternions_to_file") == "true");
+	simulatedDataReader.setSaveQuaternions(saveQuaternions);
 
 	VariableManager vm;
 
@@ -164,9 +154,9 @@ void ConnectToDataStream(double inputSeconds, int inputThreads) {
 	SimTK::Vec3 sensorToOpenSimRotations = get_sensor_to_opensim_rotations();
 	
 	// CALIBRATION STEP
-	genericDataReader.updateQuaternionTable();
+	simulatedDataReader.generateIdentityQuaternions();
 	// fill a timeseriestable with quaternion orientations of IMUs
-	OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable = genericDataReader.getQuaternionTable();
+	OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable = simulatedDataReader.getTimeSeriesTable();
 	// calibrate the model and return its file name
 	vm.calibratedModelFile = calibrateModelFromSetupFile(OPENSIMLIVE_ROOT + "/Config/" + ConfigReader("MainConfiguration.xml", "imu_placer_setup_file"), quaternionTimeSeriesTable);
 	// give IKTool the necessary inputs and run it
@@ -206,7 +196,7 @@ void ConnectToDataStream(double inputSeconds, int inputThreads) {
 	//auto table = genericDataReader.updateAndGetQuaternionTable();
 
 
-	std::thread producer(producerThread, std::ref(genericDataReader), std::ref(vm));
+	std::thread producer(producerThread, std::ref(simulatedDataReader), std::ref(vm));
 	std::thread consumer(consumerThread, std::ref(vm), std::ref(IKTool), std::ref(threadPoolContainer));
 
 	producer.join();
@@ -239,7 +229,7 @@ void ConnectToDataStream(double inputSeconds, int inputThreads) {
 	std::cout << "Mean: " << mean/(double)finishTimes.size() << std::endl;*/
 
 	// close the connection to IMUs
-	genericDataReader.closeConnection();
+	simulatedDataReader.closeConnection();
 
 	return;
 }
