@@ -1,3 +1,5 @@
+#pragma once
+#include <XMLFunctions.h>
 #include <XsensDataReader.h>
 #include <fstream>
 
@@ -22,7 +24,8 @@ std::ostream& operator << (std::ostream& out, XsDevice const& d)
 
 using namespace OpenSimLive;
 
-XsensDataReader::XsensDataReader() {}
+XsensDataReader::XsensDataReader() {
+}
 
 XsensDataReader::~XsensDataReader() {
 	if (saveQuaternionsToFile_) {
@@ -257,6 +260,9 @@ unsigned int XsensDataReader::InitiateStartupPhase() {
 			mtwDevices_[i]->addCallbackHandler(mtwCallbacks_[i]);
 		}
 
+		// populate labels vector
+		findLabels();
+
 	}
 	catch (std::exception const& ex)
 	{
@@ -271,6 +277,18 @@ unsigned int XsensDataReader::InitiateStartupPhase() {
 	return returnMode;
 }
 		
+void XsensDataReader::findLabels() {
+	for (size_t i = 0; i < mtwCallbacks_.size(); ++i) {
+		// get the ID of the current IMU
+		std::string currentSensorId = mtwCallbacks_[i]->device().deviceId().toString().toStdString();
+
+		// match the ID of the sensor to the name of the sensor on the model
+		std::string sensorNameInModel = sensorIdToLabel(currentSensorId, OPENSIMLIVE_ROOT + "/Config/" + ConfigReader("MainConfiguration.xml", "mappings_file"));
+
+		// populate the vector of sensor names
+		labels_.push_back(sensorNameInModel);
+	}
+}
 
 std::vector<XsQuaternion> XsensDataReader::GetQuaternionData(std::vector<XsQuaternion>& quaternionData) {
 	newDataAvailable_ = false;
@@ -426,7 +444,8 @@ void XsensDataReader::saveQuaternionsToFile(const std::string& rootDir, const st
 		outputFile << "Time (s)";
 
 		for (unsigned int j = 0; j < nSensors_; ++j) {
-			outputFile << "\t" << "Quaternion" + std::to_string(j + 1);
+			//outputFile << "\t" << "Quaternion" + std::to_string(j + 1);
+			outputFile << "\t" << labels_[j];
 		}
 
 		for (unsigned int i = 0; i < quaternionData_.size(); ++i) { // iteration through rows

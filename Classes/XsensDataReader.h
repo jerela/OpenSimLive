@@ -191,6 +191,8 @@ namespace OpenSimLive {
 		int findClosestUpdateRate(const XsIntArray& supportedUpdateRates, const int desiredUpdateRate);
 		// A function to convert XsQuaternion to string before writing it to file; it can be written directly to file, but the formatting in this function will make its formatting identical to SimTK::Quaternions in file
 		std::string convertXsQuaternionToString(XsQuaternion quaternion);
+		// find the labels of connected IMUs, used later when saving quaternion time series to file
+		void findLabels();
 
 		// PRIVATE VARIABLES
 		// Callback for wireless master
@@ -218,6 +220,8 @@ namespace OpenSimLive {
 		double initialTime_ = 0;
 		// latest current time that was saved
 		double latestTime_ = 0;
+		// vector containing the labels of IMUs (e.g. "pelvis_imu")
+		std::vector<std::string> labels_;
 
 	}; // end of class
 }
