@@ -74,11 +74,11 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
     // at the moment there's no interface to remove Reporter so we'll reuse one if exists
     //const auto reporterExists = model.findComponent<OpenSim::TableReporter>("ik_reporter");
 
-    /*if (get_report_errors())
+    if (get_report_errors())
     {
         ikReporter_ = new OpenSim::TableReporter();
         ikReporter_->setName("ik_reporter");
-    }*/
+    }
 
     // define the model's internal data members and structure according to its properties, so we can use updComponentList to find all of its <Coordinate> elements
     std::cout << "Finalizing model from properties." << std::endl;
@@ -88,15 +88,15 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
     // Hookup reporter inputs to the individual coordinate outputs
     // and lock coordinates that are translational since they cannot be
     for (auto& coord : coordinates) {
-        /*if (get_report_errors())
-            ikReporter_->updInput("inputs").connect(coord.getOutput("value"), coord.getName());*/
+        if (get_report_errors())
+            ikReporter_->updInput("inputs").connect(coord.getOutput("value"), coord.getName());
         if (coord.getMotionType() == OpenSim::Coordinate::Translational) {
             coord.setDefaultLocked(true);
         }
     }
 
-    /*if (get_report_errors())
-        model_.addComponent(ikReporter_);*/
+    if (get_report_errors())
+        model_.addComponent(ikReporter_);
 
     // Convert to OpenSim Frame
     const SimTK::Vec3& rotations = get_sensor_to_opensim_rotations();
@@ -178,6 +178,8 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
 
 
 //    s_.updTime() = time_;
+
+    model_.realizeReport(s_);
 
 /*    if (get_report_errors()) {
         modelOrientationErrors_ = new OpenSim::TimeSeriesTable();
@@ -467,6 +469,8 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
         //ikSolver.computeCurrentOrientationErrors(orientationErrors);
         //orderedOrientationErrors_.push_back(orientationErrors);
 
+        model_.realizeReport(s);
+
         concurrentIKMutex.unlock();
 
     }
@@ -587,8 +591,10 @@ void IMUInverseKinematicsToolLive::reportToFile() {
 
 
     // if time equals its initial value 0, then no IK has been performed and there is nothing to save to file, resulting in an exception; therefore we only save to file when time is nonzero
-    /*if (modelOrientationErrors_->getNumRows() > 0) {
+    if (true) {
         auto report = ikReporter_->getTable();
+        std::cout << "Number of times from Q: " << orderedTimeVector_.size() << std::endl;
+        std::cout << "Number of values from reporter: " << report.getNumRows() << std::endl;
         // set the name of the results directory and create it
         std::string resultsDirectoryName = "OpenSimLive-results";
         OpenSim::IO::makeDir(OpenSimLiveRootDirectory_ + "/" + resultsDirectoryName);
@@ -600,7 +606,7 @@ void IMUInverseKinematicsToolLive::reportToFile() {
         try {
             // write the .mot file to hard drive
             OpenSim::STOFileAdapter_<double>::write(report, OpenSimLiveRootDirectory_ + "/" + resultsDirectoryName + "/" + "IK-live.mot");
-            OpenSim::STOFileAdapter_<double>::write(*modelOrientationErrors_, OpenSimLiveRootDirectory_ + "/" + resultsDirectoryName + "/" + "IK-live" + "_orientationErrors.sto");
+            //OpenSim::STOFileAdapter_<double>::write(*modelOrientationErrors_, OpenSimLiveRootDirectory_ + "/" + resultsDirectoryName + "/" + "IK-live" + "_orientationErrors.sto");
         }
         catch (std::exception& e) {
             std::cerr << "Error in saving output to file: " << e.what() << std::endl;
@@ -609,9 +615,9 @@ void IMUInverseKinematicsToolLive::reportToFile() {
             std::cerr << "Unknown error in saving output to file!" << std::endl;
         }
         // Results written to file, clear in case we run again
-        ikReporter_->clearTable();*/
+        ikReporter_->clearTable();
 
-        std::string resultsDirectoryName = "OpenSimLive-results";
+        //std::string resultsDirectoryName = "OpenSimLive-results";
         
         if (getSavePointTrackerResults()) {
             std::cout << "Writing PointTracker output to file..." << std::endl;
@@ -625,7 +631,7 @@ void IMUInverseKinematicsToolLive::reportToFile() {
                 std::cout << "Unknown error while saving PointTracker output to file!" << std::endl;
             }
         }
-    //}
+    }
 }
 
 

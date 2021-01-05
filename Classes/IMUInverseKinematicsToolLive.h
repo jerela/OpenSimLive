@@ -64,6 +64,8 @@ namespace OpenSimLive {
 		std::string pointTrackerBodyName_ = "";
 		std::string pointTrackerReferenceBodyName_ = "pelvis";
 		double lastUpdatedTime_ = 0;
+		// labels of sensors (e.g. "pelvis_imu")
+		SimTK::Array_<std::string> labels_;
 		
 		// for ordered IK
 		std::vector<unsigned int> orderedIndexVector_;
