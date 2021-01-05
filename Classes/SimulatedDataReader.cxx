@@ -117,7 +117,7 @@ void SimulatedDataReader::saveQuaternionsToFile(const std::string& rootDir, cons
 		outputFile << "Time (s)";
 
 		for (unsigned int j = 0; j < labelsSize_; ++j) {
-			outputFile << "\t" << "Quaternion" + std::to_string(j + 1);
+			outputFile << "\t" << labels_[j];
 		}
 
 		for (unsigned int i = 0; i < quaternionData_.size(); ++i) { // iteration through rows

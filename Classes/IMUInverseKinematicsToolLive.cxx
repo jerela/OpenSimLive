@@ -548,7 +548,7 @@ void IMUInverseKinematicsToolLive::reportToFile() {
     }
 
     // file path for the IK file
-    std::string filePath(OpenSimLiveRootDirectory_ + "/" + "OpenSimLive-results" + "/IK-live-radians.mot");
+    std::string filePath(OpenSimLiveRootDirectory_ + "/" + "OpenSimLive-results" + "/IK-live-degrees.mot");
     std::ofstream outputFile;
     // open in truncating rewrite mode
     outputFile.open(filePath, std::ios_base::out | std::ios_base::trunc);

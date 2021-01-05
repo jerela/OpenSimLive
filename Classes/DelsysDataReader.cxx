@@ -552,14 +552,14 @@ void DelsysDataReader::saveQuaternionsToFile(const std::string& rootDir, const s
 		outputFile << "Time series of measured orientation data in quaternions:\n";
 		outputFile << "Time (s)";
 
-		for (unsigned int imu = 0; imu < 16; ++imu) {
-			outputFile << "\t" << "Quaternion" + std::to_string(imu + 1);
+		for (unsigned int imu = 0; imu < activeLabels_.size(); ++imu) {
+			outputFile << "\t" << activeLabels_[imu];
 		}
 
 		for (unsigned int i = 0; i < quaternionData_.size(); ++i) { // iteration through rows
 			// after the first 2 rows of text, start with a new line and put time values in the first column
 			outputFile << "\n" << std::setprecision(9) << timeVector_[i];
-			for (unsigned int j = 0; j < 16; ++j) {
+			for (unsigned int j = 0; j < activeLabels_.size(); ++j) {
 				// then input quaternion values, separating them from time and other quaternion values with a tab
 				outputFile << "\t" << quaternionData_[i][j];
 			}

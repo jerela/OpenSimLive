@@ -18,7 +18,7 @@ struct VariableManager {
 	bool continuousMode = false; // IK is calculated continuously while this is true
 	bool sendMode = false; // data is sent to client with each IK step while this is true
 	bool saveIKResults = ("true" == ConfigReader("MainConfiguration.xml", "save_ik_results")); // Boolean that determines if we want to save IK results (joint angles and their errors) to file when the program finishes. This can be very memory-heavy especially with long measurements.
-	int continuousModeMsDelay = std::stoi(ConfigReader("MainConfiguration.xml", "continuous_mode_ms_delay")); // delay between consequent IK calculations in consequent mode, in milliseconds
+	unsigned int continuousModeMsDelay = std::stoi(ConfigReader("MainConfiguration.xml", "continuous_mode_ms_delay")); // delay between consequent IK calculations in consequent mode, in milliseconds
 	bool print_roll_pitch_yaw = ("true" == ConfigReader("MainConfiguration.xml", "print_roll_pitch_yaw")); // boolean that tells whether to print roll, pitch and yaw of IMUs while calculating IK
 	bool resetClockOnContinuousMode = ("true" == ConfigReader("MainConfiguration.xml", "reset_clock_on_continuous_mode")); // if true, clock will be reset to zero when entering continuous mode; if false, the clock will be set to zero at calibration
 	bool enableMirrorTherapy = false;
@@ -55,6 +55,8 @@ std::mutex mainMutex;
 
 // This function reads quaternion values in a loop and saves them in a queue buffer.
 void producerThread(OpenSimLive::IMUHandler& genericDataReader, VariableManager& vm) {
+	
+	std::chrono::steady_clock::time_point clockCurrent = std::chrono::high_resolution_clock::now();
 	do {
 
 		// get time stamp
@@ -67,7 +69,7 @@ void producerThread(OpenSimLive::IMUHandler& genericDataReader, VariableManager&
 		double time = genericDataReader.getTime();
 
 		// if consumer is not accessing the buffer and the buffer size is not maximal
-		if (!vm.bufferInUse && vm.orientationBuffer.size() < vm.maxBufferSize)
+		if (!vm.bufferInUse && vm.orientationBuffer.size() < vm.maxBufferSize && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - clockCurrent).count() > vm.continuousModeMsDelay)
 		{
 			// set bufferInUse to true to prevent consumer from accessing the buffer
 			vm.bufferInUse = true;
@@ -77,6 +79,7 @@ void producerThread(OpenSimLive::IMUHandler& genericDataReader, VariableManager&
 			// push the time series table to the shared buffer
 			vm.orientationBuffer.push(genericDataReader.getQuaternionTable());
 			vm.bufferInUse = false;
+			clockCurrent = std::chrono::high_resolution_clock::now();
 		}
 
 	} while (vm.runProducerThread);
@@ -266,7 +269,7 @@ int main(int argc, char* argv[])
 	}
 
 	// print time to file
-	std::string filePath(OPENSIMLIVE_ROOT + "/" + "TimePoints-" + std::to_string(hours+GMTOffset) + "-" + std::to_string(minutes) +".txt");
+	std::string filePath(OPENSIMLIVE_ROOT + "/OpenSimLive-results/" + "TimePoints-" + std::to_string(hours+GMTOffset) + "-" + std::to_string(minutes) +".txt");
 	std::ofstream outputFile;
 	outputFile.open(filePath, std::ios_base::out | std::ios_base::trunc);
 	if (outputFile.is_open()) {
