@@ -33,6 +33,10 @@ namespace OpenSimLive {
 		OpenSim::TimeSeriesTable_<SimTK::Quaternion> getQuaternionTable() { return quaternionTimeSeriesTable_; };
 		// this is an option that combines updateQuaternionTable() and getQuaternionTable(), resulting in better performance because quaternionTimeSeriesTable_ variable is not needlessly initialized here
 		OpenSim::TimeSeriesTable_<SimTK::Quaternion> updateAndGetQuaternionTable();
+		// return time
+		double getTime();
+		// update and return time
+		//double updateTime();
 
 	protected:
 			

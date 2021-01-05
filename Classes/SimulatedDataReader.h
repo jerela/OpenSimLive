@@ -23,6 +23,8 @@ namespace OpenSimLive {
 		void setSaveQuaternions(bool setting) { saveQuaternionsToFile_ = setting; }
 		// generates identity quaternions (for example for IK throughput testing)
 		void generateIdentityQuaternions();
+		// returns current time as double
+		double getTime() { return clockDuration_.count(); }
 		
 	protected:
 			

@@ -322,7 +322,8 @@ std::vector<XsQuaternion> XsensDataReader::getQuaternionData() {
 			if (initialTime_ == 0) {
 				initialTime_ = packet->timeOfArrival().secTime();
 			}
-			timeVector_.push_back(packet->timeOfArrival().secTime() - initialTime_);
+			latestTime_ = packet->timeOfArrival().secTime() - initialTime_;
+			timeVector_.push_back(latestTime_);
 		}
 	}
 	quaternionData_.push_back(quaternionData);
@@ -425,7 +426,7 @@ void XsensDataReader::saveQuaternionsToFile(const std::string& rootDir, const st
 		outputFile << "Time (s)";
 
 		for (unsigned int j = 0; j < nSensors_; ++j) {
-			outputFile << "\t Quaternion" + std::to_string(j + 1);
+			outputFile << "\t" << "Quaternion" + std::to_string(j + 1);
 		}
 
 		for (unsigned int i = 0; i < quaternionData_.size(); ++i) { // iteration through rows

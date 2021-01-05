@@ -117,4 +117,20 @@ void IMUHandler::closeConnection() {
 	}
 }
 
+// return current time from IMU classes
+double IMUHandler::getTime() {
+	double time;
+	if (IMUType_ == xsens) {
+		time = xsensObject_->getTime();
+	}
+	else if (IMUType_ == delsys) {
+		time = delsysObject_->getTime();
+	}
+	else if (IMUType_ == simulated) {
+		time = simulatedObject_->getTime();
+	}
+	return time;
+}
+
+
 

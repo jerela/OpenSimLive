@@ -139,28 +139,49 @@ OpenSim::TimeSeriesTable_<SimTK::Quaternion> quaternionTableFromTextFile(std::st
 	//std::cout << times.size() << ", " << quatMatrix.nrow() << ", " << quatMatrix[0].size() << ", " << labels.size() << std::endl;
 
 	std::cout << "Creating a time series table..." << std::endl;
-	OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(times, quatMatrix, labels);
-	std::cout << quatTable << std::endl;
-	std::cout << " done." << std::endl;
-	return quatTable;
+	try {
+		OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(times, quatMatrix, labels);
+		std::cout << quatTable << std::endl;
+		std::cout << " done." << std::endl;
+		return quatTable;
+	}
+	catch (std::exception& e) {
+		std::cerr << "Error: " << e.what() << std::endl;
+		return 0;
+	}
+	catch (...) {
+		std::cerr << "Unknown error!" << std::endl;
+		return 0;
+	}
+
 }
 
 // Function that is sent to be handled in a separate thread by ThreadPoolContainer
-void concurrentIKThread(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, size_t i) {
-	IKTool.setTime(quatTable.getIndependentColumn()[i]);
-	IKTool.update(true, true);
+void concurrentIKThread(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable, size_t i) {
+	//IKTool.setTime(quatTable.getIndependentColumn()[i]);
+	IKTool.updateOrdered(true, quatTable, i, quatTable.getIndependentColumn()[0], true);
 }
 
-void calibrateAndPerformIK(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, unsigned int nThreads)
+void calibrateAndPerformIK(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, unsigned int nThreads, double calibTime)
 {
+	size_t calibIndex = quatTable.getNearestRowIndexForTime(calibTime);
+	auto calibLabels = quatTable.getColumnLabels();
+	auto calibMatrix = quatTable.updNearestRow(calibTime);
+	//auto calibMatrix = quatTable.updDependentColumnAtIndex(calibIndex);
+	//auto calibMatrix = quatTable.getDependentColumnAtIndex(calibIndex);
+	double trueCalibTime = quatTable.getIndependentColumn()[calibIndex];
+	std::cout << "Calibrating for time " << trueCalibTime << " found at row index " << calibIndex << "." << std::endl;
+	std::cout << "Quaternion for calibration: " << std::endl << calibMatrix << std::endl;
+	OpenSim::TimeSeriesTable_<SimTK::Quaternion> calibQuatTable(std::vector<double>({ trueCalibTime }), calibMatrix.getAsMatrix(), calibLabels);
 	// calibrate model
 	std::cout << "Calibrating..." << std::endl;
-	std::string calibratedModelFile = calibrateModelFromSetupFile(OPENSIMLIVE_ROOT + "/Config/" + ConfigReader("MainConfiguration.xml", "imu_placer_setup_file"), quatTable);
+	std::string calibratedModelFile = calibrateModelFromSetupFile(OPENSIMLIVE_ROOT + "/Config/" + ConfigReader("MainConfiguration.xml", "imu_placer_setup_file"), calibQuatTable);
 	std::cout << " done." << std::endl;
 
 	// do IK
 	std::cout << "Performing inverse kinematics..." << std::endl;
 	OpenSimLive::IMUInverseKinematicsToolLive IKTool;
+	IKTool.setReportErrors(true);
 	IKTool.setModelFile(calibratedModelFile); // the model to perform IK on
 	IKTool.setQuaternion(quatTable); // the orientations of IMUs
 	SimTK::Vec3 sensorToOpenSimRotations = get_sensor_to_opensim_rotations();
@@ -169,15 +190,23 @@ void calibrateAndPerformIK(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTab
 	IKTool.setPointTrackerEnabled(false);
 	IKTool.setTime(quatTable.getIndependentColumn()[0]);
 	IKTool.run(true);
-	// create a thread pool container with user-given maximum number of concurrent threads
-	OpenSimLive::ThreadPoolContainer tpc(nThreads);
-	// iterate through all rows (all time / data points) in the quaternion table
-	for (size_t i = 0; i < quatTable.getNumRows(); ++i) {
-		tpc.offerFuture(concurrentIKThread, std::ref(IKTool), std::ref(quatTable), i);
+	{
+		// create a thread pool container with user-given maximum number of concurrent threads
+		OpenSimLive::ThreadPoolContainer tpc(nThreads);
+		// iterate through all rows (all time / data points) in the quaternion table
+		for (size_t i = 0; i < quatTable.getNumRows(); ++i) {
+
+			double currentTime = quatTable.getIndependentColumn()[i];
+			auto currentMatrix = quatTable.updNearestRow(currentTime);
+			OpenSim::TimeSeriesTable_<SimTK::Quaternion> currentQuatTable(std::vector<double>({ currentTime }), currentMatrix.getAsMatrix(), calibLabels);
+
+			tpc.offerFuture(concurrentIKThread, std::ref(IKTool), currentQuatTable, i);
+		}
+		tpc.waitForFinish();
 	}
 	std::cout << " done." << std::endl;
 	
-
+	IKTool.reportToFile();
 
 }
 
@@ -191,11 +220,16 @@ int main(int argc, char *argv[])
 	std::cout << "Please input the number of threads to be used: ";
 	std::cin >> inputThreadsStr;
 	int inputThreads = stoi(inputThreadsStr);
+	
+	std::string calibTimeStr;
+	std::cout << "Please input the time of IMU calibration: ";
+	std::cin >> calibTimeStr;
+	double calibTime = stod(calibTimeStr);
 
 	// function that constructs a time series table of quaternions from quaternion time series text file
 	OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable = quaternionTableFromTextFile(quatFileName);
 	// function that calibrates the model and performs IK
-	calibrateAndPerformIK(quatTable, inputThreads);
+	calibrateAndPerformIK(quatTable, inputThreads, calibTime);
 
 	std::cout << "Program finished." << std::endl;
 	return 1;

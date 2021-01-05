@@ -176,6 +176,7 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
         std::cout << "Desired visualizer frame rate is " << model_.getVisualizer().getSimbodyVisualizer().getDesiredFrameRate() << std::endl;
     }
 
+
 //    s_.updTime() = time_;
 
 /*    if (get_report_errors()) {
@@ -212,7 +213,7 @@ void IMUInverseKinematicsToolLive::startDecorationGenerator() {
 }
 
 
-void IMUInverseKinematicsToolLive::updateJointAngleVariable(SimTK::State& s, OpenSim::Model& model) {
+/*void IMUInverseKinematicsToolLive::updateJointAngleVariable(SimTK::State& s, OpenSim::Model& model) {
     
     // get coordinates from state s
     SimTK::Vector stateQ(s.getQ());
@@ -227,7 +228,7 @@ void IMUInverseKinematicsToolLive::updateJointAngleVariable(SimTK::State& s, Ope
 
     // set private variable q_ to equal q so that we can get the latest joint angle values with getQ
     setQ(q);
-}
+}*/
 
 
 std::mutex IKMutex;
@@ -236,7 +237,7 @@ std::mutex IKMutex;
 void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults, bool offline) {
     // this may prevent time_ getting updated mid-IK by another thread, resulting in PointTracker from that IK to get the time from the more recent IK from another thread
     double time = time_;
-
+    
     // Convert to OpenSim Frame
     const SimTK::Vec3& rotations = get_sensor_to_opensim_rotations();
     SimTK::Rotation sensorToOpenSim = SimTK::Rotation(SimTK::BodyOrSpaceType::SpaceRotationSequence, rotations[0], SimTK::XAxis, rotations[1], SimTK::YAxis, rotations[2], SimTK::ZAxis);
@@ -443,9 +444,12 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
         // push time and order index into vectors in the order that they are written by IK threads, so not necessarily in ascending (proper) order
         orderedTimeVector_.push_back(time);
         orderedIndexVector_.push_back(orderIndex);
-
+        
         // get joint angles (Q)
         SimTK::Vector stateQ(s_.getQ());
+        //OpenSim::Array<std::string> names;
+        //model_.getCoordinateSet().getNames(names);
+        //std::cout << names << std::endl;
         // get number of coordinates (joint angles) in the model
         int numCoordinates = model_.getNumCoordinates();
         // initialize vector that holds the joint angle values
@@ -454,6 +458,7 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
             // fill q with angle values for different joint angles
             q[j] = stateQ[j];
         }
+        //std::cout << s_.toString() << std::endl;
         orderedQVector_.push_back(q);
 
         //int nos = ikSolver.getNumOrientationSensorsInUse();
@@ -551,8 +556,8 @@ void IMUInverseKinematicsToolLive::reportToFile() {
     if (outputFile.is_open()) {
         
         // first write the header
-        outputFile << "inDegrees=no" << std::endl;
-        outputFile << "name=IK-live-radians" << std::endl;
+        outputFile << "inDegrees=yes" << std::endl;
+        outputFile << "name=IK-live-degrees" << std::endl;
         outputFile << "DataType=double" << std::endl;
         outputFile << "version=3" << std::endl;
         outputFile << "OpenSimVersion=4.1" << std::endl;
@@ -571,7 +576,7 @@ void IMUInverseKinematicsToolLive::reportToFile() {
             outputFile << std::setprecision(9) << organizedTimeVector[z];
             for (unsigned int c = 0; c < orderedQVector_[z].size(); ++c) {
                 // then joint angle values on the following columns
-                outputFile << "\t" << std::setprecision(9) << organizedQVector[z][c];
+                outputFile << "\t" << std::setprecision(9) << SimTK::convertRadiansToDegrees(organizedQVector[z][c]);
             }
             outputFile << std::endl;
         }

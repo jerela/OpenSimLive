@@ -66,7 +66,6 @@ void SimulatedDataReader::updateQuaternionTable() {
 		SimTK::Quaternion quat = generateQuaternion();
 		quatMatrix.set(0, m, quat);
 		if (saveQuaternionsToFile_) {
-			//std::cout << quat << std::endl;
 			quaternions_[m] = quat;
 		}
 	}
@@ -118,7 +117,7 @@ void SimulatedDataReader::saveQuaternionsToFile(const std::string& rootDir, cons
 		outputFile << "Time (s)";
 
 		for (unsigned int j = 0; j < labelsSize_; ++j) {
-			outputFile << "\t Quaternion" + std::to_string(j + 1);
+			outputFile << "\t" << "Quaternion" + std::to_string(j + 1);
 		}
 
 		for (unsigned int i = 0; i < quaternionData_.size(); ++i) { // iteration through rows
@@ -141,7 +140,7 @@ void SimulatedDataReader::saveQuaternionsToFile(const std::string& rootDir, cons
 
 
 
-// updates quatTable_ with new quaternion values that are all identity quaternions
+// updates quatTable_ with new quaternion values that are all identity quaternions; used for performance testing purposes
 void SimulatedDataReader::generateIdentityQuaternions() {
 	// create a quaternion matrix for time series table
 	SimTK::Matrix_<SimTK::Quaternion> quatMatrix(1, labelsSize_);

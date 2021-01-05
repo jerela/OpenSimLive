@@ -550,7 +550,11 @@ void DelsysDataReader::saveQuaternionsToFile(const std::string& rootDir, const s
 	if (outputFile.is_open())
 	{
 		outputFile << "Time series of measured orientation data in quaternions:\n";
-		outputFile << "Time (s)\t Quaternion1 \t Quaternion2 \t Quaternion3 \t Quaternion4 \t Quaternion5 \t Quaternion6 \t Quaternion7 \t Quaternion8 \t Quaternion9 \t Quaternion10 \t Quaternion11 \t Quaternion12 \t Quaternion13 \t Quaternion14 \t Quaternion15 \t Quaternion16";
+		outputFile << "Time (s)";
+
+		for (unsigned int imu = 0; imu < 16; ++imu) {
+			outputFile << "\t" << "Quaternion" + std::to_string(imu + 1);
+		}
 
 		for (unsigned int i = 0; i < quaternionData_.size(); ++i) { // iteration through rows
 			// after the first 2 rows of text, start with a new line and put time values in the first column

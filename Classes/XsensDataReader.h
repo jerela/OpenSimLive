@@ -180,6 +180,8 @@ namespace OpenSimLive {
 		void saveQuaternionsToFile(const std::string& rootDir, const std::string& resultsDir);
 		// enable or disable quaternion saving
 		void setSaveQuaternions(bool setting) { saveQuaternionsToFile_ = setting; }
+		// returns current time as double
+		double getTime() { return latestTime_; }
 
 	protected:
 			
@@ -214,6 +216,8 @@ namespace OpenSimLive {
 		unsigned int nSensors_ = 0;
 		// stores the time from the first reading of IMU data, so that we can calculate duration by subtracting initialTime_ from all times that are read after the first
 		double initialTime_ = 0;
+		// latest current time that was saved
+		double latestTime_ = 0;
 
 	}; // end of class
 }

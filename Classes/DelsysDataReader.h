@@ -35,6 +35,8 @@ namespace OpenSimLive {
 		void appendTime(double time) { timeVector_.push_back(time); }
 		// enable or disable saving quaternion time series to file
 		void setSaveQuaternions(bool setting) { saveQuaternionsToFile_ = setting; }
+		// return current time as double
+		double getTime() { return std::chrono::duration<double>(currentTime_ - startTime_).count(); }
 		
 	protected:
 			
