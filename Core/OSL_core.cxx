@@ -102,9 +102,9 @@ void consumerThread(VariableManager& vm, OpenSimLive::IMUInverseKinematicsToolLi
 			OpenSim::TimeSeriesTableQuaternion quatTable(vm.orientationBuffer.front());
 			vm.orientationBuffer.pop();
 			vm.bufferInUse = false;
-			++vm.orderIndex;
 			// start a new thread where the IK is calculated and increment the number of IK operations done
 			threadPoolContainer.offerFuture(updateConcurrentIKTool, std::ref(IKTool), std::ref(vm), quatTable, time, vm.orderIndex);
+			++vm.orderIndex;
 		}
 	} while (vm.runIKThread);
 	std::cout << "Consumer done!" << std::endl;
@@ -191,6 +191,11 @@ int main(int argc, char* argv[])
 			// fill a timeseriestable with quaternion orientations of IMUs
 			OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable = genericDataReader.getQuaternionTable();
 			vm.calibTime = genericDataReader.getTime();
+			std::cout << "Preparing to calibrate for IMU labels " << std::endl;
+			std::vector<std::string> labels = genericDataReader.getQuaternionTable().getColumnLabels();
+			for (unsigned int i = 0; i < labels.size(); ++i) {
+				std::cout << labels[i] << std::endl;
+			}
 			// calibrate the model and return its file name
 			vm.calibratedModelFile = calibrateModelFromSetupFile(OPENSIMLIVE_ROOT + "/Config/" + ConfigReader("MainConfiguration.xml", "imu_placer_setup_file"), quaternionTimeSeriesTable);
 			// reset the keyhit so that we won't re-enter this if-statement before hitting the key again

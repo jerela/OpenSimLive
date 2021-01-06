@@ -10,6 +10,7 @@
 #include <OpenSim/Simulation/OrientationsReference.h>
 #include <PointTracker.h>
 #include <array>
+#include <atomic>
 
 namespace OpenSimLive {
 
@@ -66,6 +67,11 @@ namespace OpenSimLive {
 		double lastUpdatedTime_ = 0;
 		// labels of sensors (e.g. "pelvis_imu")
 		SimTK::Array_<std::string> labels_;
+		// atomic integer serving as temporary fake time for states that we use to realize report for ikReporter_
+		std::atomic<unsigned long> atomicTimeIndex_ = 0;
+
+		std::atomic<unsigned int> debugCounter1_ = 0;
+		std::atomic<unsigned int> debugCounter2_ = 0;
 		
 		// for ordered IK
 		std::vector<unsigned int> orderedIndexVector_;

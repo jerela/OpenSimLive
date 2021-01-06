@@ -400,25 +400,30 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
 
     // lock a part of the code from being run by several threads in parallel
     std::unique_lock<std::mutex> concurrentIKMutex(IKMutex);
-    if (!offline) {
-        // give s_ an initial time for assembling it with ikSolver_
-        s_.updTime() = times[0];
-    }
-    else if (offline) {
-        // if we're doing offline IK, make the time of the state the current time
-        s_.updTime() = time;
-    }
+    // give s_ an initial time for assembling it with ikSolver_
+    s_.updTime() = times[0];
     concurrentIKMutex.unlock();
 
+    ++debugCounter1_;
+
     // assemble state s_, solving the initial joint angles in the least squares sense
-    ikSolver.assemble(s_);
+    if (offline) {
+        concurrentIKMutex.lock();
+        ikSolver.assemble(s_); // kaatuu KeyNotFoundiin tässä offlinea ajaessa, mutta ei OSL_corea ajaessa; ongelma voi liittyä s_:n ajan päivityksiin ylempänä? ratkaisu voi olla timen päivittämisen muuttaminen TAI mutexin unlockaaminen myöhemmin offlinen tapauksessa
+        concurrentIKMutex.unlock();
+    }
+    else {
+        ikSolver.assemble(s_);
+    }
+    ++debugCounter2_;
     // create a copy of s_ so we can use methods that modify the properties of s without modifying the properties s_ (which may be modified by another thread, leading to exceptions if multiple threads modify it in parallel)
     SimTK::State s = s_;
-    if (!offline)
-    {
-        // update the time to be shown in the visualization and so that when we realize the report, the correct timestamp is used for the joint angle values
-        s.updTime() = time;
-    }
+    
+
+    // update the time to be shown in the visualization and so that when we realize the report, the correct timestamp is used for the joint angle values
+    s.updTime() = time;
+
+    
 
     // save joint angles to q_
     //updateJointAngleVariable(s_, model_);
@@ -469,7 +474,16 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
         //ikSolver.computeCurrentOrientationErrors(orientationErrors);
         //orderedOrientationErrors_.push_back(orientationErrors);
 
-        model_.realizeReport(s);
+        try {
+            s.updTime() = ++atomicTimeIndex_;
+            model_.realizeReport(s);
+        }
+        catch (std::exception& e) {
+            std::cerr << "Error in realizing report: " << e.what() << std::endl;
+        }
+        catch (...) {
+            std::cerr << "Unknown error in realizing report!" << std::endl;
+        }
 
         concurrentIKMutex.unlock();
 
@@ -504,40 +518,57 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
 
 void IMUInverseKinematicsToolLive::reportToFile() {
 
-    // organized vectors contain the measures in time-ascending order
+    std::cout << "Debug counter 1: " << debugCounter1_ << ", debug counter 2: " << debugCounter2_ << std::endl;
+
+    // organized vectors should contain the measures in time-ascending order; we must create them
     std::vector<std::vector<double>> organizedQVector;
     std::vector<double> organizedTimeVector;
+
+    SimTK::Matrix_<SimTK::Real> organizedReportQMatrix(orderedTimeVector_.size(), model_.getNumCoordinates());
+    auto report = ikReporter_->getTable();
+
     // if we used updateOrderedInverseKinematics, then ordered time vector has more than zero elements
     if (orderedTimeVector_.size() > 0) {
         // index in order of IK calculations that we are looking for
-        unsigned int index = 0;
+        //unsigned int index = 0;
         unsigned int size = orderedIndexVector_.size();
         //SimTK::Array_<SimTK::Real> orientationErrors;
         // a single row of joint angle / IK output values
         std::vector<double> q;
 
+        SimTK::Matrix_<SimTK::Real> reportQ(1, model_.getNumCoordinates());
+
         double time;
         // loop through all calculated IK points
         for (unsigned int i = 0; i < size; ++i) {
-            ++index;
+            //++index;
             // loop through the vector of ordered indices to find the correct time
             for (unsigned int j = 0; j < size; ++j) {
                 // if the currently desired table index is found, break out of the nested for-loop and update state time
-                if (index == orderedIndexVector_[j]) {
+                if (i == orderedIndexVector_[j]) {
                     time = orderedTimeVector_[j];
                     //std::cout << time << std::endl;
                     //orientationErrors = orderedOrientationErrors_[j];
                     q = orderedQVector_[j];
+                    unsigned int indexo = j + 1;
+                    reportQ = report.getRow(indexo);
+
                     break;
+                }
+                // if we looped through all indices without finding a match, inform the user
+                if (j == size - 1) {
+                    std::cout << "NO MATCH!! Size of orderedIndexVector: " << orderedIndexVector_.size() << ", size of orderedTimeVector: " << orderedTimeVector_.size() << std::endl;
                 }
             }
             // update state time
-            s_.updTime() = time;
+            //s_.updTime() = time;
             try {
                 // append orientationErrors into modelOrientationErrors_
                 //modelOrientationErrors_->appendRow(time, orientationErrors);
                 organizedQVector.push_back(q);
                 organizedTimeVector.push_back(time);
+
+                organizedReportQMatrix.updRow(i) = reportQ.getAsRowVectorView();
 
             }
             catch (std::exception& e) {
@@ -551,48 +582,54 @@ void IMUInverseKinematicsToolLive::reportToFile() {
         
     }
 
-    // file path for the IK file
-    std::string filePath(OpenSimLiveRootDirectory_ + "/" + "OpenSimLive-results" + "/IK-live-degrees.mot");
-    std::ofstream outputFile;
-    // open in truncating rewrite mode
-    outputFile.open(filePath, std::ios_base::out | std::ios_base::trunc);
-    // if the file was successfully open, write into it
-    if (outputFile.is_open()) {
-        
-        // first write the header
-        outputFile << "inDegrees=yes" << std::endl;
-        outputFile << "name=IK-live-degrees" << std::endl;
-        outputFile << "DataType=double" << std::endl;
-        outputFile << "version=3" << std::endl;
-        outputFile << "OpenSimVersion=4.1" << std::endl;
-        outputFile << "endheader" << std::endl;
-        outputFile << "time";
+    //report.updMatrix() = organizedReportQMatrix;
+    std::cout << "Size of organizedTimeVector: " << organizedTimeVector.size() << std::endl;
+    std::cout << "Number of rows of organizedReportQMatrix: " << organizedReportQMatrix.nrow() << std::endl;
 
-        // get the names of joint angles and use them to populate the columns
-        auto coordinates = model_.updComponentList<OpenSim::Coordinate>();
-        for (auto& coord : coordinates) {
-            outputFile << "\t" << coord.getName();
-        }
-        outputFile << std::endl;
-        // write the time series of joint angles into the file
-        for (unsigned int z = 0; z < orderedQVector_.size(); ++z) {
-            // first, time value on the first column
-            outputFile << std::setprecision(9) << organizedTimeVector[z];
-            for (unsigned int c = 0; c < orderedQVector_[z].size(); ++c) {
-                // then joint angle values on the following columns
-                outputFile << "\t" << std::setprecision(9) << SimTK::convertRadiansToDegrees(organizedQVector[z][c]);
+        OpenSim::TimeSeriesTable orderedTimeSeriesTable(organizedTimeVector, organizedReportQMatrix, report.getColumnLabels());
+
+        // file path for the IK file
+        std::string filePath(OpenSimLiveRootDirectory_ + "/" + "OpenSimLive-results" + "/IK-live-degrees.mot");
+        std::ofstream outputFile;
+        // open in truncating rewrite mode
+        outputFile.open(filePath, std::ios_base::out | std::ios_base::trunc);
+        // if the file was successfully open, write into it
+        if (outputFile.is_open()) {
+
+            // first write the header
+            outputFile << "inDegrees=yes" << std::endl;
+            outputFile << "name=IK-live-degrees" << std::endl;
+            outputFile << "DataType=double" << std::endl;
+            outputFile << "version=3" << std::endl;
+            outputFile << "OpenSimVersion=4.1" << std::endl;
+            outputFile << "endheader" << std::endl;
+            outputFile << "time";
+
+            // get the names of joint angles and use them to populate the columns
+            auto coordinates = model_.updComponentList<OpenSim::Coordinate>();
+            for (auto& coord : coordinates) {
+                outputFile << "\t" << coord.getName();
             }
             outputFile << std::endl;
+            // write the time series of joint angles into the file
+            for (unsigned int z = 0; z < orderedQVector_.size(); ++z) {
+                // first, time value on the first column
+                outputFile << std::setprecision(9) << organizedTimeVector[z];
+                for (unsigned int c = 0; c < orderedQVector_[z].size(); ++c) {
+                    // then joint angle values on the following columns
+                    outputFile << "\t" << std::setprecision(9) << SimTK::convertRadiansToDegrees(organizedQVector[z][c]);
+                }
+                outputFile << std::endl;
+            }
         }
-    }
-    else {
-        std::cout << "Failed to open file for IK saving." << std::endl;
-    }
+        else {
+            std::cout << "Failed to open file for IK saving." << std::endl;
+        }
 
 
     // if time equals its initial value 0, then no IK has been performed and there is nothing to save to file, resulting in an exception; therefore we only save to file when time is nonzero
     if (true) {
-        auto report = ikReporter_->getTable();
+        //auto report = ikReporter_->getTable();
         std::cout << "Number of times from Q: " << orderedTimeVector_.size() << std::endl;
         std::cout << "Number of values from reporter: " << report.getNumRows() << std::endl;
         // set the name of the results directory and create it
@@ -600,12 +637,12 @@ void IMUInverseKinematicsToolLive::reportToFile() {
         OpenSim::IO::makeDir(OpenSimLiveRootDirectory_ + "/" + resultsDirectoryName);
 
         // convert joint angles in the report from radians to degrees
-        model_.getSimbodyEngine().convertRadiansToDegrees(report);
+        model_.getSimbodyEngine().convertRadiansToDegrees(orderedTimeSeriesTable);
         // set the value for name (not the name of the file) in the .mot file to be created
-        report.updTableMetaData().setValueForKey<string>("name", "IK-live");
+        orderedTimeSeriesTable.updTableMetaData().setValueForKey<string>("name", "IK-live");
         try {
             // write the .mot file to hard drive
-            OpenSim::STOFileAdapter_<double>::write(report, OpenSimLiveRootDirectory_ + "/" + resultsDirectoryName + "/" + "IK-live.mot");
+            OpenSim::STOFileAdapter_<double>::write(orderedTimeSeriesTable, OpenSimLiveRootDirectory_ + "/" + resultsDirectoryName + "/" + "IK-live.mot");
             //OpenSim::STOFileAdapter_<double>::write(*modelOrientationErrors_, OpenSimLiveRootDirectory_ + "/" + resultsDirectoryName + "/" + "IK-live" + "_orientationErrors.sto");
         }
         catch (std::exception& e) {
