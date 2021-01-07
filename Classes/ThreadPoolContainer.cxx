@@ -20,14 +20,13 @@ void ThreadPoolContainer::waitForFinish() {
 			allDone = true;
 		}
 		else{
-			std::cout << vector_.size() << std::endl;
-			bool isReady = (vector_[0].wait_for(std::chrono::seconds(0)) == std::future_status::ready);
-			if (isReady) {
-				vector_.erase(vector_.begin());
-			}
+			std::cout << "Waiting for all threads in the thread pool to finish. Threads remaining: " << vector_.size() << std::endl;
+			vector_[0].wait();
+			vector_.erase(vector_.begin());
 		}
 		
 	}
+	std::cout << "All threads in the thread pool have finished." << std::endl;
 	
 }
 
