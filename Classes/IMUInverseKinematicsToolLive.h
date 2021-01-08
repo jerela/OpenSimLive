@@ -52,7 +52,7 @@ namespace OpenSimLive {
 		std::string OpenSimLiveRootDirectory_ = "";
 		double accuracy_ = 1e-5;
 		OpenSim::TimeSeriesTable* modelOrientationErrors_;
-		OpenSim::TableReporter* ikReporter_;
+		OpenSim::TableReporter* ikReporter_ = NULL;
 		SimTK::State s_; // the state we use for visualization
 		double time_ = 0; // time since calibration
 		SimTK::Vec3 sensor_to_opensim_rotations = { -1.5707963267948966, 0, 0 }; // the rotations applied to IMU coordinate systems to match its axes to OpenSim coordinate system
@@ -76,8 +76,6 @@ namespace OpenSimLive {
 		// for ordered IK
 		std::vector<unsigned int> orderedIndexVector_;
 		std::vector<double> orderedTimeVector_;
-		std::vector<SimTK::Array_<double>> orderedOrientationErrors_;
-		std::vector<std::vector<double>> orderedQVector_;
 
 		// PRIVATE METHODS DEFINED HERE
 		SimTK::Vec3 get_sensor_to_opensim_rotations() { return sensor_to_opensim_rotations; }

@@ -190,10 +190,11 @@ void calibrateAndPerformIK(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTab
 	IKTool.setPointTrackerEnabled(false);
 	IKTool.setTime(quatTable.getIndependentColumn()[0]);
 	IKTool.run(true);
-	{
+	try{
 		// create a thread pool container with user-given maximum number of concurrent threads
 		OpenSimLive::ThreadPoolContainer tpc(nThreads);
 		// iterate through all rows (all time / data points) in the quaternion table
+		std::cout << "Preparing to iterate through " << quatTable.getNumRows() << " rows." << std::endl;
 		for (size_t i = 0; i < quatTable.getNumRows(); ++i) {
 
 			double currentTime = quatTable.getIndependentColumn()[i];
@@ -203,6 +204,12 @@ void calibrateAndPerformIK(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTab
 			tpc.offerFuture(concurrentIKThread, std::ref(IKTool), currentQuatTable, i);
 		}
 		tpc.waitForFinish();
+	}
+	catch (std::exception& e) {
+		std::cerr << "Error in offline IK tool: " << e.what() << std::endl;
+	}
+	catch (...) {
+		std::cerr << "Unknown error in offline IK tool!" << std::endl;
 	}
 	std::cout << " done." << std::endl;
 	

@@ -36,7 +36,8 @@ struct VariableManager {
 	unsigned int orderIndex = 0;
 	std::queue<OpenSim::TimeSeriesTableQuaternion> orientationBuffer;
 	std::queue<double> timeBuffer;
-	bool bufferInUse = false;
+	std::atomic<bool> bufferInUse = false;
+	std::atomic<bool> dataReaderInUse = false;
 	unsigned int maxBufferSize = 8;
 	bool trialDone = false;
 	std::atomic<bool> runProducerThread = true;
@@ -63,17 +64,39 @@ void producerThread(OpenSimLive::IMUHandler& genericDataReader, VariableManager&
 		//std::chrono::duration<double> duration = std::chrono::high_resolution_clock::now() - vm.clockStart;
 		//double time = duration.count();
 
-		// update new quaternion table but don't get it yet
-		genericDataReader.updateQuaternionTable();
+		if (!vm.dataReaderInUse) {
+			vm.dataReaderInUse = true;
+			// update new quaternion table but don't get it yet
+			genericDataReader.updateQuaternionTable();
+			vm.dataReaderInUse = false;
+		}
 		// get time stamp
 		double time = genericDataReader.getTime();
 
-		// if consumer is not accessing the buffer and the buffer size is not maximal
+
+		// if consumer is not accessing the buffer and the buffer size is not maximal, push data to buffer
 		if (!vm.bufferInUse && vm.orientationBuffer.size() < vm.maxBufferSize && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - clockCurrent).count() > vm.continuousModeMsDelay)
 		{
 			// set bufferInUse to true to prevent consumer from accessing the buffer
 			vm.bufferInUse = true;
 			std::lock_guard<std::mutex> lock(mainMutex);
+			// push time stamp to the shared buffer
+			vm.timeBuffer.push(time);
+			// push the time series table to the shared buffer
+			vm.orientationBuffer.push(genericDataReader.getQuaternionTable());
+			vm.bufferInUse = false;
+			clockCurrent = std::chrono::high_resolution_clock::now();
+		}
+
+		// if consumer is not accessing the buffer and buffer size is maximal, update the buffer by popping old data and pushing new data
+		if (!vm.bufferInUse && vm.orientationBuffer.size() == vm.maxBufferSize && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - clockCurrent).count() > vm.continuousModeMsDelay)
+		{
+			// set bufferInUse to true to prevent consumer from accessing the buffer
+			vm.bufferInUse = true;
+			std::lock_guard<std::mutex> lock(mainMutex);
+			// pop data from time and orientation buffer to make room for new data
+			vm.timeBuffer.pop();
+			vm.orientationBuffer.pop();
 			// push time stamp to the shared buffer
 			vm.timeBuffer.push(time);
 			// push the time series table to the shared buffer
@@ -184,20 +207,26 @@ int main(int argc, char* argv[])
 
 		// if user hits the calibration key and new data is available
 		if (calibrateModelKeyHit) {
+			threadPoolContainer.waitForFinish();
+			// reset order index
+			vm.orderIndex = 0;
+			// wait until buffer has data and we can access it
+			while (vm.bufferInUse && vm.orientationBuffer.size() == 0) {};
 			// save calibration time
 			msCalib = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
-			// set clock to start from calibration
-			//vm.clockStart = std::chrono::high_resolution_clock::now();
-			// fill a timeseriestable with quaternion orientations of IMUs
-			OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable = genericDataReader.getQuaternionTable();
-			vm.calibTime = genericDataReader.getTime();
-			std::cout << "Preparing to calibrate for IMU labels " << std::endl;
-			std::vector<std::string> labels = genericDataReader.getQuaternionTable().getColumnLabels();
-			for (unsigned int i = 0; i < labels.size(); ++i) {
-				std::cout << labels[i] << std::endl;
-			}
+			vm.bufferInUse = true;
+			std::lock_guard<std::mutex> lock(mainMutex);
+			// get and pop time from the buffer
+			vm.calibTime = vm.timeBuffer.front();
+			vm.timeBuffer.pop();
+			// get and pop the front of the queue
+			OpenSim::TimeSeriesTableQuaternion quaternionTimeSeriesTable(vm.orientationBuffer.front());
+			vm.orientationBuffer.pop();
+			vm.bufferInUse = false;
+			
 			// calibrate the model and return its file name
 			vm.calibratedModelFile = calibrateModelFromSetupFile(OPENSIMLIVE_ROOT + "/Config/" + ConfigReader("MainConfiguration.xml", "imu_placer_setup_file"), quaternionTimeSeriesTable);
+			
 			// reset the keyhit so that we won't re-enter this if-statement before hitting the key again
 			calibrateModelKeyHit = false;
 			// give IKTool the necessary inputs and run it
@@ -215,9 +244,6 @@ int main(int argc, char* argv[])
 		// if user hits the single IK calculation key, new data is available and the model has been calibrated
 		if (getDataKeyHit && !vm.calibratedModelFile.empty())
 		{
-			// use high resolution clock to count time since the IMU measurement began
-			//vm.clockNow = std::chrono::high_resolution_clock::now();
-			//vm.clockDuration = vm.clockNow - vm.clockStart; // time since calibration
 			vm.runIKThread = true;
 			std::thread consumer(consumerThread, std::ref(vm), std::ref(IKTool), std::ref(threadPoolContainer));
 			vm.runIKThread = false;
@@ -266,11 +292,23 @@ int main(int argc, char* argv[])
 
 	std::cout << "Performed " << vm.orderIndex << " IK operations." << std::endl;
 
+	// close the connection to IMUs
+	genericDataReader.closeConnection();
+
 	// when exiting, save acquired data to file
 	if (IKTool.get_report_errors())
 	{
 		std::cout << "Reporting IK to file..." << std::endl;
-		IKTool.reportToFile();
+		try {
+			IKTool.reportToFile();
+		}
+		catch (std::exception& e) {
+			std::cerr << "Error while reporting IK to file: " << e.what() << std::endl;
+		}
+		catch (...) {
+			std::cerr << "Unknown error while reporting IK to file!" << std::endl;
+		}
+		std::cout << "IK reported to file." << std::endl;
 	}
 
 	// print time to file
@@ -300,11 +338,8 @@ int main(int argc, char* argv[])
 		outputFile.close();
 	}
 	else {
-		std::cout << "Failed to open file for time point saving." << std::endl;
+		std::cout << "FAILED TO OPEN FILE " << filePath << " FOR TIME POINT SAVING!" << std::endl;
 	}
-
-	// close the connection to IMUs
-	genericDataReader.closeConnection();
 
 	std::cout << "Program finished." << std::endl;
 	return 1;

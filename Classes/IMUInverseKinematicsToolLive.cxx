@@ -53,6 +53,18 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
     // if we want to report errors, create a new reporter
     if (get_report_errors())
     {
+        // if ikReporter_ already exists, delete it and create a new one
+        if (ikReporter_ != NULL) {
+            try {
+                //delete ikReporter_;
+            }
+            catch (std::exception& e) {
+                std::cerr << "Error while deleting ikReporter_: " << e.what() << std::endl;
+            }
+            catch (...) {
+                std::cerr << "Unknown error while deleting ikReporter_!" << std::endl;
+            }
+        }
         ikReporter_ = new OpenSim::TableReporter();
         ikReporter_->setName("ik_reporter");
     }
@@ -125,6 +137,8 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
     // reset the values for ordered vectors so that we can start the time from the beginning whenever we recalibrate
     orderedTimeVector_.clear();
     orderedIndexVector_.clear();
+    // reset atomic time index
+    atomicTimeIndex_ = 0;
 
     // draw the image in the visualizer window if desired
     if (visualizeResults) {
@@ -389,11 +403,12 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
 
     // create a copy of s_ so we can use methods that modify the properties of s without modifying the properties s_ (which may be modified by another thread, leading to exceptions if multiple threads modify it in parallel)
     SimTK::State s = s_;
+    s.updTime() = time;
 
     // show a visualization of the state
     if (visualizeResults) {
         // update the time to be shown in the visualization
-        s.updTime() = time;
+        //s.updTime() = time;
         try {
             concurrentIKMutex.lock();
             // ikTool.assemble() is using s_ and needs its time value, so we couldn't change it for s_; instead we created s for the visualization
@@ -407,6 +422,22 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
             std::cerr << "Unknown exception in visualizer" << std::endl;
         }
     }
+
+    // if this thread hadn't expired already before visualization, run PointTracker
+    if (getPointTrackerEnabled()) {
+
+        concurrentIKMutex.lock();
+        // if thread hasn't expired, send data to PointTracker
+        if (s.getTime() < time) {
+            // give time to PointTracker only if we need it
+            if (getSavePointTrackerResults()) {
+                setPointTrackerCurrentTime(time);
+            }
+            updatePointTracker(s);
+        }
+        concurrentIKMutex.unlock();
+    }
+
 
     // update the time of s_
     if (get_report_errors()) {
@@ -430,24 +461,6 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
 
         concurrentIKMutex.unlock();
 
-    }
-
-    // if this thread hadn't expired already before visualization, run PointTracker
-    if (getPointTrackerEnabled()) {
-
-        concurrentIKMutex.lock();
-
-        // CHECK THREAD EXPIRATION
-
-        if (!threadExpired) {
-            // give time to PointTracker only if we need it
-            if (getSavePointTrackerResults()) {
-                setPointTrackerCurrentTime(time);
-            }
-            updatePointTracker(s);
-        }
-        
-        concurrentIKMutex.unlock();
     }
 
 }
@@ -542,30 +555,28 @@ void IMUInverseKinematicsToolLive::reportToFile() {
     std::cout << "Number of rows of organizedReportQMatrix: " << organizedReportQMatrix.nrow() << std::endl;
 
     // construct the time series table that will be saved to file
-    OpenSim::TimeSeriesTable orderedTimeSeriesTable(organizedTimeVector, organizedReportQMatrix, report.getColumnLabels());
+    OpenSim::TimeSeriesTable organizedTimeSeriesTable(organizedTimeVector, organizedReportQMatrix, report.getColumnLabels());
 
     // set the name of the results directory and create it
     std::string resultsDirectoryName = "OpenSimLive-results";
     OpenSim::IO::makeDir(OpenSimLiveRootDirectory_ + "/" + resultsDirectoryName);
 
     // convert joint angles in the report from radians to degrees
-    model_.getSimbodyEngine().convertRadiansToDegrees(orderedTimeSeriesTable);
+    model_.getSimbodyEngine().convertRadiansToDegrees(organizedTimeSeriesTable);
     // set the value for name (not the name of the file) in the .mot file to be created
-    orderedTimeSeriesTable.updTableMetaData().setValueForKey<string>("name", "IK-live");
+    organizedTimeSeriesTable.updTableMetaData().setValueForKey<string>("name", "IK-live");
     try {
         // write the .mot file to hard drive
-        OpenSim::STOFileAdapter_<double>::write(orderedTimeSeriesTable, OpenSimLiveRootDirectory_ + "/" + resultsDirectoryName + "/" + "IK-live.mot");
-        //OpenSim::STOFileAdapter_<double>::write(*modelOrientationErrors_, OpenSimLiveRootDirectory_ + "/" + resultsDirectoryName + "/" + "IK-live" + "_orientationErrors.sto");
+        OpenSim::STOFileAdapter_<double>::write(organizedTimeSeriesTable, OpenSimLiveRootDirectory_ + "/" + resultsDirectoryName + "/" + "IK-live.mot");
     }
     catch (std::exception& e) {
-        std::cerr << "Error in saving output to file: " << e.what() << std::endl;
+        std::cerr << "Error in saving IK output to file: " << e.what() << std::endl;
     }
     catch (...) {
-        std::cerr << "Unknown error in saving output to file!" << std::endl;
+        std::cerr << "Unknown error in saving IK output to file!" << std::endl;
     }
     // Results written to file, clear in case we run again
     ikReporter_->clearTable();
-    delete ikReporter_;
         
     if (getSavePointTrackerResults()) {
         std::cout << "Writing PointTracker output to file..." << std::endl;
@@ -579,6 +590,9 @@ void IMUInverseKinematicsToolLive::reportToFile() {
             std::cout << "Unknown error while saving PointTracker output to file!" << std::endl;
         }
     }
+
+    std::cout << "IMUInverseKinematicsToolLive::reportToFile() finished." << std::endl;
+
 }
 
 
