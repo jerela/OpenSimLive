@@ -211,7 +211,7 @@ int main(int argc, char* argv[])
 			// reset order index
 			vm.orderIndex = 0;
 			// wait until buffer has data and we can access it
-			while (vm.bufferInUse && vm.orientationBuffer.size() == 0) {};
+			while (vm.bufferInUse || vm.orientationBuffer.size() == 0) {};
 			// save calibration time
 			msCalib = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
 			vm.bufferInUse = true;

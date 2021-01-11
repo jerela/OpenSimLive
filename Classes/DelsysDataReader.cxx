@@ -241,7 +241,10 @@ void DelsysDataReader::updateQuaternionDataNoOffset()
 			// if any of sensorRead values is false, success is also false and we must try again
 			for (unsigned int z = 0; z < nActiveSensors_; ++z) {
 				if (!sensorRead[z])
+				{
+					//std::cout << "Waiting for sensor in slot " << (z+1) << std::endl;
 					success = false;
+				}
 			}
 		} // if statement for successful data retrieval ends
 
