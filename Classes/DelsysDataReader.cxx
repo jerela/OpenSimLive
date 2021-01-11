@@ -52,10 +52,10 @@ DelsysDataReader::DelsysDataReader() {
 
 // DESTRUCTOR
 DelsysDataReader::~DelsysDataReader() {
-	if (EMGData_.size() > 0 && timeVector_.size() > 0) {
+	if (EMGData_.size() > 0 && EMGTimeVector_.size() > 0) {
 		// report EMG throughput to console
-		std::cout << "EMG performance was " << (double)EMGData_.size() / timeVector_.back() << " read values per second." << std::endl;
-		// save the data in timeVector_ and EMGData_ to a .txt file in OpenSimLive/OpenSimLive-results/
+		std::cout << "EMG performance was " << (double)EMGData_.size() / EMGTimeVector_.back() << " read values per second." << std::endl;
+		// save the data in EMGTimeVector_ and EMGData_ to a .txt file in OpenSimLive/OpenSimLive-results/
 		std::cout << "Saving EMG time series to file..." << std::endl;
 		saveEMGToFile(OPENSIMLIVE_ROOT, "OpenSimLive-results");
 	}
@@ -268,8 +268,8 @@ void DelsysDataReader::updateQuaternionDataNoOffset()
 	// if we are saving quaternions to file later, push them to quaternionData_
 	if (saveQuaternionsToFile_) {
 		quaternionData_.push_back(quaternionArray_);
-		// update timeVector_ with a new time point
-		updateTime();
+		// update orientationTimeVector_ with a new time point
+		updateTime(VectorType::ORIENTATION);
 	}
 
 }
@@ -437,13 +437,19 @@ void DelsysDataReader::prepareTime() {
 	currentTime_ = startTime_;
 }
 
-void DelsysDataReader::updateTime() {
+void DelsysDataReader::updateTime(DelsysDataReader::VectorType type) {
 	// get time at each iteration
 	currentTime_ = std::chrono::high_resolution_clock::now();
 	// count how many milliseconds have passed
 	double timeNow = std::chrono::duration<double>(currentTime_ - startTime_).count();
 	// push time to vector for saving to file later
-	timeVector_.push_back(timeNow);
+	if (type == VectorType::ORIENTATION) {
+		orientationTimeVector_.push_back(timeNow);
+	}
+	else if (type == VectorType::EMG) {
+		EMGTimeVector_.push_back(timeNow);
+	}
+	
 }
 
 void DelsysDataReader::updateEMG() {
@@ -496,6 +502,7 @@ void DelsysDataReader::updateEMGData() {
 	
 	// push the desired sensor's EMG readings into another vector
 	EMGData_.push_back(EMGDataPoints_);
+	updateTime(VectorType::EMG);
 }
 
 
@@ -513,11 +520,15 @@ void DelsysDataReader::saveEMGToFile(const std::string& rootDir, const std::stri
 	if (outputFile.is_open())
 	{
 		outputFile << "Time series of measured electromyographical data:\n";
-		outputFile << "Time (s)\t EMG1 \t EMG2 \t EMG3 \t EMG4 \t EMG5 \t EMG6 \t EMG7 \t EMG8 \t EMG9 \t EMG10 \t EMG11 \t EMG12 \t EMG13 \t EMG14 \t EMG15 \t EMG16";
-
+		outputFile << "Time (s)";
+		
+		for (unsigned int imu = 0; imu < activeLabels_.size(); ++imu) {
+			outputFile << "\t" << activeLabels_[imu];
+		}
+		
 		for (unsigned int i = 0; i < EMGData_.size(); ++i) { // iteration through rows
 			// after the first 2 rows of text, start with a new line and put time values in the first column
-			outputFile << "\n" << timeVector_[i];
+			outputFile << "\n" << EMGTimeVector_[i];
 			for (unsigned int j = 0; j < 16; ++j) {
 				// then input EMG values, separating them from time and other EMG values with a tab
 				outputFile << "\t" << EMGData_[i][j];
@@ -535,8 +546,8 @@ void DelsysDataReader::saveEMGToFile(const std::string& rootDir, const std::stri
 // This function saves the time points and the corresponding quaternions to file for later examination.
 void DelsysDataReader::saveQuaternionsToFile(const std::string& rootDir, const std::string& resultsDir) {
 
-	if (timeVector_.size() > 1000000 || quaternionData_.size() > 1000000) {
-		std::cout << "In a normal situation we would save quaternions to file now, but because there are " << timeVector_.size() << " data points, for the sake of hard drive space we won't do it." << std::endl;
+	if (orientationTimeVector_.size() > 1000000 || quaternionData_.size() > 1000000) {
+		std::cout << "In a normal situation we would save quaternions to file now, but because there are " << orientationTimeVector_.size() << " data points, for the sake of hard drive space we won't do it." << std::endl;
 		return;
 	}
 	else {
@@ -561,7 +572,7 @@ void DelsysDataReader::saveQuaternionsToFile(const std::string& rootDir, const s
 
 		for (unsigned int i = 0; i < quaternionData_.size(); ++i) { // iteration through rows
 			// after the first 2 rows of text, start with a new line and put time values in the first column
-			outputFile << "\n" << std::setprecision(9) << timeVector_[i];
+			outputFile << "\n" << std::setprecision(9) << orientationTimeVector_[i];
 			for (unsigned int j = 0; j < activeLabels_.size(); ++j) {
 				// then input quaternion values, separating them from time and other quaternion values with a tab
 				outputFile << "\t" << quaternionData_[i][j];

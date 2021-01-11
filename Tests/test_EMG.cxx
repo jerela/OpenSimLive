@@ -104,7 +104,6 @@ int main(int argc, char *argv[])
 		// update EMG and set time for DelsysDataReader
 		delsysDataReader.updateEMG();
 		//threadPoolContainer.offerFuture(EMGThread, std::ref(delsysDataReader));
-		delsysDataReader.appendTime(elapsedTime);
 
 		// send EMG data points to PythonPlotter
 #ifdef PYTHON_ENABLED

@@ -42,6 +42,7 @@ struct VariableManager {
 	bool trialDone = false;
 	std::atomic<bool> runProducerThread = true;
 	std::atomic<bool> runIKThread = true;
+	std::atomic<bool> runEMGThread = (manufacturer == "delsys");
 	
 }; // struct dataHolder ends
 
@@ -53,6 +54,13 @@ void updateConcurrentIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, V
 
 
 std::mutex mainMutex;
+
+// This function reads EMG values in a loop.
+void EMGThread(OpenSimLive::IMUHandler& genericDataReader, VariableManager& vm) {
+	do {
+		genericDataReader.updateEMG();
+	} while (vm.runEMGThread);
+}
 
 // This function reads quaternion values in a loop and saves them in a queue buffer.
 void producerThread(OpenSimLive::IMUHandler& genericDataReader, VariableManager& vm) {
@@ -198,6 +206,7 @@ int main(int argc, char* argv[])
 	std::cout << "Entering data streaming and IK loop. Press C to calibrate model, Z to calculate IK once, N to enter continuous mode, M to exit continuous mode, V to enter send mode, B to exit send mode, L to save base reference orientation and X to quit." << std::endl;
 
 	std::thread producer(producerThread, std::ref(genericDataReader), std::ref(vm));
+	std::thread EMG(EMGThread, std::ref(genericDataReader), std::ref(vm));
 
 	do
 	{
@@ -283,6 +292,9 @@ int main(int argc, char* argv[])
 	} while (vm.mainDataLoop);
 
 	vm.runProducerThread = false;
+	if (vm.runEMGThread) {
+		vm.runEMGThread = false;
+	}
 	producer.join();
 	vm.runIKThread = false;
 

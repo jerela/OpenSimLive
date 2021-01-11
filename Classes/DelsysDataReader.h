@@ -31,8 +31,6 @@ namespace OpenSimLive {
 		std::array<float, 16> getLatestEMGValues() { return EMGDataPoints_; }
 		// returns the number of sensors that are being used for the measurement
 		unsigned int getNActiveSensors() { return nActiveSensors_; }
-		// append time to vector of time points
-		void appendTime(double time) { timeVector_.push_back(time); }
 		// enable or disable saving quaternion time series to file
 		void setSaveQuaternions(bool setting) { saveQuaternionsToFile_ = setting; }
 		// return current time as double
@@ -41,6 +39,12 @@ namespace OpenSimLive {
 	protected:
 			
 	private:
+		// enumerationc class that is used with updateTime() to determine if time should be stored into orientationTimeVector_ or EMGTimeVector_ 
+		enum class VectorType {
+			ORIENTATION,
+			EMG
+		};
+
 		// PRIVATE METHODS
 		// calculate the offset between detected sensor indices and actual sensor index labels
 		//unsigned int correctSensorIndex(std::vector<unsigned int>& sensorIndices);
@@ -50,6 +54,15 @@ namespace OpenSimLive {
 		std::vector<std::string> getSegmentLabelsForNumberLabels(std::vector<unsigned int> sensorIndices);
 		// reads all 16 labels from DelsysMappings into a vector
 		std::vector<std::string> getLabelsFromFile();
+		// reads byte stream from IMUs and updates the float array of EMG data points (EMGDataPoints_), argument is the index of the sensor we use to plot EMG data
+		void updateEMGData();
+		// save EMG time series as .txt
+		void saveEMGToFile(const std::string& rootDir, const std::string& resultsDir);
+		// give initial values to startTime_ and currentTime
+		void prepareTime();
+		// update the value of currentTime_
+		void updateTime(VectorType type);
+
 
 		// PRIVATE VARIABLES
 		// data type that can contain several different variable types in one memory location; used in convertBytesToFloat
@@ -78,28 +91,18 @@ namespace OpenSimLive {
 		bool saveQuaternionsToFile_ = false;
 		// save quaternion time series as .txt
 		void saveQuaternionsToFile(const std::string& rootDir, const std::string& resultsDir);
-
-		// PRIVATE METHODS FOR EMG
-		// reads byte stream from IMUs and updates the float array of EMG data points (EMGDataPoints_), argument is the index of the sensor we use to plot EMG data
-		void updateEMGData();
-		// save EMG time series as .txt
-		void saveEMGToFile(const std::string& rootDir, const std::string& resultsDir);
-		// give initial values to startTime_ and currentTime
-		void prepareTime();
-		// update the value of currentTime_
-		void updateTime();
-
-		// PRIVATE VARIABLES FOR EMG AND PLOTTING
-		// time point where EMG measurement begins
+		// time point where the measurement begins
 		std::chrono::steady_clock::time_point startTime_;
-		// time point that is used together with startTime_ to calculate elapsed time since the beginning of EMG measurement
+		// time point that is used together with startTime_ to calculate elapsed time since the beginning of the measurement
 		std::chrono::steady_clock::time_point currentTime_;
 		// EMG points are saved here
 		std::vector<std::array<float, 16>> EMGData_;
-		// tracks elapsed time since the beginning of EMG measurement
-		std::vector<double> timeVector_;
-		// tracks EMG for different sensors from the latest update
+		// stores elapsed time since the beginning of the measurement
+		std::vector<double> orientationTimeVector_;
+		// stores EMG for different sensors from the latest update
 		std::array<float, 16> EMGDataPoints_ = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+		// stores elapsed time since the beginning of tehe measurement
+		std::vector<double> EMGTimeVector_;
 
 	}; // end of class
 }
