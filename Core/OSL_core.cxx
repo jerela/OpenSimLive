@@ -134,8 +134,7 @@ void consumerThread(VariableManager& vm, OpenSimLive::IMUInverseKinematicsToolLi
 			vm.orientationBuffer.pop();
 			vm.bufferInUse = false;
 			// start a new thread where the IK is calculated and increment the number of IK operations done
-			threadPoolContainer.offerFuture(updateConcurrentIKTool, std::ref(IKTool), std::ref(vm), quatTable, time, vm.orderIndex);
-			++vm.orderIndex;
+			threadPoolContainer.offerFuture(updateConcurrentIKTool, std::ref(IKTool), std::ref(vm), quatTable, time, ++vm.orderIndex);
 		}
 	} while (vm.runIKThread);
 	std::cout << "Consumer done!" << std::endl;
@@ -242,10 +241,11 @@ int main(int argc, char* argv[])
 			IKTool.setModelFile(vm.calibratedModelFile); // the model to perform IK on
 			IKTool.setQuaternion(quaternionTimeSeriesTable); // the orientations of IMUs
 			IKTool.setSensorToOpenSimRotations(sensorToOpenSimRotations);
-			IKTool.setTime(0); // set the time of the first state as 0 at calibration
+			IKTool.setTime(vm.calibTime); // set the time of the first state at calibration
 			IKTool.setOpenSimLiveRootDirectory(OPENSIMLIVE_ROOT); // this is needed for saving the IK report to file
 			// set private variables to be accessed in IK calculations
 			IKTool.setPointTrackerEnabled(false);
+			// finally, run IK
 			IKTool.run(visualize); // true for visualization
 			std::cout << "Model has been calibrated." << std::endl;
 		}

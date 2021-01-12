@@ -168,9 +168,11 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
     }
 
 
-//    s_.updTime() = time_;
-
+    // push calibration data to vectors
+    orderedTimeVector_.push_back(time_);
+    orderedIndexVector_.push_back(0);
     // add first entry into the reporter
+    s_.updTime() = atomicTimeIndex_;
     model_.realizeReport(s_);
 
 }
@@ -520,8 +522,7 @@ void IMUInverseKinematicsToolLive::reportToFile() {
                     time = orderedTimeVector_[j];
                     //std::cout << time << std::endl;
                     // get the i'th row of joint angle values
-                    unsigned int indexo = j + 1;
-                    reportQ = report.getRow(indexo);
+                    reportQ = report.getRow(j);
                     break;
                 }
                 // if we looped through all indices without finding a match, inform the user
