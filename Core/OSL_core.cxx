@@ -38,11 +38,11 @@ struct VariableManager {
 	std::queue<double> timeBuffer;
 	std::atomic<bool> bufferInUse = false;
 	std::atomic<bool> dataReaderInUse = false;
-	unsigned int maxBufferSize = 8;
+	unsigned int maxBufferSize = std::stoi(ConfigReader("MainConfiguration.xml", "max_buffer_size")); // maximum number of time points for orientations in the shared buffer in the producer-consumer scheme
 	bool trialDone = false;
 	std::atomic<bool> runProducerThread = true;
 	std::atomic<bool> runIKThread = true;
-	std::atomic<bool> runEMGThread = (manufacturer == "delsys");
+	std::atomic<bool> runEMGThread = (manufacturer == "delsys"); // enable EMG thread only if manufacturer is delsys
 	
 }; // struct dataHolder ends
 

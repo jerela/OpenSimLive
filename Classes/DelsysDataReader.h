@@ -23,6 +23,8 @@ namespace OpenSimLive {
 		//void updateQuaternionData();
 		// reads byte stream from the IMUs and updates the time series table of quaternions (private variable quatTable_); a more elegant solution when we can assume there is no offset between detected sensor indices and actual sensors being used
 		void updateQuaternionDataNoOffset();
+		// reads byte stream from the IMUs and updates the time series table of quaternions; differs from udpateQuaternionDataNoOffset() because in the fast version, we do not wait for all IMUs to broadcast into the stream successfully
+		void updateQuaternionDataFast();
 		// returns the value of quatTable_
 		OpenSim::TimeSeriesTable_<SimTK::Quaternion> getTimeSeriesTable() { return *quatTable_; }
 		// reads byte stream from the IMUs and updates the EMG signal into a vector
