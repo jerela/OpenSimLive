@@ -224,6 +224,7 @@ int main(int argc, char* argv[])
 			while (vm.bufferInUse || vm.orientationBuffer.size() == 0) {};
 			// save calibration time
 			msCalib = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+			// prevent producer and consumer threads from accessing the shared buffer
 			vm.bufferInUse = true;
 			std::lock_guard<std::mutex> lock(mainMutex);
 			// get and pop time from the buffer
@@ -232,7 +233,9 @@ int main(int argc, char* argv[])
 			// get and pop the front of the queue
 			OpenSim::TimeSeriesTableQuaternion quaternionTimeSeriesTable(vm.orientationBuffer.front());
 			vm.orientationBuffer.pop();
+			// allow the shared buffer to be used again
 			vm.bufferInUse = false;
+			lock.~lock_guard();
 			
 			// calibrate the model and return its file name
 			vm.calibratedModelFile = calibrateModelFromSetupFile(OPENSIMLIVE_ROOT + "/Config/" + ConfigReader("MainConfiguration.xml", "imu_placer_setup_file"), quaternionTimeSeriesTable);
