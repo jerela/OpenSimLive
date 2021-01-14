@@ -262,11 +262,12 @@ unsigned int XsensDataReader::InitiateStartupPhase() {
 
 		// populate labels vector
 		findLabels();
-
+		
+		std::cout << "Xsens connection established." << std::endl;
 	}
 	catch (std::exception const& ex)
 	{
-		std::cout << ex.what() << std::endl;
+		std::cout << "Error in initializing Xsens connection: " << ex.what() << std::endl;
 		std::cout << "****ABORT****" << std::endl;
 	}
 	catch (...)
