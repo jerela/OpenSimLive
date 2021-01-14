@@ -117,14 +117,14 @@ void IMUHandler::closeConnection() {
 	}
 }
 
-// return current time from IMU classes
+// return current time from IMU classes; if none is found, return -1
 double IMUHandler::getTime() {
-	double time;
+	double time = -1;
 	if (IMUType_ == xsens) {
 		time = xsensObject_->getTime();
 	}
 	else if (IMUType_ == delsys) {
-		time = delsysObject_->getTime();
+		time = delsysObject_->getOrientationTime();
 	}
 	else if (IMUType_ == simulated) {
 		time = simulatedObject_->getTime();

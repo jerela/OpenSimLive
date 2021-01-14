@@ -36,16 +36,20 @@ namespace OpenSimLive {
 		// enable or disable saving quaternion time series to file
 		void setSaveQuaternions(bool setting) { saveQuaternionsToFile_ = setting; }
 		// return current time as double
-		double getTime() { return std::chrono::duration<double>(currentTime_ - startTime_).count(); }
+		//double getTime() { return std::chrono::duration<double>(currentTime_ - startTime_).count(); }
+		// get latest updated time for orientation
+		double getOrientationTime() { return std::chrono::duration<double>(currentOrientationTime_ - startTime_).count(); }
+		// get latest updated time for EMG
+		double getEMGTime() { return std::chrono::duration<double>(currentEMGTime_ - startTime_).count(); }
 		
 	protected:
 			
 	private:
 		// enumerationc class that is used with updateTime() to determine if time should be stored into orientationTimeVector_ or EMGTimeVector_ 
-		enum class VectorType {
+		/*enum class VectorType {
 			ORIENTATION,
 			EMG
-		};
+		};*/
 
 		// PRIVATE METHODS
 		// calculate the offset between detected sensor indices and actual sensor index labels
@@ -63,7 +67,11 @@ namespace OpenSimLive {
 		// give initial values to startTime_ and currentTime
 		void prepareTime();
 		// update the value of currentTime_
-		void updateTime(VectorType type);
+		//void updateTime(VectorType type);
+		// update the value of currentOrientationTime_
+		void updateOrientationTime();
+		// update the value of currentEMGTime
+		void updateEMGTime();
 
 
 		// PRIVATE VARIABLES
@@ -96,7 +104,11 @@ namespace OpenSimLive {
 		// time point where the measurement begins
 		std::chrono::steady_clock::time_point startTime_;
 		// time point that is used together with startTime_ to calculate elapsed time since the beginning of the measurement
-		std::chrono::steady_clock::time_point currentTime_;
+		//std::chrono::steady_clock::time_point currentTime_;
+		// time points that are used together with startTime_ to calculate elapsed time since the beginning of the measurement
+		std::chrono::steady_clock::time_point currentOrientationTime_;
+		std::chrono::steady_clock::time_point currentEMGTime_;
+
 		// EMG points are saved here
 		std::vector<std::array<float, 16>> EMGData_;
 		// stores elapsed time since the beginning of the measurement

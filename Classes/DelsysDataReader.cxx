@@ -269,7 +269,7 @@ void DelsysDataReader::updateQuaternionDataNoOffset()
 	if (saveQuaternionsToFile_) {
 		quaternionData_.push_back(quaternionArray_);
 		// update orientationTimeVector_ with a new time point
-		updateTime(VectorType::ORIENTATION);
+		updateOrientationTime();
 	}
 
 }
@@ -368,7 +368,7 @@ void DelsysDataReader::updateQuaternionDataFast()
 	if (saveQuaternionsToFile_) {
 		quaternionData_.push_back(quaternionArray_);
 		// update orientationTimeVector_ with a new time point
-		updateTime(VectorType::ORIENTATION);
+		updateOrientationTime();
 	}
 
 }
@@ -538,10 +538,12 @@ void DelsysDataReader::updateQuaternionDataFast()
 void DelsysDataReader::prepareTime() {
 	// get time at the beginning of the plotting
 	startTime_ = std::chrono::high_resolution_clock::now();
-	currentTime_ = startTime_;
+	//currentTime_ = startTime_;
+	currentOrientationTime_ = startTime_;
+	currentEMGTime_ = startTime_;
 }
 
-void DelsysDataReader::updateTime(DelsysDataReader::VectorType type) {
+/*void DelsysDataReader::updateTime(DelsysDataReader::VectorType type) {
 	// get time at each iteration
 	currentTime_ = std::chrono::high_resolution_clock::now();
 	// count how many milliseconds have passed
@@ -554,7 +556,26 @@ void DelsysDataReader::updateTime(DelsysDataReader::VectorType type) {
 		EMGTimeVector_.push_back(timeNow);
 	}
 	
+}*/
+
+void DelsysDataReader::updateOrientationTime() {
+	// get time at each iteration
+	currentOrientationTime_ = std::chrono::high_resolution_clock::now();
+	// count how many milliseconds have passed
+	double timeNow = std::chrono::duration<double>(currentOrientationTime_ - startTime_).count();
+	// push time to vector for saving to file later
+	orientationTimeVector_.push_back(timeNow);
 }
+
+void DelsysDataReader::updateEMGTime() {
+	// get time at each iteration
+	currentEMGTime_ = std::chrono::high_resolution_clock::now();
+	// count how many milliseconds have passed
+	double timeNow = std::chrono::duration<double>(currentEMGTime_ - startTime_).count();
+	// push time to vector for saving to file later
+	EMGTimeVector_.push_back(timeNow);
+}
+
 
 void DelsysDataReader::updateEMG() {
 	updateEMGData();
@@ -606,7 +627,7 @@ void DelsysDataReader::updateEMGData() {
 	
 	// push the desired sensor's EMG readings into another vector
 	EMGData_.push_back(EMGDataPoints_);
-	updateTime(VectorType::EMG);
+	updateEMGTime();
 }
 
 
@@ -633,7 +654,7 @@ void DelsysDataReader::saveEMGToFile(const std::string& rootDir, const std::stri
 		for (unsigned int i = 0; i < EMGData_.size(); ++i) { // iteration through rows
 			// after the first 2 rows of text, start with a new line and put time values in the first column
 			outputFile << "\n" << EMGTimeVector_[i];
-			for (unsigned int j = 0; j < 16; ++j) {
+			for (unsigned int j = 0; j < nActiveSensors_; ++j) {
 				// then input EMG values, separating them from time and other EMG values with a tab
 				outputFile << "\t" << EMGData_[i][j];
 			}
