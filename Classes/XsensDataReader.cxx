@@ -64,6 +64,9 @@ int XsensDataReader::findClosestUpdateRate(const XsIntArray& supportedUpdateRate
 
 unsigned int XsensDataReader::InitiateStartupPhase() {
 
+	startTime_ = std::chrono::high_resolution_clock::now();
+	currentTime_ = startTime_;
+
 	//const int desiredUpdateRate = 75; // use 75 Hz update rate for MTWs
 	//const int desiredRadioChannel = 19; // use radio channel 19 for wireless master
 
@@ -337,14 +340,17 @@ std::vector<XsQuaternion> XsensDataReader::getQuaternionData() {
 		XsDataPacket const* packet = mtwCallbacks_[i]->getOldestPacket();
 		quaternionData[i] = packet->orientationQuaternion();
 		mtwCallbacks_[i]->deleteOldestPacket();
-		if (i == 0) {
+		/*if (i == 0) {
 			if (initialTime_ == 0) {
 				initialTime_ = packet->timeOfArrival().secTime();
 			}
 			latestTime_ = packet->timeOfArrival().secTime() - initialTime_;
 			timeVector_.push_back(latestTime_);
-		}
+		}*/
 	}
+	currentTime_ = std::chrono::high_resolution_clock::now();
+	latestTime_ = std::chrono::duration<double>(currentTime_ - startTime_).count();
+	timeVector_.push_back(latestTime_);
 	quaternionData_.push_back(quaternionData);
 	return quaternionData;
 }

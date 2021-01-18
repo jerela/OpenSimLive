@@ -223,5 +223,10 @@ namespace OpenSimLive {
 		// vector containing the labels of IMUs (e.g. "pelvis_imu")
 		std::vector<std::string> labels_;
 
+		// time point where the measurement begins
+		std::chrono::steady_clock::time_point startTime_;
+		// time point that is used together with startTime_ to calculate elapsed time since the beginning of the measurement
+		std::chrono::steady_clock::time_point currentTime_;
+		
 	}; // end of class
 }
