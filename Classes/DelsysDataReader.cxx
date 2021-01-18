@@ -653,7 +653,7 @@ void DelsysDataReader::saveEMGToFile(const std::string& rootDir, const std::stri
 		
 		for (unsigned int i = 0; i < EMGData_.size(); ++i) { // iteration through rows
 			// after the first 2 rows of text, start with a new line and put time values in the first column
-			outputFile << "\n" << EMGTimeVector_[i];
+			outputFile << "\n" << std::setprecision(9) << EMGTimeVector_[i];
 			for (unsigned int j = 0; j < nActiveSensors_; ++j) {
 				// then input EMG values, separating them from time and other EMG values with a tab
 				outputFile << "\t" << EMGData_[i][j];

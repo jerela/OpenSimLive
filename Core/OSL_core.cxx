@@ -57,9 +57,11 @@ std::mutex mainMutex;
 
 // This function reads EMG values in a loop.
 void EMGThread(OpenSimLive::IMUHandler& genericDataReader, VariableManager& vm) {
+	std::cout << "Entering EMG thread." << std::endl;
 	do {
 		genericDataReader.updateEMG();
 	} while (vm.runEMGThread);
+	std::cout << "Exiting EMG thread." << std::endl;
 }
 
 // This function reads quaternion values in a loop and saves them in a queue buffer.
@@ -205,9 +207,10 @@ int main(int argc, char* argv[])
 	std::cout << "Entering data streaming and IK loop. Press C to calibrate model, Z to calculate IK once, N to enter continuous mode, M to exit continuous mode, V to enter send mode, B to exit send mode, L to save base reference orientation and X to quit." << std::endl;
 
 	std::thread producer(producerThread, std::ref(genericDataReader), std::ref(vm));
-	//if (vm.runEMGThread) {
-	//	std::thread EMG(EMGThread, std::ref(genericDataReader), std::ref(vm));
-	//}
+	if (vm.runEMGThread) {
+		std::thread EMG(EMGThread, std::ref(genericDataReader), std::ref(vm));
+		EMG.detach();
+	}
 	
 	do
 	{
