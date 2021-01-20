@@ -223,6 +223,7 @@ void performIK(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, std::str
 	IKTool.setOpenSimLiveRootDirectory(OPENSIMLIVE_ROOT); // this is needed for saving the IK report to file
 	IKTool.setPointTrackerEnabled(false);
 	IKTool.setTime(calibTime);
+	IKTool.setOutputFileName("IK-offline");
 	IKTool.run(true);
 	try{
 		// create a thread pool container with user-given maximum number of concurrent threads

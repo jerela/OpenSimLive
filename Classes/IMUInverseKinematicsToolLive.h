@@ -45,11 +45,16 @@ namespace OpenSimLive {
 		void setPointTrackerReferenceBodyName(const std::string& referenceBodyName) { pointTrackerReferenceBodyName_ = referenceBodyName; }
 		void setPointTrackerBodyName(const std::string& bodyName) { pointTrackerBodyName_ = bodyName; }
 		void setReportErrors(bool report) { report_errors = report; }
+		// set accuracy for IK solver
 		void setAccuracy(double accuracy) { accuracy_ = accuracy; }
+		// set the name of the IK output file
+		void setOutputFileName(std::string newFileName) { outputFileName_ = newFileName; }
 
 	private:
 		// PRIVATE VARIABLES
 		std::string OpenSimLiveRootDirectory_ = "";
+		// name of the IK output file without file format suffix
+		std::string outputFileName_ = "IK-live";
 		double accuracy_ = 1e-5;
 		OpenSim::TimeSeriesTable* modelOrientationErrors_;
 		OpenSim::TableReporter* ikReporter_ = NULL;

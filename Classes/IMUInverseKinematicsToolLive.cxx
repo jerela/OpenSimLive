@@ -568,7 +568,7 @@ void IMUInverseKinematicsToolLive::reportToFile() {
     organizedTimeSeriesTable.updTableMetaData().setValueForKey<string>("name", "IK-live");
     try {
         // write the .mot file to hard drive
-        OpenSim::STOFileAdapter_<double>::write(organizedTimeSeriesTable, OpenSimLiveRootDirectory_ + "/" + resultsDirectoryName + "/" + "IK-live.mot");
+        OpenSim::STOFileAdapter_<double>::write(organizedTimeSeriesTable, OpenSimLiveRootDirectory_ + "/" + resultsDirectoryName + "/" + outputFileName_ +".mot");
     }
     catch (std::exception& e) {
         std::cerr << "Error in saving IK output to file: " << e.what() << std::endl;
