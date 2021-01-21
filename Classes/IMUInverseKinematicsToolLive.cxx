@@ -565,7 +565,7 @@ void IMUInverseKinematicsToolLive::reportToFile() {
     // convert joint angles in the report from radians to degrees
     model_.getSimbodyEngine().convertRadiansToDegrees(organizedTimeSeriesTable);
     // set the value for name (not the name of the file) in the .mot file to be created
-    organizedTimeSeriesTable.updTableMetaData().setValueForKey<string>("name", "IK-live");
+    organizedTimeSeriesTable.updTableMetaData().setValueForKey<string>("name", outputDataName_);
     try {
         // write the .mot file to hard drive
         OpenSim::STOFileAdapter_<double>::write(organizedTimeSeriesTable, OpenSimLiveRootDirectory_ + "/" + resultsDirectoryName + "/" + outputFileName_ +".mot");

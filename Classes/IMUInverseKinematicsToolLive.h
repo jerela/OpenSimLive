@@ -49,12 +49,16 @@ namespace OpenSimLive {
 		void setAccuracy(double accuracy) { accuracy_ = accuracy; }
 		// set the name of the IK output file
 		void setOutputFileName(std::string newFileName) { outputFileName_ = newFileName; }
+		// set the name of the data inside the IK output file
+		void setOutputDataName(std::string newDataName) { outputDataName_ = newDataName; }
 
 	private:
 		// PRIVATE VARIABLES
 		std::string OpenSimLiveRootDirectory_ = "";
 		// name of the IK output file without file format suffix
 		std::string outputFileName_ = "IK-live";
+		// name of the IK output data
+		std::string outputDataName_ = "IK-live";
 		double accuracy_ = 1e-5;
 		OpenSim::TimeSeriesTable* modelOrientationErrors_;
 		OpenSim::TableReporter* ikReporter_ = NULL;

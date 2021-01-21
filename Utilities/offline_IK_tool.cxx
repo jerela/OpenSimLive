@@ -224,6 +224,7 @@ void performIK(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, std::str
 	IKTool.setPointTrackerEnabled(false);
 	IKTool.setTime(calibTime);
 	IKTool.setOutputFileName("IK-offline");
+	IKTool.setOutputDataName("IK-offline");
 	IKTool.run(true);
 	try{
 		// create a thread pool container with user-given maximum number of concurrent threads
