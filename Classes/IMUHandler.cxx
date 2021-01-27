@@ -72,8 +72,10 @@ void IMUHandler::updateQuaternionTable() {
 		simulatedObject_->updateQuaternionTable();
 		quaternionTimeSeriesTable_ = simulatedObject_->getTimeSeriesTable();
 	}
-	// calculate and print a norm that describes the amount of drift when the subject is still
-	estimateDrift();
+	if (enable_drift_estimation_) {
+		// calculate and print a norm that describes the amount of drift when the subject is still
+		estimateDrift();
+	}
 }
 
 // This is an option that combines updateQuaternionTable() and getQuaternionTable(), resulting in better performance because quaternionTimeSeriesTable_ variable is not needlessly initialized in this class.

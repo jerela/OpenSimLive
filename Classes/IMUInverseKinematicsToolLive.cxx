@@ -372,22 +372,16 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
     // set the time of state s0
     auto& times = oRefs.getTimes();
 
-    // check if another thread has already set the time of state s_ to a more advanced time point
-    bool threadExpired = false;
-
-    // lock a part of the code from being run by several threads in parallel
-    std::unique_lock<std::mutex> concurrentIKMutex(IKMutex);
-    // give s_ an initial time for assembling it with ikSolver_
-    s_.updTime() = times[0];
-    concurrentIKMutex.unlock();
-
+    // create a copy of s_ so we can use methods that modify the properties of s without modifying the properties s_ (which may be modified by another thread, leading to exceptions if multiple threads modify it in parallel)
+    SimTK::State s = s_;
+    s.updTime() = times[0];
     ++debugCounter1_;
 
     // assemble state s_, solving the initial joint angles in the least squares sense
     if (offline) {
-        concurrentIKMutex.lock();
+        std::unique_lock<std::mutex> concurrentIKMutex(IKMutex);
         try {
-            ikSolver.assemble(s_); // occasionally throws an exception "KeyNotFound" when using offline_IK_tool, but not when using OSL_core
+            ikSolver.assemble(s); // occasionally throws an exception "KeyNotFound" when using offline_IK_tool, but not when using OSL_core
         }
         catch (std::exception& e) {
             std::cerr << "Assemble failed: " << e.what() << std::endl;
@@ -398,13 +392,11 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
         concurrentIKMutex.unlock();
     }
     else {
-        ikSolver.assemble(s_);
+        ikSolver.assemble(s);
     }
     
     ++debugCounter2_;
 
-    // create a copy of s_ so we can use methods that modify the properties of s without modifying the properties s_ (which may be modified by another thread, leading to exceptions if multiple threads modify it in parallel)
-    SimTK::State s = s_;
     s.updTime() = time;
 
     // show a visualization of the state
@@ -412,7 +404,7 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
         // update the time to be shown in the visualization
         //s.updTime() = time;
         try {
-            concurrentIKMutex.lock();
+            std::unique_lock<std::mutex> concurrentIKMutex(IKMutex);
             // ikTool.assemble() is using s_ and needs its time value, so we couldn't change it for s_; instead we created s for the visualization
             model_.getVisualizer().show(s);
             concurrentIKMutex.unlock();
@@ -428,7 +420,7 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
     // if this thread hadn't expired already before visualization, run PointTracker
     if (getPointTrackerEnabled()) {
 
-        concurrentIKMutex.lock();
+        std::unique_lock<std::mutex> concurrentIKMutex(IKMutex);
         // if thread hasn't expired, send data to PointTracker
         if (s.getTime() < time) {
             // give time to PointTracker only if we need it
@@ -443,7 +435,7 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
 
     // update the time of s_
     if (get_report_errors()) {
-        concurrentIKMutex.lock();
+        std::unique_lock<std::mutex> concurrentIKMutex(IKMutex);
 
         // push time and order index into vectors in the order that they are written by IK threads, so not necessarily in ascending (proper) order
         orderedTimeVector_.push_back(time);

@@ -70,14 +70,15 @@ void SimulatedDataReader::updateQuaternionTable() {
 		}
 	}
 
+	// get current time
+	clockNow_ = std::chrono::high_resolution_clock::now();
+	// update elapsed time (clockDuration_)
+	clockDuration_ = (clockNow_ - clockStart_);
+
 	// if we are going to save quaternions to file later, push current quaternions to relevant vectors and update timevector
 	if (saveQuaternionsToFile_) {
 		// push quaternions into vector
 		quaternionData_.push_back(quaternions_);
-		// get current time
-		clockNow_ = std::chrono::high_resolution_clock::now();
-		// update elapsed time (clockDuration_)
-		clockDuration_ = (clockNow_ - clockStart_);
 		// push time into vector
 		timeVector_.push_back(clockDuration_.count());
 	}

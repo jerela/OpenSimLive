@@ -123,13 +123,10 @@ void ConnectToDataStream() {
 		OpenSim::TimeSeriesTableQuaternion quatTable = genericDataReader.updateAndGetQuaternionTable();
 		clockDuration = (std::chrono::high_resolution_clock::now() - vm.clockStart);
 		double time = clockDuration.count();
-		IKTool.updateOrdered(false, quatTable, iteration, time);
+		IKTool.updateOrdered(false, quatTable, ++iteration, time);
 		clockDuration = (std::chrono::high_resolution_clock::now() - vm.clockStart);
 		double time2 = clockDuration.count();
 		IKTimes.push_back(time2 - time);
-
-		// increment iterations number
-		++iteration;
 
 	} while (iteration < 10000);
 

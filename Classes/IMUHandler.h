@@ -65,6 +65,8 @@ namespace OpenSimLive {
 		std::vector<std::array<double, 3>> RPYVector_;
 		// iterating index that is used to determine how often drift is displayed
 		unsigned int driftInterval_ = 0;
+		// whether to use drift estimation or not
+		bool enable_drift_estimation_ = false;
 
 	}; // end of class
 }

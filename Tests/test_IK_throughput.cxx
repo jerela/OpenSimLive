@@ -15,8 +15,6 @@
 
 const std::string OPENSIMLIVE_ROOT = OPENSIMLIVE_ROOT_PATH;
 
-//std::vector<double> enterTimes;
-//std::vector<double> finishTimes;
 
 // Holds various variables that are passed to several functions so that function arguments can be reduced by passing only this struct or a reference to it.
 struct VariableManager {
@@ -113,9 +111,8 @@ void consumerThread(VariableManager& vm, OpenSimLive::IMUInverseKinematicsToolLi
 			OpenSim::TimeSeriesTableQuaternion quatTable(vm.orientationBuffer.front());
 			vm.orientationBuffer.pop();
 			vm.bufferInUse = false;
-			++vm.orderIndex;
 			// start a new thread where the IK is calculated and increment the number of IK operations done
-			threadPoolContainer.offerFuture(updateConcurrentIKTool, std::ref(IKTool), std::ref(vm), quatTable, time, vm.orderIndex);
+			threadPoolContainer.offerFuture(updateConcurrentIKTool, std::ref(IKTool), std::ref(vm), quatTable, time, ++vm.orderIndex);
 		}
 
 	} while (vm.runIKThread);
@@ -130,8 +127,6 @@ void consumerThread(VariableManager& vm, OpenSimLive::IMUInverseKinematicsToolLi
 
 
 void ConnectToDataStream(double inputSeconds, int inputThreads) {
-	//enterTimes.reserve(100000);
-	//finishTimes.reserve(100000);
 	OpenSimLive::SimulatedDataReader simulatedDataReader;
 
 	bool saveQuaternions = (ConfigReader("MainConfiguration.xml", "save_quaternions_to_file") == "true");
@@ -185,22 +180,18 @@ void ConnectToDataStream(double inputSeconds, int inputThreads) {
 	OpenSimLive::ThreadPoolContainer threadPoolContainer(maxThreads);
 
 	std::cout << "Entering measurement loop." << std::endl;
-	//int iteration = 0;
-	vm.orderIndex = 0;
-	//auto clockStart = std::chrono::high_resolution_clock::now(); // get the starting time of IMU measurement loop
-	//std::chrono::duration<double> clockDuration;
+
+	// reset clock
 	vm.clockStart = std::chrono::high_resolution_clock::now();
-
-	std::cout << vm.clockDuration.count() << std::endl;
-	// loop until enough time has been elapsed
-	//auto table = genericDataReader.updateAndGetQuaternionTable();
-
 
 	std::thread producer(producerThread, std::ref(simulatedDataReader), std::ref(vm));
 	std::thread consumer(consumerThread, std::ref(vm), std::ref(IKTool), std::ref(threadPoolContainer));
 
 	producer.join();
 	consumer.join();
+
+	// wait until all IK threads are finished, otherwise reporting IK to file may throw an exception
+	threadPoolContainer.waitForFinish();
 
 	std::chrono::duration<double> clockDuration = std::chrono::high_resolution_clock::now() - vm.clockStart;
 	double finalTime = clockDuration.count();
@@ -218,15 +209,6 @@ void ConnectToDataStream(double inputSeconds, int inputThreads) {
 			std::cout << "More than 100 000 iterations calculated, as a safety precaution program is not saving results to file!" << std::endl;
 		}
 	}
-
-	/*std::vector<double> IKTimes;
-	double mean = 0;
-	for (unsigned int j = 0; j < finishTimes.size(); ++j) {
-		IKTimes.push_back(finishTimes[j]-enterTimes[j]);
-		std::cout << finishTimes[j] << " - " << enterTimes[j] << " = " << IKTimes[j] << std::endl;
-		mean += IKTimes[j];
-	}
-	std::cout << "Mean: " << mean/(double)finishTimes.size() << std::endl;*/
 
 	// close the connection to IMUs
 	simulatedDataReader.closeConnection();
