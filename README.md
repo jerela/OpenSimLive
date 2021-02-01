@@ -354,3 +354,5 @@ Huge thanks to the people behind the [OpenSim](https://simtk.org/projects/opensi
 Thanks to GitHub user PurpleBooth for providing an excellent [readme template](https://gist.github.com/PurpleBooth/109311bb0361f32d87a2).
 Thanks to Keith Vertanen for his [Java and C++ socket class](https://www.keithv.com/software/socket/).
 Thanks to Jacob Progsch and Václav Zeman for their [thread pool class](https://github.com/progschj/ThreadPool).
+
+This software library was developed while working in European Regional Development Funds project Digital Technology RDI Environment (Digi Center) (Project ID: A74338).
