@@ -348,7 +348,7 @@ freely, subject to the following restrictions:
 
 These four files are originally the work of the developers and contributors of [OpenSim](https://github.com/opensim-org/opensim-core), subject to [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0). The author of OpenSimLive has modified these files.
 
-## Acknowledgments
+## Acknowledgements
 
 Huge thanks to the people behind the [OpenSim](https://simtk.org/projects/opensim) project.
 Thanks to GitHub user PurpleBooth for providing an excellent [readme template](https://gist.github.com/PurpleBooth/109311bb0361f32d87a2).
