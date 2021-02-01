@@ -355,4 +355,4 @@ Thanks to GitHub user PurpleBooth for providing an excellent [readme template](h
 Thanks to Keith Vertanen for his [Java and C++ socket class](https://www.keithv.com/software/socket/).
 Thanks to Jacob Progsch and Václav Zeman for their [thread pool class](https://github.com/progschj/ThreadPool).
 
-This software library was developed while working in European Regional Development Fund project Digital Technology RDI Environment (Digi Center) (Project ID: A74338).
+This software library was developed while working in an European Regional Development Fund project: Digital Technology RDI Environment (Digi Center) (Project ID: A74338, www.digicenterns.fi).
