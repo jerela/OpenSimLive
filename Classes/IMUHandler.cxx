@@ -72,7 +72,7 @@ void IMUHandler::updateQuaternionTable() {
 		simulatedObject_->updateQuaternionTable();
 		quaternionTimeSeriesTable_ = simulatedObject_->getTimeSeriesTable();
 	}
-	if (enable_drift_estimation_) {
+	if (enable_IMU_feedback_) {
 		// calculate and print a norm that describes the amount of drift when the subject is still
 		estimateDrift();
 	}

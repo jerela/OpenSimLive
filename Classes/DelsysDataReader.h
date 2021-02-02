@@ -108,6 +108,8 @@ namespace OpenSimLive {
 		// time points that are used together with startTime_ to calculate elapsed time since the beginning of the measurement
 		std::chrono::steady_clock::time_point currentOrientationTime_;
 		std::chrono::steady_clock::time_point currentEMGTime_;
+		// number of decimals for numbers in output files
+		std::streamsize outputPrecision_ = 15;
 
 		// EMG points are saved here
 		std::vector<std::array<float, 16>> EMGData_;

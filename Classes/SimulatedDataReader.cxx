@@ -123,7 +123,7 @@ void SimulatedDataReader::saveQuaternionsToFile(const std::string& rootDir, cons
 
 		for (unsigned int i = 0; i < quaternionData_.size(); ++i) { // iteration through rows
 			// after the first 2 rows of text, start with a new line and put time values in the first column
-			outputFile << "\n" << std::setprecision(9) << timeVector_[i];
+			outputFile << "\n" << std::setprecision(outputPrecision_) << timeVector_[i];
 			for (unsigned int j = 0; j < labelsSize_; ++j) {
 				// then input quaternion values, separating them from time and other quaternion values with a tab
 				outputFile << "\t" << quaternionData_[i][j];

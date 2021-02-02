@@ -697,7 +697,7 @@ void DelsysDataReader::saveQuaternionsToFile(const std::string& rootDir, const s
 
 		for (unsigned int i = 0; i < quaternionData_.size(); ++i) { // iteration through rows
 			// after the first 2 rows of text, start with a new line and put time values in the first column
-			outputFile << "\n" << std::setprecision(9) << orientationTimeVector_[i];
+			outputFile << "\n" << std::setprecision(outputPrecision_) << orientationTimeVector_[i];
 			for (unsigned int j = 0; j < activeLabels_.size(); ++j) {
 				// then input quaternion values, separating them from time and other quaternion values with a tab
 				outputFile << "\t" << quaternionData_[i][j];

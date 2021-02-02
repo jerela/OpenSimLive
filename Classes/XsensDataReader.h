@@ -222,6 +222,8 @@ namespace OpenSimLive {
 		double latestTime_ = 0;
 		// vector containing the labels of IMUs (e.g. "pelvis_imu")
 		std::vector<std::string> labels_;
+		// number of decimals for numbers in output files
+		std::streamsize outputPrecision_ = 15;
 
 		// time point where the measurement begins
 		std::chrono::steady_clock::time_point startTime_;

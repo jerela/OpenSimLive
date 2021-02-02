@@ -22,6 +22,7 @@ struct VariableManager {
 	bool print_roll_pitch_yaw = ("true" == ConfigReader("MainConfiguration.xml", "print_roll_pitch_yaw")); // boolean that tells whether to print roll, pitch and yaw of IMUs while calculating IK
 	bool resetClockOnContinuousMode = ("true" == ConfigReader("MainConfiguration.xml", "reset_clock_on_continuous_mode")); // if true, clock will be reset to zero when entering continuous mode; if false, the clock will be set to zero at calibration
 	bool enableMirrorTherapy = false;
+	bool enableIMUFeedback = ("true" == ConfigReader("MainConfiguration.xml", "enable_imu_feedback")); // Boolean that determines if we want to print drift estimator and RPY angles to command window at frequent intervals.
 	unsigned int maxThreads = stoi(ConfigReader("MainConfiguration.xml", "threads")); // get the maximum number of concurrent threads for multithreading
 	std::string manufacturer = ConfigReader("MainConfiguration.xml", "IMU_manufacturer");
 	std::string stationReferenceBody = ConfigReader("MainConfiguration.xml", "station_reference_body"); // get the name of the reference body used in mirror therapy
@@ -150,8 +151,7 @@ int main(int argc, char* argv[])
 
 	// create Xsens connection object and connect the program to IMUs
 	OpenSimLive::IMUHandler genericDataReader;
-	//int desiredUpdateRate = stoi(ConfigReader("MainConfiguration.xml", "desired_update_rate"));
-	//xsensDataReader.SetDesiredUpdateRate(desiredUpdateRate);
+	genericDataReader.setEnableIMUFeedback(vm.enableIMUFeedback);
 
 	IMUType manufacturer = simulated; // default to simulated if the if-statement below fails
 	if (vm.manufacturer == "delsys")

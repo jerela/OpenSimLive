@@ -37,6 +37,8 @@ namespace OpenSimLive {
 		double getTime();
 		// update and return time
 		//double updateTime();
+		// enable or disable IMU feedback
+		void setEnableIMUFeedback(bool setting) { enable_IMU_feedback_ = setting; }
 
 	protected:
 			
@@ -65,8 +67,8 @@ namespace OpenSimLive {
 		std::vector<std::array<double, 3>> RPYVector_;
 		// iterating index that is used to determine how often drift is displayed
 		unsigned int driftInterval_ = 0;
-		// whether to use drift estimation or not
-		bool enable_drift_estimation_ = false;
+		// whether to use drift estimation and printing RPY angles for each sensor
+		bool enable_IMU_feedback_ = false;
 
 	}; // end of class
 }
