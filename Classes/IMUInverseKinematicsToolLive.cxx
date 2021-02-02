@@ -284,6 +284,7 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
         }
     }
     
+    /*
     // update the time of s_
     if (get_report_errors()) {
         concurrentIKMutex.lock();
@@ -313,7 +314,7 @@ void IMUInverseKinematicsToolLive::updateInverseKinematics(OpenSim::TimeSeriesTa
         }
         concurrentIKMutex.unlock();
         
-    }
+    }*/
 
     // if this thread hadn't expired already before visualization, run PointTracker
     if (getPointTrackerEnabled() && !threadExpired) {

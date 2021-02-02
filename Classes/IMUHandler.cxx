@@ -192,9 +192,18 @@ void IMUHandler::estimateDrift() {
 			else {
 				std::cout << ", " << labels[label] << "(" << norm << ")";
 			}
+
+			if (label+1 == labels.size()) {
+				std::cout << "]" << std::endl;
+			}
 			
 		}
-		std::cout << "]" << std::endl;
+
+		for (size_t label = 0; label < labels.size(); ++label) {
+			std::cout << "RPY for sensor " << (label + 1) << ": [" << RPYVector_[label][0] << ", " << RPYVector_[label][1] << ", " << RPYVector_[label][2] << "]" << std::endl;
+		}
+
+
 	}
 }
 
