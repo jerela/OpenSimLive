@@ -264,18 +264,18 @@ Jere Lavikainen, jere.lavikainen (at) uef.fi
 
 ## License and copyright
 
-The following copyright disclaimer applies to all files in this repository with the exception of **ThreadPool.h**, **XsensDataReader.h**, **XsensDataReader.cpp**, **Client.h**, **Client.cpp**, **Server.h**, **Server.cpp**, **IMUInverseKinematicsToolLive.h**, **IMUInverseKinematicsToolLive.cpp**, **IMUPlacerLive.h** and **IMUPlacerLive.cpp**.
+The following copyright disclaimer applies to all files in this repository with the exception of **files under OpenSimLive/Config**, **ThreadPool.h**, **XsensDataReader.h**, **XsensDataReader.cpp**, **Client.h**, **Client.cpp**, **Server.h**, **Server.cpp**, **IMUInverseKinematicsToolLive.h**, **IMUInverseKinematicsToolLive.cpp**, **IMUPlacerLive.h** and **IMUPlacerLive.cpp**.
 
 ### Copyright disclaimer / EULA
 
-```
-Copyright (c) Unpublished work, 2020, University of Eastern Finland. This software is provided 'as-is', without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and nonfringement. In no event shall the authors or copyright holders be liable for any claim, damages or other liability, whether in an action of contract, tort or otehrwise, arising from, out of or in connection with the software or the use or other dealings in the software.
+Copyright 2021 University of Eastern Finland
 
-Modification and use of this software in source and binary forms is permitted, subject to the following restrictions:
-1. You may not claim this work as your own.
-2. You may not redistribute or publish this work.
-3. You may not transfer or otherwise allow access to the software to any person who does not have access to this private repository.
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
 ```
+http://www.apache.org/licenses/LICENSE-2.0
+```
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
 ### Copyright for Client.h, Client.cpp, Server.h and Server.h
 
