@@ -376,7 +376,7 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
     // create a copy of s_ so we can use methods that modify the properties of s without modifying the properties s_ (which may be modified by another thread, leading to exceptions if multiple threads modify it in parallel)
     SimTK::State s = s_;
     s.updTime() = times[0];
-    ++debugCounter1_;
+    //++debugCounter1_;
 
     // assemble state s_, solving the initial joint angles in the least squares sense
     if (offline) {
@@ -396,7 +396,7 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
         ikSolver.assemble(s);
     }
     
-    ++debugCounter2_;
+    //++debugCounter2_;
 
     s.updTime() = time;
 

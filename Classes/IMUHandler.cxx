@@ -110,6 +110,22 @@ void IMUHandler::updateEMG() {
 	}
 }
 
+// generate identity quaternions
+void IMUHandler::generateIdentityQuaternions() {
+	if (IMUType_ == xsens)
+	{
+		std::cout << "Xsens cannot generate identity quaternions!" << std::endl;
+	}
+	else if (IMUType_ == delsys) {
+		std::cout << "Delsys cannot generate identity quaternions!" << std::endl;
+	}
+	else if (IMUType_ == simulated)
+	{
+		simulatedObject_->generateIdentityQuaternions();
+		quaternionTimeSeriesTable_ = simulatedObject_->getTimeSeriesTable();
+	}
+}
+
 // close the connection, save to file etc
 void IMUHandler::closeConnection() {
 	if (IMUType_ == xsens) {

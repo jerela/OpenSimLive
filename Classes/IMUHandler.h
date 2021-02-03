@@ -39,6 +39,8 @@ namespace OpenSimLive {
 		//double updateTime();
 		// enable or disable IMU feedback
 		void setEnableIMUFeedback(bool setting) { enable_IMU_feedback_ = setting; }
+		// generate identity quaternions
+		void generateIdentityQuaternions();
 
 	protected:
 			

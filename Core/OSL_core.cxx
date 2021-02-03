@@ -67,7 +67,8 @@ void EMGThread(OpenSimLive::IMUHandler& genericDataReader, VariableManager& vm) 
 
 // This function reads quaternion values in a loop and saves them in a queue buffer.
 void producerThread(OpenSimLive::IMUHandler& genericDataReader, VariableManager& vm) {
-	
+	// boolean telling us if we got new quaternion data so we can avoid saving the same quaternion and time data to the buffer twice
+	bool newDataGot = false;
 	std::chrono::steady_clock::time_point clockCurrent = std::chrono::high_resolution_clock::now();
 	do {
 
@@ -75,18 +76,20 @@ void producerThread(OpenSimLive::IMUHandler& genericDataReader, VariableManager&
 		//std::chrono::duration<double> duration = std::chrono::high_resolution_clock::now() - vm.clockStart;
 		//double time = duration.count();
 
+		newDataGot = false;
 		if (!vm.dataReaderInUse) {
 			vm.dataReaderInUse = true;
 			// update new quaternion table but don't get it yet
 			genericDataReader.updateQuaternionTable();
-			vm.dataReaderInUse = false;
+			newDataGot = true;
+			vm.dataReaderInUse = false;	
 		}
 		// get time stamp
 		double time = genericDataReader.getTime();
 
 
 		// if consumer is not accessing the buffer and the buffer size is not maximal, push data to buffer
-		if (!vm.bufferInUse && vm.orientationBuffer.size() < vm.maxBufferSize && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - clockCurrent).count() > vm.continuousModeMsDelay)
+		if (!vm.bufferInUse && vm.orientationBuffer.size() < vm.maxBufferSize && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - clockCurrent).count() > vm.continuousModeMsDelay && newDataGot)
 		{
 			// set bufferInUse to true to prevent consumer from accessing the buffer
 			vm.bufferInUse = true;
@@ -100,7 +103,7 @@ void producerThread(OpenSimLive::IMUHandler& genericDataReader, VariableManager&
 		}
 
 		// if consumer is not accessing the buffer and buffer size is maximal, update the buffer by popping old data and pushing new data
-		if (!vm.bufferInUse && vm.orientationBuffer.size() == vm.maxBufferSize && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - clockCurrent).count() > vm.continuousModeMsDelay)
+		if (!vm.bufferInUse && vm.orientationBuffer.size() == vm.maxBufferSize && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - clockCurrent).count() > vm.continuousModeMsDelay && newDataGot)
 		{
 			// set bufferInUse to true to prevent consumer from accessing the buffer
 			vm.bufferInUse = true;
