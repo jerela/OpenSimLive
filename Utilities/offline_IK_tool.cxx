@@ -157,9 +157,9 @@ OpenSim::TimeSeriesTable_<SimTK::Quaternion> quaternionTableFromTextFile(std::st
 }
 
 // Function that is sent to be handled in a separate thread by ThreadPoolContainer
-void concurrentIKThread(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable, size_t i) {
+void concurrentIKThread(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable, size_t i, bool visualize) {
 	//IKTool.setTime(quatTable.getIndependentColumn()[i]);
-	IKTool.updateOrdered(true, quatTable, i+1, quatTable.getIndependentColumn()[0], true);
+	IKTool.updateOrdered(visualize, quatTable, i+1, quatTable.getIndependentColumn()[0], true);
 }
 
 // Calibrate model and return the name of the calibrated model file, and update calibTime to match the closest similar entry in the time series table.
@@ -210,7 +210,7 @@ OpenSim::TimeSeriesTable_<SimTK::Quaternion> clipTable(OpenSim::TimeSeriesTable_
 	return quatTable;
 }
 
-void performIK(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, std::string& calibratedModelFile, unsigned int nThreads, double calibTime)
+void performIK(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, std::string& calibratedModelFile, unsigned int nThreads, double calibTime, bool visualize)
 {
 	// do IK
 	std::cout << "Performing inverse kinematics..." << std::endl;
@@ -225,7 +225,7 @@ void performIK(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, std::str
 	IKTool.setTime(calibTime);
 	IKTool.setOutputFileName("IK-offline");
 	IKTool.setOutputDataName("IK-offline");
-	IKTool.run(true);
+	IKTool.run(visualize);
 	try{
 		// create a thread pool container with user-given maximum number of concurrent threads
 		OpenSimLive::ThreadPoolContainer tpc(nThreads);
@@ -236,7 +236,9 @@ void performIK(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, std::str
 			auto currentMatrix = quatTable.updNearestRow(currentTime);
 			OpenSim::TimeSeriesTable_<SimTK::Quaternion> currentQuatTable(std::vector<double>({ currentTime }), currentMatrix.getAsMatrix(), quatTable.getColumnLabels());
 
-			tpc.offerFuture(concurrentIKThread, std::ref(IKTool), currentQuatTable, i);
+			tpc.offerFuture(concurrentIKThread, std::ref(IKTool), currentQuatTable, i, visualize);
+			std::cout << "Progress: " << i << "/" << quatTable.getNumRows() << "\r";
+			std::cout.flush();
 		}
 		tpc.waitForFinish();
 	}
@@ -254,29 +256,52 @@ void performIK(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, std::str
 
 int main(int argc, char *argv[])
 {
+
 	std::string quatFileName;
-	std::cout << "Please input the name of the text file to be analyzed in /OpenSimLive-results/ folder: ";
-	std::cin >> quatFileName;
-
 	std::string inputThreadsStr;
-	std::cout << "Please input the number of threads to be used: ";
-	std::cin >> inputThreadsStr;
-	int inputThreads = stoi(inputThreadsStr);
-	
 	std::string calibTimeStr;
-	std::cout << "Please input the time of IMU calibration: ";
-	std::cin >> calibTimeStr;
-	double calibTime = stod(calibTimeStr);
-
 	std::string startTimeStr;
-	std::cout << "Please input IK start time: ";
-	std::cin >> startTimeStr;
-	double startTime = stod(startTimeStr);
-
 	std::string endTimeStr;
-	std::cout << "Please input IK end time: ";
-	std::cin >> endTimeStr;
+
+	if (argc == 6) {
+		quatFileName = argv[1];
+		inputThreadsStr = argv[2];
+		calibTimeStr = argv[3];
+		startTimeStr = argv[4];
+		endTimeStr = argv[5];
+	}
+	else if (argc == 1) {
+
+		std::cout << "Please input the name of the text file to be analyzed in /OpenSimLive-results/ folder: ";
+		std::cin >> quatFileName;
+
+		std::cout << "Please input the number of threads to be used: ";
+		std::cin >> inputThreadsStr;
+
+
+		std::cout << "Please input the time of IMU calibration: ";
+		std::cin >> calibTimeStr;
+
+
+		std::cout << "Please input IK start time: ";
+		std::cin >> startTimeStr;
+
+
+		std::cout << "Please input IK end time: ";
+		std::cin >> endTimeStr;
+		
+	}
+	else {
+		std::cout << "Give command line in the following format: offline_IK_tool.exe quaternionTimeSeriesFileName.txt number_of_IK_threads calib_time IK_start_time IK_end_time" << std::endl;
+		std::cout << "Alternatively, do not give any command line arguments and the program will let you input them manually." << std::endl;
+	}
+
+	int inputThreads = stoi(inputThreadsStr);
+	double calibTime = stod(calibTimeStr);
+	double startTime = stod(startTimeStr);
 	double endTime = stod(endTimeStr);
+
+	bool visualize = false;
 
 	// function that constructs a time series table of quaternions from quaternion time series text file
 	OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable = quaternionTableFromTextFile(quatFileName);
@@ -285,7 +310,7 @@ int main(int argc, char *argv[])
 	// function that clips the time series table for IK
 	OpenSim::TimeSeriesTable_<SimTK::Quaternion> clippedTable = clipTable(quatTable, startTime, endTime);
 	// function that performs IK
-	performIK(clippedTable, calibratedModelFile, inputThreads, calibTime);
+	performIK(clippedTable, calibratedModelFile, inputThreads, calibTime, visualize);
 
 	std::cout << "Program finished." << std::endl;
 	return 1;
