@@ -109,12 +109,12 @@ void ConnectToDataStream(double inputSeconds, int inputThreads) {
 
 	if (saveIKResults) {
 		std::cout << "Saving IK results to file..." << std::endl;
-		if (iteration < 1000) {
+		if (iteration < 100000) {
 			IKTool.reportToFile();
 		}
 		else
 		{
-			std::cout << "More than 1000 iterations calculated, as a safety precaution program is not saving results to file!" << std::endl;
+			std::cout << "More than 100 000 iterations calculated, as a safety precaution program is not saving results to file!" << std::endl;
 		}
 	}
 

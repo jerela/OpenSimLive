@@ -1,3 +1,5 @@
+#pragma once
+#include <XMLFunctions.h>
 #include <XsensDataReader.h>
 #include <fstream>
 
@@ -22,7 +24,8 @@ std::ostream& operator << (std::ostream& out, XsDevice const& d)
 
 using namespace OpenSimLive;
 
-XsensDataReader::XsensDataReader() {}
+XsensDataReader::XsensDataReader() {
+}
 
 XsensDataReader::~XsensDataReader() {
 	if (saveQuaternionsToFile_) {
@@ -60,6 +63,9 @@ int XsensDataReader::findClosestUpdateRate(const XsIntArray& supportedUpdateRate
 }
 
 unsigned int XsensDataReader::InitiateStartupPhase() {
+
+	startTime_ = std::chrono::high_resolution_clock::now();
+	currentTime_ = startTime_;
 
 	//const int desiredUpdateRate = 75; // use 75 Hz update rate for MTWs
 	//const int desiredRadioChannel = 19; // use radio channel 19 for wireless master
@@ -257,10 +263,14 @@ unsigned int XsensDataReader::InitiateStartupPhase() {
 			mtwDevices_[i]->addCallbackHandler(mtwCallbacks_[i]);
 		}
 
+		// populate labels vector
+		findLabels();
+		
+		std::cout << "Xsens connection established." << std::endl;
 	}
 	catch (std::exception const& ex)
 	{
-		std::cout << ex.what() << std::endl;
+		std::cout << "Error in initializing Xsens connection: " << ex.what() << std::endl;
 		std::cout << "****ABORT****" << std::endl;
 	}
 	catch (...)
@@ -271,6 +281,18 @@ unsigned int XsensDataReader::InitiateStartupPhase() {
 	return returnMode;
 }
 		
+void XsensDataReader::findLabels() {
+	for (size_t i = 0; i < mtwCallbacks_.size(); ++i) {
+		// get the ID of the current IMU
+		std::string currentSensorId = mtwCallbacks_[i]->device().deviceId().toString().toStdString();
+
+		// match the ID of the sensor to the name of the sensor on the model
+		std::string sensorNameInModel = sensorIdToLabel(currentSensorId, OPENSIMLIVE_ROOT + "/Config/" + ConfigReader("MainConfiguration.xml", "mappings_file"));
+
+		// populate the vector of sensor names
+		labels_.push_back(sensorNameInModel);
+	}
+}
 
 std::vector<XsQuaternion> XsensDataReader::GetQuaternionData(std::vector<XsQuaternion>& quaternionData) {
 	newDataAvailable_ = false;
@@ -318,8 +340,18 @@ std::vector<XsQuaternion> XsensDataReader::getQuaternionData() {
 		XsDataPacket const* packet = mtwCallbacks_[i]->getOldestPacket();
 		quaternionData[i] = packet->orientationQuaternion();
 		mtwCallbacks_[i]->deleteOldestPacket();
-		
+		/*if (i == 0) {
+			if (initialTime_ == 0) {
+				initialTime_ = packet->timeOfArrival().secTime();
+			}
+			latestTime_ = packet->timeOfArrival().secTime() - initialTime_;
+			timeVector_.push_back(latestTime_);
+		}*/
 	}
+	currentTime_ = std::chrono::high_resolution_clock::now();
+	latestTime_ = std::chrono::duration<double>(currentTime_ - startTime_).count();
+	timeVector_.push_back(latestTime_);
+	quaternionData_.push_back(quaternionData);
 	return quaternionData;
 }
 
@@ -398,7 +430,7 @@ std::string XsensDataReader::convertXsQuaternionToString(XsQuaternion quaternion
 // This function saves the time points and the corresponding quaternions to file for later examination.
 void XsensDataReader::saveQuaternionsToFile(const std::string& rootDir, const std::string& resultsDir) {
 
-	if (timeVector_.size() > 100000 || quaternionData_.size() > 100000) {
+	if (timeVector_.size() > 1000000 || quaternionData_.size() > 1000000) {
 		std::cout << "In a normal situation we would save quaternions to file now, but because there are " << timeVector_.size() << " data points, for the sake of hard drive space we won't do it." << std::endl;
 		return;
 	}
@@ -419,12 +451,13 @@ void XsensDataReader::saveQuaternionsToFile(const std::string& rootDir, const st
 		outputFile << "Time (s)";
 
 		for (unsigned int j = 0; j < nSensors_; ++j) {
-			outputFile << "\t Quaternion" + std::to_string(j + 1);
+			//outputFile << "\t" << "Quaternion" + std::to_string(j + 1);
+			outputFile << "\t" << labels_[j];
 		}
 
 		for (unsigned int i = 0; i < quaternionData_.size(); ++i) { // iteration through rows
 			// after the first 2 rows of text, start with a new line and put time values in the first column
-			outputFile << "\n" << std::setprecision(9) << timeVector_[i];
+			outputFile << "\n" << std::setprecision(outputPrecision_) << timeVector_[i];
 			for (unsigned int j = 0; j < nSensors_; ++j) {
 				// then input quaternion values, separating them from time and other quaternion values with a tab
 				outputFile << "\t" << convertXsQuaternionToString(quaternionData_[i][j]);

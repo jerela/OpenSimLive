@@ -180,6 +180,8 @@ namespace OpenSimLive {
 		void saveQuaternionsToFile(const std::string& rootDir, const std::string& resultsDir);
 		// enable or disable quaternion saving
 		void setSaveQuaternions(bool setting) { saveQuaternionsToFile_ = setting; }
+		// returns current time as double
+		double getTime() { return latestTime_; }
 
 	protected:
 			
@@ -189,6 +191,8 @@ namespace OpenSimLive {
 		int findClosestUpdateRate(const XsIntArray& supportedUpdateRates, const int desiredUpdateRate);
 		// A function to convert XsQuaternion to string before writing it to file; it can be written directly to file, but the formatting in this function will make its formatting identical to SimTK::Quaternions in file
 		std::string convertXsQuaternionToString(XsQuaternion quaternion);
+		// find the labels of connected IMUs, used later when saving quaternion time series to file
+		void findLabels();
 
 		// PRIVATE VARIABLES
 		// Callback for wireless master
@@ -214,6 +218,17 @@ namespace OpenSimLive {
 		unsigned int nSensors_ = 0;
 		// stores the time from the first reading of IMU data, so that we can calculate duration by subtracting initialTime_ from all times that are read after the first
 		double initialTime_ = 0;
+		// latest current time that was saved
+		double latestTime_ = 0;
+		// vector containing the labels of IMUs (e.g. "pelvis_imu")
+		std::vector<std::string> labels_;
+		// number of decimals for numbers in output files
+		std::streamsize outputPrecision_ = 15;
 
+		// time point where the measurement begins
+		std::chrono::steady_clock::time_point startTime_;
+		// time point that is used together with startTime_ to calculate elapsed time since the beginning of the measurement
+		std::chrono::steady_clock::time_point currentTime_;
+		
 	}; // end of class
 }

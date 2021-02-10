@@ -1,3 +1,4 @@
+#pragma once
 #include <OpenSim.h>
 #include <string>
 #include <vector>

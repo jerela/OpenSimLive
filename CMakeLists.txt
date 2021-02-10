@@ -129,3 +129,5 @@ add_subdirectory("Tests")
 add_subdirectory("Config")
 # add subfolder for analysis utilities
 add_subdirectory("Utilities")
+# add subfolder for core functionality
+add_subdirectory("Core")

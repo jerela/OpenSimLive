@@ -4,14 +4,12 @@
 	<desired_update_rate>60</desired_update_rate>
 	<!--File containing Xsens IMU labels on the model corresponding to IMU IDs.-->
 	<mappings_file>SensorMappings_full.xml</mappings_file>
-	<!--Uncalibrated OpenSim model to be used.-->
-	<opensim_model_file>gait2392_full.osim</opensim_model_file>
 	<!--File that configures IMUPlacer.-->
 	<imu_placer_setup_file>IMUPlacerSetup.xml</imu_placer_setup_file>
 	<!--Boolean that determines if we want to save IK results (joint angles and their errors) to file when the program finishes. This can be very memory-heavy especially with long measurements.-->
 	<save_ik_results>true</save_ik_results>
 	<!--Delay that occurs between consequent IK calculations in continuous measurement mode. Given in milliseconds.-->
-	<continuous_mode_ms_delay>20</continuous_mode_ms_delay>
+	<continuous_mode_ms_delay>15</continuous_mode_ms_delay>
 	<!--Whether to print roll, pitch and yaw to command prompt whenever IK is calculated, or not.-->
 	<print_roll_pitch_yaw>false</print_roll_pitch_yaw>
 	<!--Whether to reset clock to zero when continuous mode begins instead of using the calibration moment as the zero time point.-->
@@ -26,12 +24,16 @@
 	<socket_port>5010</socket_port>
 	<!--Maximum number of concurrent worker threads for multithreading.-->
 	<threads>8</threads>
+	<!--Maximum number of time points for orientations in the shared buffer in the producer-consumer scheme.-->
+	<max_buffer_size>8</max_buffer_size>
 	<!--Live EMG plotting requires Python 3 and slows down EMG retrieval.-->
 	<enable_EMG_plotting>false</enable_EMG_plotting>
 	<!--If given the option to choose, use Xsens IMUs, Delsys IMUs or simulated data?-->
 	<IMU_manufacturer>simulated</IMU_manufacturer>
 	<!--If using simulated IMU data, which IMUs do we simulate?-->
-	<simulated_bodies>pelvis_imu torso_imu femur_r_imu femur_l_imu</simulated_bodies>
+	<simulated_bodies>pelvis_imu femur_r_imu femur_l_imu tibia_r_imu tibia_l_imu humerus_r_imu humerus_l_imu radius_r_imu radius_l_imu</simulated_bodies>
 	<!--Whether to save quaternions that represent IMU orientations to file.-->
 	<save_quaternions_to_file>true</save_quaternions_to_file>
+	<!--Whether to print information about drift and RPY angles for each sensor to command window. NOTE: If you use this with simulated IMU data, the command window will be cluttered.-->
+	<enable_imu_feedback>false</enable_imu_feedback>
 </MainConfiguration>

@@ -29,6 +29,8 @@ namespace OpenSimLive
         template<class F, class... Types>
         void offerFuture(F&& function, Types&&... args); // we use this function to feed functions to the pool
 
+        void waitForFinish(); // wait until vector_ is empty and there are no more futures running
+
     private:
         std::vector<std::future<void>> vector_; // this vector stores the future threads
         ThreadPool* threadPool_; // this points to the ThreadPool object that handles the actual pooling

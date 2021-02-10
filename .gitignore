@@ -18,3 +18,8 @@ OpenSimLive-results/QuaternionTimeSeriesSimulated.txt
 OpenSimLive-results/QuaternionTimeSeriesXsens.txt
 OpenSimLive-results/QuaternionTimeSeriesDelsys.txt
 OpenSimLive-results/EMGTimeSeries.txt
+Config/gait2392_simbody_calibrated.osim
+OpenSimLive-results/Alt-IK.txt
+TimePoints-*
+Config/FullBodyModel_SimpleArms_Hamner2010_Markers_v2_0_calibrated.osim
+OpenSimLive-results/IK-live-radians.mot

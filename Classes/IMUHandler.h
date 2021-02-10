@@ -33,11 +33,23 @@ namespace OpenSimLive {
 		OpenSim::TimeSeriesTable_<SimTK::Quaternion> getQuaternionTable() { return quaternionTimeSeriesTable_; };
 		// this is an option that combines updateQuaternionTable() and getQuaternionTable(), resulting in better performance because quaternionTimeSeriesTable_ variable is not needlessly initialized here
 		OpenSim::TimeSeriesTable_<SimTK::Quaternion> updateAndGetQuaternionTable();
+		// return time
+		double getTime();
+		// update and return time
+		//double updateTime();
+		// enable or disable IMU feedback
+		void setEnableIMUFeedback(bool setting) { enable_IMU_feedback_ = setting; }
+		// generate identity quaternions
+		void generateIdentityQuaternions();
 
 	protected:
 			
 	private:
 		// PRIVATE METHODS
+		// converts a quaternion to roll, pitch and yaw angles (in degrees)
+		std::array<double, 3> quaternionToRPY(SimTK::Quaternion_<double> quat);
+		// calculates an estimate of drift as the norm of vector (roll-prevRoll, pitch-prevPitch, yaw-prevYaw) and prints it
+		void estimateDrift();
 
 		// PRIVATE VARIABLES
 		// holds the enumerable that is delsys, xsens or simulated
@@ -52,6 +64,13 @@ namespace OpenSimLive {
 		OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable_;
 		// a quaternion vector for xsensObject_; needed to call GetQuaternionData(std::vector<XsQuaternion>) instead of getQuaternionData(), which is much slower
 		std::vector<XsQuaternion> quatVector_;
+
+		// contains the latest RPY arrays for all sensors
+		std::vector<std::array<double, 3>> RPYVector_;
+		// iterating index that is used to determine how often drift is displayed
+		unsigned int driftInterval_ = 0;
+		// whether to use drift estimation and printing RPY angles for each sensor
+		bool enable_IMU_feedback_ = false;
 
 	}; // end of class
 }

@@ -13,6 +13,8 @@ using namespace OpenSimLive;
 // CONSTRUCTOR
 SimulatedDataReader::SimulatedDataReader() {
 	populateLabelVector();
+	// randomize seed based on current time
+	srand(std::time(NULL));
 }
 
 // DESTRUCTOR
@@ -64,19 +66,19 @@ void SimulatedDataReader::updateQuaternionTable() {
 		SimTK::Quaternion quat = generateQuaternion();
 		quatMatrix.set(0, m, quat);
 		if (saveQuaternionsToFile_) {
-			//std::cout << quat << std::endl;
 			quaternions_[m] = quat;
 		}
 	}
+
+	// get current time
+	clockNow_ = std::chrono::high_resolution_clock::now();
+	// update elapsed time (clockDuration_)
+	clockDuration_ = (clockNow_ - clockStart_);
 
 	// if we are going to save quaternions to file later, push current quaternions to relevant vectors and update timevector
 	if (saveQuaternionsToFile_) {
 		// push quaternions into vector
 		quaternionData_.push_back(quaternions_);
-		// get current time
-		clockNow_ = std::chrono::high_resolution_clock::now();
-		// update elapsed time (clockDuration_)
-		clockDuration_ = (clockNow_ - clockStart_);
 		// push time into vector
 		timeVector_.push_back(clockDuration_.count());
 	}
@@ -116,12 +118,12 @@ void SimulatedDataReader::saveQuaternionsToFile(const std::string& rootDir, cons
 		outputFile << "Time (s)";
 
 		for (unsigned int j = 0; j < labelsSize_; ++j) {
-			outputFile << "\t Quaternion" + std::to_string(j + 1);
+			outputFile << "\t" << labels_[j];
 		}
 
 		for (unsigned int i = 0; i < quaternionData_.size(); ++i) { // iteration through rows
 			// after the first 2 rows of text, start with a new line and put time values in the first column
-			outputFile << "\n" << std::setprecision(9) << timeVector_[i];
+			outputFile << "\n" << std::setprecision(outputPrecision_) << timeVector_[i];
 			for (unsigned int j = 0; j < labelsSize_; ++j) {
 				// then input quaternion values, separating them from time and other quaternion values with a tab
 				outputFile << "\t" << quaternionData_[i][j];
@@ -136,3 +138,36 @@ void SimulatedDataReader::saveQuaternionsToFile(const std::string& rootDir, cons
 }
 
 
+
+
+
+// updates quatTable_ with new quaternion values that are all identity quaternions; used for performance testing purposes
+void SimulatedDataReader::generateIdentityQuaternions() {
+	// create a quaternion matrix for time series table
+	SimTK::Matrix_<SimTK::Quaternion> quatMatrix(1, labelsSize_);
+	// loop through all elements of labels_ (the vector containing labels for IMUs on the model)
+	for (unsigned int m = 0; m < labelsSize_; ++m) {
+		// generate a new identity quaternion on a spot in the matrix
+		SimTK::Quaternion quat(1, 0, 0, 0);
+		quatMatrix.set(0, m, quat);
+		if (saveQuaternionsToFile_) {
+			//std::cout << quat << std::endl;
+			quaternions_[m] = quat;
+		}
+	}
+
+	// if we are going to save quaternions to file later, push current quaternions to relevant vectors and update timevector
+	if (saveQuaternionsToFile_) {
+		// push quaternions into vector
+		quaternionData_.push_back(quaternions_);
+		// get current time
+		clockNow_ = std::chrono::high_resolution_clock::now();
+		// update elapsed time (clockDuration_)
+		clockDuration_ = (clockNow_ - clockStart_);
+		// push time into vector
+		timeVector_.push_back(clockDuration_.count());
+	}
+
+	// finally create/overwrite the time series table using the randomized quaternion data
+	quatTable_ = OpenSim::TimeSeriesTable_<SimTK::Quaternion>({ 0 }, quatMatrix, labels_);
+}

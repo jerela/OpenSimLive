@@ -21,6 +21,10 @@ namespace OpenSimLive {
 		OpenSim::TimeSeriesTable_<SimTK::Quaternion> getTimeSeriesTable() { return quatTable_; }
 		// enable or disable quaternion saving to file
 		void setSaveQuaternions(bool setting) { saveQuaternionsToFile_ = setting; }
+		// generates identity quaternions (for example for IK throughput testing)
+		void generateIdentityQuaternions();
+		// returns current time as double
+		double getTime() { return clockDuration_.count(); }
 		
 	protected:
 			
@@ -37,6 +41,8 @@ namespace OpenSimLive {
 		std::vector<std::string> labels_;
 		// size of labels; fairly unimportant, but it helps to have this to prevent calling vector::size() twice whenever updateQuaternionTable() is called
 		unsigned int labelsSize_ = 0;
+		// number of decimals for numbers in output files
+		std::streamsize outputPrecision_ = 15;
 
 		// time values are saved here for later saving to file
 		std::vector<double> timeVector_;

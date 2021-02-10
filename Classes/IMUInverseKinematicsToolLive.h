@@ -10,6 +10,7 @@
 #include <OpenSim/Simulation/OrientationsReference.h>
 #include <PointTracker.h>
 #include <array>
+#include <atomic>
 
 namespace OpenSimLive {
 
@@ -27,6 +28,7 @@ namespace OpenSimLive {
 		bool IMUInverseKinematicsToolLive::run(const bool visualizeResults);
 		void IMUInverseKinematicsToolLive::update(const bool visualizeResults, const bool offline = false);
 		void IMUInverseKinematicsToolLive::update(const bool visualizeResults, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quat, const bool offline = false);
+		void IMUInverseKinematicsToolLive::updateOrdered(const bool visualizeResults, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quat, unsigned int orderIndex, double time, const bool offline = false);
 		void reportToFile();
 
 		// PUBLIC METHODS DEFINED HERE
@@ -34,6 +36,7 @@ namespace OpenSimLive {
 		std::vector<double> getQ() { return q_; }
 		std::array<double, 6> getPointTrackerPositionsAndOrientations() { return pointTrackerPositionsAndOrientations_; }
 		void setTime(const double time) { time_ = time; }
+		double getTime() { return time_; }
 		void setQuaternion(const OpenSim::TimeSeriesTable_<SimTK::Quaternion>& newQuat) { quat_ = newQuat; }
 		void setModel(const OpenSim::Model& newModel) { model_ = newModel; }
 		void setModelFile(const std::string& newModelFile) { model_ = OpenSim::Model(newModelFile); }
@@ -42,14 +45,23 @@ namespace OpenSimLive {
 		void setPointTrackerReferenceBodyName(const std::string& referenceBodyName) { pointTrackerReferenceBodyName_ = referenceBodyName; }
 		void setPointTrackerBodyName(const std::string& bodyName) { pointTrackerBodyName_ = bodyName; }
 		void setReportErrors(bool report) { report_errors = report; }
+		// set accuracy for IK solver
 		void setAccuracy(double accuracy) { accuracy_ = accuracy; }
+		// set the name of the IK output file
+		void setOutputFileName(std::string newFileName) { outputFileName_ = newFileName; }
+		// set the name of the data inside the IK output file
+		void setOutputDataName(std::string newDataName) { outputDataName_ = newDataName; }
 
 	private:
 		// PRIVATE VARIABLES
 		std::string OpenSimLiveRootDirectory_ = "";
+		// name of the IK output file without file format suffix
+		std::string outputFileName_ = "IK-live";
+		// name of the IK output data
+		std::string outputDataName_ = "IK-live";
 		double accuracy_ = 1e-5;
 		OpenSim::TimeSeriesTable* modelOrientationErrors_;
-		OpenSim::TableReporter* ikReporter_;
+		OpenSim::TableReporter* ikReporter_ = NULL;
 		SimTK::State s_; // the state we use for visualization
 		double time_ = 0; // time since calibration
 		SimTK::Vec3 sensor_to_opensim_rotations = { -1.5707963267948966, 0, 0 }; // the rotations applied to IMU coordinate systems to match its axes to OpenSim coordinate system
@@ -62,6 +74,17 @@ namespace OpenSimLive {
 		std::string pointTrackerBodyName_ = "";
 		std::string pointTrackerReferenceBodyName_ = "pelvis";
 		double lastUpdatedTime_ = 0;
+		// labels of sensors (e.g. "pelvis_imu")
+		SimTK::Array_<std::string> labels_;
+		// atomic integer serving as temporary fake time for states that we use to realize report for ikReporter_
+		std::atomic<unsigned long> atomicTimeIndex_ = 0;
+
+		std::atomic<unsigned int> debugCounter1_ = 0;
+		std::atomic<unsigned int> debugCounter2_ = 0;
+		
+		// for ordered IK
+		std::vector<unsigned int> orderedIndexVector_;
+		std::vector<double> orderedTimeVector_;
 
 		// PRIVATE METHODS DEFINED HERE
 		SimTK::Vec3 get_sensor_to_opensim_rotations() { return sensor_to_opensim_rotations; }
@@ -75,6 +98,7 @@ namespace OpenSimLive {
 
 		// PRIVATE METHODS DEFINED IN THE .CXX FILE
 		void updateInverseKinematics(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, const bool visualizeResults = false, const bool offline = false);
+		void updateOrderedInverseKinematics(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, unsigned int orderIndex, double time, const bool visualizeResults = false, const bool offline = false);
 		void updateJointAngleVariable(SimTK::State& s, OpenSim::Model& model);
 		void updatePointTracker(SimTK::State s);
 		void startDecorationGenerator();
