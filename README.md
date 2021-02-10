@@ -4,7 +4,6 @@
   * [Prerequisites](#prerequisites)
   * [Installing](#installing)
   * [Running the program](#running-the-program)
-  * [Running the tests](#running-the-tests)
 - [How it works](#how-it-works)
 - [Descriptions of files](#descriptions-of-files)
 - [Troubleshooting and FAQ](#troubleshooting-and-faq)
@@ -16,9 +15,9 @@
 <!-- toc -->
 
 
-OpenSimLive is a C++ package that streams orientation data from inertial measurement units and calculates inverse kinematics based on that data. It relies on OpenSim for biomechanical analyses and related tools. The current version uses [OpenSim 4.1 API](https://simtk.org/api_docs/opensim/api_docs/index.html). Two types of IMUs are supported: Xsens MTw Awinda and Delsys Trigno Avanti. Xsens IMUs use XDA 4.6 and Delsys IMUs use Delsys Trigno Control Utility.
+OpenSimLive is a C++ package that streams orientation data from inertial measurement units and calculates inverse kinematics based on that data. It relies on OpenSim for biomechanical analyses and related tools. The current version uses [OpenSim 4.1 API](https://simtk.org/api_docs/opensim/api_docs/index.html). Two types of IMUs are currently supported: Xsens MTw Awinda and Delsys Trigno Avanti. Xsens IMUs use XDA 4.6 and Delsys IMUs use Delsys Trigno Control Utility.
 
-Some of OpenSimLive's features can be tested without actual IMUs by using fake IMU data that that OpenSimLive generates as random unit quaternions.
+Some of OpenSimLive's features can be tested without actual IMUs by using simulated IMU data that that OpenSimLive generates as random unit quaternions.
 
 ## Getting started
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
@@ -59,47 +58,25 @@ Step by step instructions on how to install this project.
 - The two last entries are not required unless you wish to plot EMG data with Delsys IMUs.
 - Finally, select **Generate**.
 3. Open Visual Studio. Open the solution you just generated in the build directory. Build **ALL_BUILD**. Visual Studio should now create the required executable(s) in a subdirectory in the build directory. It will probably be **.../BuildFolderName/MirrorTherapy/RelWithDebInfo/** for mirror therapy applications and **.../BuildFolderName/Tests/RelWithDebInfo/** for tests.
-4. Copy **xsensdeviceapi64.dll** and **xstypes64.dll** from .../Xsens/MT Software Suite 4.6/MT SDK/x64/lib to the directories where **OSL_common.exe** and **test_IK_speed** are or add their locations to the *PATH* environmental variable. **This is required to run Xsens-related scripts, but is otherwise optional.**
+4. Copy **xsensdeviceapi64.dll** and **xstypes64.dll** from .../Xsens/MT Software Suite 4.6/MT SDK/x64/lib to the directories where the executables are or add their locations to the *PATH* environmental variable. **This is required to run Xsens-related scripts, but is otherwise optional.**
 5. Go to **.../OpenSimLive/Config** and make sure the .xml files have the right values for your directory paths.
 6. Installation complete. You are ready to run OpenSimLive.
 
 ### Running the program
 
-The main mirror therapy program (**OSL_common**) and most other programs and tests are controlled by keyboard input. Calibrating a model will open a visualization in another window, so make sure you select the command console window as the active window to ensure keyboard input is successfully read.
+The main program (**OSL_core**) and most other programs and tests are controlled by keyboard input. Calibrating a model will open a visualization in another window, so make sure you select the command console window as the active window to ensure keyboard input is successfully read.
 
 If you have set IMU manufacturer as "xsens" in MainConfiguration.xml, then when the program starts, it will look for active Xsens IMUs. Make sure your IMUs are on and not on standby mode (move them until a red light starts blinking). The program will list all IMUs it can connect to in a numbered order and finding an IMU may take a few seconds. When the program lists all the IMUs you want to use, press Y on your keyboard to continue.
 
 If you have set IMU manufacturer as "delsys" in MainConfiguration.xml, then the program will start reading data stream from Delsys Trigno Control Utility.
 
-Finally, you can run the program without any actual IMUs by setting manufactured as "simulated", in which case the program will create random quaternions for IMU orientations. The visualization of the skeletal model in this case will not look sensible, but will instead change to random and sometimes unnatural orientations with each new frame.
+Finally, you can run the program without any actual IMUs by setting manufactured as "simulated", in which case the program will create random quaternions for IMU orientations. The visualization of the skeletal model in this case will not look sensible, but will instead change to random and often unnatural orientations with each new frame.
 
-If **station_parent_body** in **Config/MainConfiguration.xml** is set to anything but "none", the program (acting as a server for socket communication) will wait for another program (the client) to connect to it. For testing purposes, you can run **JavaClient/run.bat** at this point to execute a program that receives data from the server. When the connection is made, the main program will automatically continue. Make sure that *socket_port* in **.../OpenSimLive/Config/MainConfiguration.xml** matches the first line of **.../OpenSimLive/JavaClient/conf.txt** so that the client can connect to the server with the right port.
+The program should print input instructions in the command window. Pressing C will calibrate the model.
 
-The program should print input instructions in the command window. Pressing L will set a reference orientation for the base segment IMU and pressing C will calibrate the model.
-Setting a reference orientation with L is not necessary, but is used to acknowledge differences in coordinate system rotations between the base body on the model and the rehabilitation robot. When L is pressed, the IMU on the base segment should be facing the same way as the robot's coordinate system. For example, if the robot is mounted on a wall 180 degrees opposite to the patient during the rehabilitation session, then the base segment IMU should first be placed on a surface that is parallel to the base of the robot and in a way that the IMU would be on the patient's base segment if the patient was sitting with their back to the base of the robot. After reference orientation is set, the IMU should be placed back on the patient's base segment and the model should then be calibrated. During inverse kinematics the current position of the base segment IMU is then used to correct the mirrored rotations and positions of the body to be rehabilitated, before they are sent to the client.
-If a reference orientation is not set, during inverse kinematics the program will assume that there is a 180 degree rotation around the vertical axis between coordinate systems of the robot and the base segment of the patient, but position data won't be rotated. Therefore only rotation data is corrected in this case.
+After the model is calibrated, you can enable continuous inverse kinematics with N and disable them with M. The visualization window will show the solved joint angles on the model.
 
-To enable sending data to the client, you must press V. Pressing B will disable this feature.
-
-After the model is calibrated, you can enable continuous inverse kinematics and rotation/position mirroring operations with N and disable them with M. The visualization window will show the solved joint angles on the model. If data sending is enabled, the calculated data is automatically sent to the client. You can also press Z to calculate IK and rotation/position mirroring operations at a single time point.
-
-Delsys sensors will allow you to measure EMG. Pressing A will begin EMG measurement and S will pause it.
-
-When you are finished, pressing X will quit the program. At this point the program will save IK results, IK errors and calculated mirrored positions and rotations to **IK-live.mot**, **IK-live_orientationErrors.sto** and **PointTrackerOutput.txt**, respectively, in **.../OpenSimLive/OpenSimLive-results/**.
-
-### Running the tests
-
-There are currently four tests, **test_EMG**, **test_Xsens_IK_speed**, **test_Xsens_IK_speed_multithread** and **test_IK_speed_multithread**. They are found in /Tests/ in the source directory and in a similar separate Tests folder in the build directory. Note that **xsensdeviceapi64.dll** and **xstypes64.dll** from .../Xsens/MT Software Suite 4.6/MT SDK/x64/lib must be copied to the folder where the test executables are to run IK speed tests.
-
-**test_Xsens_IK_speed** measures how many inverse kinematics operations are performed over a time that the user inputs in seconds while using Xsens sensors. **test_Xsens_IK_speed_multithread** does the same with user-given amount of CPU threads.
-
-**test_IK_speed_multithread** measures how many inverse kinematics operations are performed over a time that the user inputs in seconds. The user also inputs the number of threads to be used. This test supports Xsens or Delsys IMUs or simulated data.
-
-All tests except **test_EMG** calculate point position tracking operations for mirror therapy if **station_parent_body** in **.../OpenSimLive/Config/MainConfiguration.xml** is not set to *none*.
-When the tests finish, results are printed on the command prompt. They include how many IK (and possibly point tracking) operations were performed in total, how much time was elapsed and how many operations were performed on average per second.
-
-**test_EMG** reads EMG data from Delsys sensors and outputs the throughput (EMG values read per second) when you finish the program.
-
+When you are finished, pressing X will quit the program. At this point the program will save IK results to **IK-live.mot** and read quaternion data to **QuaternionTimeSeriesTableXsens.txt**, **QuaternionTimeSeriesTableDelsys.txt** or **QuaternionTimeSeriesTableSimulated.txt** in **.../OpenSimLive/OpenSimLive-results/**.
 
 ## How it works
 
@@ -120,18 +97,18 @@ This class calculates inverse kinematics on the model based on IMU orientation d
 This method is used to calculate the initial IK and establish the initial state of the system. It is supposed to be called only once per calibration, directly after the calibration, and it calculates the inverse kinematics at the initial time point. Subsequent IK calculations are done with IMUInverseKinematicsToolLive::updateInverseKinematics().
 This method is private and should be invoked from other classes by IMUInverseKinematicsToolLive::run().
 
-#### IMUInverseKinematicsToolLive::updateInverseKinematics()
+#### IMUInverseKinematicsToolLive::updateOrderedInverseKinematics()
 
 This method is used to calculate inverse kinematics repeatedly. It can be run concurrently by different threads. If PointTracker is enabled, PointTracker calculations are performed at the end of this method.
-This method is private and should be invoked from other classes by IMUInverseKinematicsToolLive::update().
+This method is private and should be invoked from other classes through IMUInverseKinematicsToolLive::updateOrdered().
 
 ### PointTracker
 
-This class takes the position and parent body of a point in the model and a reference body as input. The position of the point is then expressed in the reference body's coordinate system and reflected with respect to the z axis of that coordinate system. The orientation of the point's parent body is similarly mirrored. The class is independent in the sense that it doesn't inherit other classes and isn't based on any existing classes, although its methods make extensive use of the OpenSim 4.1 API.
+This class is for mirror therapy applications. It takes the position and parent body of a point in the model and a reference body as input. The position of the point is then expressed in the reference body's coordinate system and reflected with respect to the z axis of that coordinate system. The orientation of the point's parent body is similarly mirrored. The class is independent in the sense that it doesn't inherit other classes and isn't based on any existing classes, although its methods make extensive use of the OpenSim 4.1 API.
 
 #### PointTracker::runTracker()
 
-This method is the "main" method of this class and calls other methods to perform individual parts of the calculations. These calculations sometimes require writable references to OpenSim::Model and SimTK::State, which is why the method has to be invoked in IMUInverseKinematisToolLive::updateInverseKinematics().
+This method is the "main" method of this class and calls other methods to perform individual parts of the calculations. These calculations sometimes require writable references to OpenSim::Model and SimTK::State, which is why the method has to be invoked in IMUInverseKinematisToolLive::updateOrderedInverseKinematics().
 
 #### PointTracker::addStationToBody()
 
@@ -143,7 +120,7 @@ This class establishes the connection to Xsens MTw Awinda inertial measurement u
 
 #### XsensDataReader::GetQuaternionData()
 
-This method takes a vector of XsQuaternion objects as its input. If any IMUs have new data, it updates the quaternion orientation values in the vector for that IMU. In any case the input vector is returned.
+TO BE UPDATED
 
 ### DelsysDataReader
 
@@ -161,16 +138,15 @@ Now imagine that we use sensors 1, 2, 3, 4, 9, 10, 11 and 12. If the method star
 
 ### SimulatedDataReader
 
-This is a very simple class that creates quaternions from a random distribution and lets the program use those quaternions as IMU orientations. It can be used in **OSL_common** if you do not wish to use actual IMUs.
+This is a very simple class that creates quaternions from a random distribution and lets the program use those quaternions as IMU orientations. It can be used in **OSL_core** if you do not wish to use actual IMUs.
 
 ### IMUHandler
 
-This class can be used as a "generic data reader" class for IMUs. It is used in **test_common** to invoke methods from DelsysDataReader or XsensDataReader. Because of slight differences in the working principles of DelsysDataReader and XsensDataReader, the methods invoked by IMUHandler are not always exactly identical to the methods invoked by the corresponding data reader class.
+This class can be used as a "generic data reader" class for IMUs. It is used to invoke methods from DelsysDataReader or XsensDataReader. Because of slight differences in the working principles of DelsysDataReader and XsensDataReader, the methods invoked by IMUHandler are not always exactly identical to the methods invoked by the corresponding data reader class.
 
 ### ThreadPoolContainer
 
 This class controls the number of worker threads during multithreading and works as an interface to access the ThreadPool class. When constructed with an integer parameter N, ThreadPoolContainer creates a ThreadPool object with N worker threads. This class ensures that the user has control over how many worker threads run at a time.
-This class is not necessary if multithreading is not used.
 
 #### ThreadPoolContainer::offerFuture()
 
@@ -182,11 +158,11 @@ This class is based on [Keith Vertanen's Java / C++ socket class](https://www.ke
 
 ### Server
 
-Like Client, this class is also based on Keith Vertanen's work. It enables socket communication between this program and the Java client that is used to control the robot arm in mirror therapy.
+Like Client, this class is also based on Keith Vertanen's work. It enables socket communication between this program and the Java client that is used to control the robot arm during mirror therapy.
 
 ### PythonPlotter
 
-This class can be used to plot data, but it requires Python3 with matplotplib. The main program freezes when embedded Python commands are interpreted and the procedure is not thread-safe. Thus using this class during any data loops will slow them down.
+This class can be used to plot data, but it requires Python3 with matplotplib. The main program freezes when embedded Python commands are interpreted and the procedure is not thread-safe. Thus using this class during any data loops will slow them down. CURRENTLY NOT IN USE, TO BE REPLACED/UPDATED
 
 ## Descriptions of files
 
@@ -210,17 +186,18 @@ This XML file contains most user-defined settings that can be easily changed wit
 - **imu_placer_setup_file**: The XML file that contains information for model calibration. It is IMUPlacerSetup.xml by default and will not require changes unless you wish to have several setup files and switch between them this way.
 - **save_ik_results**: A simple true/false boolean to toggle if time series of solved joint angles and their errors should be saved to **.../OpenSimLive/OpenSimLive-results/** as IK_live.mot and IK-live_orientationErrors.sto, respectively.
 - **continuous_mode_ms_delay**: When reading data continuously from IMUs, this sets the minimum delay (in milliseconds) between consecutive time points for IK. If visualizing IK and this is too low, visualizer will "clog up", which shows as low FPS and a delay between the actual movement and the model's movement. Aim for a value that allows the FPS you want, but isn't much lower.
-- **print_roll_pitch_yaw**: When this is true, Xsens IMUs will print their roll, pitch and yaw angles to console.
-- **reset_clock_on_continuous_mode**: When this is true, the clock for IK time series will be restarted from zero whenever you re-enter continuous mode. When this is false, the clock will start running when you calibrate the model and then keep running no matter how many pauses from continuous mode you take.
+- **print_roll_pitch_yaw**: When this is true, Xsens IMUs will print their roll, pitch and yaw angles to console. TO BE UPDATED
+- **reset_clock_on_continuous_mode**: When this is true, the clock for IK time series will be restarted from zero whenever you re-enter continuous mode. When this is false, the clock will start running when you calibrate the model and then keep running no matter how many pauses from continuous mode you take. TO BE UPDATED
 - **station_parent_body**: The body on the OpenSim model that we want to mirror, such as a rehabilitation patient's healthy hand whose movement we want to mirror. Relevant only if you use PointTracker for mirror therapy applications. Set to "none" if you don't need it.
 - **station_location**: Location of the station to be mirrored in the coordinate system of station_parent_body. Given in metres. Relevant only if you use mirror therapy applications, ignored otherwise.
-- **station_reference_body**: The body on the OpenSim model with respect to which we mirror station_parent body. The mirroring is done with respect to the XY plane of station_reference_body. Relevant only if you use mirror therapy applications, ignored otherwise.
+- **station_reference_body**: The body on the OpenSim model with respect to which we mirror station_parent_body. The mirroring is done with respect to the XY plane of station_reference_body. Relevant only if you use mirror therapy applications, ignored otherwise.
 - **socket_port**: Port for socket communication between the server (OpenSimLive) and the client (such as a Java program that controls a robotic rehabilitation arm). Relevant only if you use mirror therapy applications, ignored otherwise.
-- **threads**: The number of CPU threads to use for multithreading.
-- **enable_EMG_plotting**: If set to true, real-time EMG data will be plotted as its read at a very low FPS. This will prevent the program to read EMG data at frequencies necessary for EMG analysis. Relevant only if you use EMG reading applications.
+- **threads**: The maximum allowed number of concurrent IK threads to use for multithreading.
+- **max_buffer_size**: Maximum number of points that can be saved into the buffers that are shared between the producer thread and the consumer thread. It is recommended that this is at least the number of concurrent IK threads.
+- **enable_EMG_plotting**: If set to true, real-time EMG data will be plotted as its read at a very low FPS. This will prevent the program to read EMG data at frequencies necessary for EMG analysis. Relevant only if you use EMG reading applications. TO BE UPDATED
 - **IMU_manufacturer**: Either "simulated", "delsys" or "xsens". See [Running the program](#running-the-program) for more information.
-- **simulated_bodies**: List of bodies on the OpenSim Model, with suffix "_imu". If we are simulating IMU data, random orientations will be generated for these bodies. Irrelevant otherwise.
-- **save_quaternions_to_file**: Boolean to toggle if quaternion data should be saved to file after the program finishes.
+- **simulated_bodies**: List of bodies on the OpenSim model, with suffix "\_imu". If we are simulating IMU data, random orientations will be generated for these bodies. Irrelevant otherwise.
+- **save_quaternions_to_file**: Boolean that toggles if quaternion data is saved to file after the program finishes.
 
 ### DelsysMappings.xml
 
@@ -256,7 +233,7 @@ Make sure that **IMUPlacerSetup.xml** in **.../OpenSimLive/Config/** has the cor
 
 #### The program is stuck after printing "Waiting for ack..."
 
-OpenSimLive is waiting on client program that is receiving data to acknowledge it received data. This is an issue with data not getting back to OpenSimLive, likely because the client has stopped working. The issue is therefore in the client program and not in OpenSimLive.
+OpenSimLive is waiting on client program that is receiving data to acknowledge it received data. This is an issue with data not getting back to OpenSimLive, likely because the client program has stopped working.
 
 ## Authors
 
