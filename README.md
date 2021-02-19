@@ -323,7 +323,7 @@ freely, subject to the following restrictions:
 
 ### Copyright for IMUInversekinematicsToolLive.h, IMUInverseKinematicsToolLive.cpp, IMUPlacerLive.h and IMUPlacerLive.cpp
 
-These four files are originally the work of the developers and contributors of [OpenSim](https://github.com/opensim-org/opensim-core), subject to [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0). The author of OpenSimLive has modified these files.
+These four files are originally the work of the developers and contributors of [OpenSim](https://github.com/opensim-org/opensim-core), subject to [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0). The author of OpenSimLive has modified and renamed these files. The original file names are similar, but do not contain "Live" in the end before the file format suffix.
 
 ## Acknowledgements
 
