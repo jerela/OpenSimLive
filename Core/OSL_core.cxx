@@ -28,11 +28,7 @@ struct VariableManager {
 	std::string stationReferenceBody = ConfigReader("MainConfiguration.xml", "station_reference_body"); // get the name of the reference body used in mirror therapy
 	double calibTime = 0; // the time calibration is performed
 
-	//std::chrono::steady_clock::time_point clockStart = std::chrono::high_resolution_clock::now(); // get the starting time of IMU measurement loop
-	//std::chrono::steady_clock::time_point clockNow = std::chrono::high_resolution_clock::now(); // this value will be updated in the loop
-	//std::chrono::steady_clock::time_point clockPrev = clockStart; // this value will be updated in the loop to present the time point of the previous IK calculation
-	//std::chrono::duration<double> clockDuration;
-	//std::chrono::duration<double> prevDuration;
+	std::vector<std::string> visualizedCoordinates = ConfigReaderVector("MainConfiguration.xml", "visualized_coordinates");
 
 	unsigned int orderIndex = 0;
 	std::queue<OpenSim::TimeSeriesTableQuaternion> orientationBuffer;
@@ -185,6 +181,8 @@ int main(int argc, char* argv[])
 	//vm.clockPrev = vm.clockStart;
 
 	OpenSimLive::IMUInverseKinematicsToolLive IKTool; // object that calculates IK
+	// give the names of coordinates to visualize to IKTool
+	IKTool.setVisualizedJointAnglesVector(vm.visualizedCoordinates);
 	// whether IKTool writes IK orientations into a .mot file when program finishes
 	IKTool.setReportErrors(vm.saveIKResults);
 	// whether PointTracker (through IKTool) writes calculated mirrored positions and rotations into a .sto file when program finishes

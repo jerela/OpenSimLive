@@ -72,11 +72,11 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
     // define the model's internal data members and structure according to its properties, so we can use updComponentList to find all of its <Coordinate> elements
     std::cout << "Finalizing model from properties." << std::endl;
     model_.finalizeFromProperties();
-    auto coordinates = model_.updComponentList<OpenSim::Coordinate>();
-
+    modelCoordinates_ = std::make_unique<OpenSim::ComponentList<OpenSim::Coordinate>>(model_.updComponentList<OpenSim::Coordinate>());
+    
     // Hookup reporter inputs to the individual coordinate outputs
     // and lock coordinates that are translational since they cannot be
-    for (auto& coord : coordinates) {
+    for (auto& coord : *modelCoordinates_) {
         if (get_report_errors())
             ikReporter_->updInput("inputs").connect(coord.getOutput("value"), coord.getName());
         if (coord.getMotionType() == OpenSim::Coordinate::Translational) {
@@ -147,6 +147,27 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
         model_.updVisualizer().updSimbodyVisualizer().setMode(SimTK::Visualizer::Mode::PassThrough); // try RealTime mode instead for better FPS?
         model_.updVisualizer().updSimbodyVisualizer().setDesiredFrameRate(100);
         model_.updVisualizer().updSimbodyVisualizer().setDesiredBufferLengthInSec(0);
+
+        if (true) {
+            // add a slider to show the values of the selected coordinates
+            // loop through all coordinates that have been named by the used in visualizedJointAnglesVector
+            for (unsigned int i = 0; i < visualizedJointAnglesVector_.size(); ++i) {
+                // loop through all coordinates found on the model itself
+                for (auto& coord : *modelCoordinates_) {
+                    // if we find a user-named coordinate on the model, initialize its slider in the visualization window
+                    if (coord.getName() == visualizedJointAnglesVector_[i]) {
+                        double minValue = SimTK::convertRadiansToDegrees(coord.getRangeMin());
+                        double maxValue = SimTK::convertRadiansToDegrees(coord.getRangeMax());
+                        double defaultValue = SimTK::convertRadiansToDegrees(coord.getDefaultValue());
+                        // add the slider itself
+                        model_.updVisualizer().updSimbodyVisualizer().addSlider(visualizedJointAnglesVector_[i], i, minValue, maxValue, defaultValue);
+                        std::cout << "Added slider with ID " << i << " for coordinate " << coord.getName() << std::endl;
+                        break;
+                    }
+                }
+            }
+        }
+
         // prepare to visualize the mirrored point
         if (getPointTrackerEnabled())
         {
@@ -393,7 +414,15 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
         concurrentIKMutex.unlock();
     }
     else {
-        ikSolver.assemble(s);
+        try {
+            ikSolver.assemble(s);
+        }
+        catch (std::exception& e) {
+            std::cout << "Error in assembling IK solver: " << e.what() << std::endl;
+        }
+        catch (...) {
+            std::cout << "Unknown error in assembling IK solver!" << std::endl;
+        }
     }
     
     //++debugCounter2_;
@@ -416,6 +445,29 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
         catch (...) {
             std::cerr << "Unknown exception in visualizer" << std::endl;
         }
+
+        if (true) {
+            try {
+                // iterate through all coordinates that the user has named
+                for (unsigned int i = 0; i < visualizedJointAnglesVector_.size(); ++i) {
+                    // iterate through all coordinates defined on the model
+                    for (auto& coord : *modelCoordinates_) {
+                        // if a user-named coordinate is found on the model, update its value according to the latest solved state
+                        if (coord.getName() == visualizedJointAnglesVector_[i]) {
+                            model_.updVisualizer().updSimbodyVisualizer().setSliderValue(i, SimTK::convertRadiansToDegrees(coord.getValue(s)));
+                            break;
+                        }
+                    }
+                }
+            }
+            catch (std::exception& e) {
+                std::cout << "Error in IK thread: " << e.what() << std::endl;
+            }
+            catch (...) {
+                std::cout << "Error in IK thread!" << std::endl;
+            }
+        }
+
     }
 
     // if this thread hadn't expired already before visualization, run PointTracker

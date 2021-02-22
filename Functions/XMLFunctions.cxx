@@ -8,13 +8,39 @@ const std::string OPENSIMLIVE_ROOT = OPENSIMLIVE_ROOT_PATH;
 
 // This function reads variables such as model file to be used from an XML file.
 std::string ConfigReader(const std::string& fileName, const std::string& elementName) {
-	// get the file XML file
+	// get the XML file
 	SimTK::Xml::Document mainConfigXML(OPENSIMLIVE_ROOT + "/Config/" + fileName);
 	// get the root element of the XML file
 	SimTK::Xml::Element rootElement = mainConfigXML.getRootElement();
 	// get the child element of the root element
 	SimTK::Xml::Element soughtElement = rootElement.getRequiredElement(elementName);
 	return soughtElement.getValue();
+}
+
+// This function reads variables as a vector of strings from an XML file.
+std::vector<std::string> ConfigReaderVector(const std::string& fileName, const std::string& elementName) {
+	// get the XML file
+	SimTK::Xml::Document mainConfigXML(OPENSIMLIVE_ROOT + "/Config/" + fileName);
+	// get the root element of the XML file
+	SimTK::Xml::Element rootElement = mainConfigXML.getRootElement();
+	// get the child element of the root element
+	SimTK::Xml::Element soughtElement = rootElement.getRequiredElement(elementName);
+	// string containing all the substrings we want to separate into a vector
+	std::string wholeString = soughtElement.getValue();
+	// empty vector that will be populated and returned
+	std::vector<std::string> outputVector;
+	// stringstream is a simple way to separate the whitespace-separated elements from the whole string
+	std::stringstream ss(wholeString);
+	// loop through all elements (loop as long as there is anything left in the stringstream)
+	do {
+		// represents a piece of text separated by whitespaces from other text elements
+		std::string textElem;
+		// write from stringstream to IMULabel
+		ss >> textElem;
+		// push IMULabel in a vector
+		outputVector.push_back(textElem);
+	} while (!ss.eof());
+	return outputVector;
 }
 
 // This function returns the sensor to OpenSim rotations as defined in the IMU placer setup file.

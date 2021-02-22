@@ -36,4 +36,6 @@
 	<save_quaternions_to_file>true</save_quaternions_to_file>
 	<!--Whether to print information about drift and RPY angles for each sensor to command window. NOTE: If you use this with simulated IMU data, the command window will be cluttered.-->
 	<enable_imu_feedback>false</enable_imu_feedback>
+	<!--List of coordinates on the model. These coordinates will have a slider showing their value in the visualization window.-->
+	<visualized_coordinates>knee_angle_l knee_angle_r pelvis_rotation</visualized_coordinates>
 </MainConfiguration>

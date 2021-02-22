@@ -51,6 +51,7 @@ namespace OpenSimLive {
 		void setOutputFileName(std::string newFileName) { outputFileName_ = newFileName; }
 		// set the name of the data inside the IK output file
 		void setOutputDataName(std::string newDataName) { outputDataName_ = newDataName; }
+		void setVisualizedJointAnglesVector(std::vector<std::string> vector) { visualizedJointAnglesVector_ = vector; }
 
 	private:
 		// PRIVATE VARIABLES
@@ -85,6 +86,11 @@ namespace OpenSimLive {
 		// for ordered IK
 		std::vector<unsigned int> orderedIndexVector_;
 		std::vector<double> orderedTimeVector_;
+
+		// all coordinates that are defined in the model; defined after calibration
+		std::unique_ptr<OpenSim::ComponentList<OpenSim::Coordinate>> modelCoordinates_;
+		// vector of coordinates named by the user that we want to visualize for each time point with a slider 
+		std::vector<std::string> visualizedJointAnglesVector_;
 
 		// PRIVATE METHODS DEFINED HERE
 		SimTK::Vec3 get_sensor_to_opensim_rotations() { return sensor_to_opensim_rotations; }
