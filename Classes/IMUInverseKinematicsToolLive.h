@@ -90,9 +90,11 @@ namespace OpenSimLive {
 		// all coordinates that are defined in the model; defined after calibration
 		std::unique_ptr<OpenSim::ComponentList<OpenSim::Coordinate>> modelCoordinates_;
 		// vector of coordinates named by the user that we want to visualize for each time point with a slider and print on the console 
-		std::vector<std::string> trackedJointAnglesVector_;
+		std::vector<std::string> trackedCoordinateNames_;
 		// values of the tracked joint angles
 		std::vector<SimTK::Real> trackedCoordinateValues_;
+		// whether to print tracked coordinates to console
+		bool printTrackedCoordinates_ = false;
 
 		// PRIVATE METHODS DEFINED HERE
 		SimTK::Vec3 get_sensor_to_opensim_rotations() { return sensor_to_opensim_rotations; }

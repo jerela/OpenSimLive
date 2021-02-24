@@ -47,10 +47,11 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
     const bool visualizeResults) {
     
     // load the names of the coordinates to track from MainConfiguration.xml
-    trackedJointAnglesVector_ = ConfigReaderVector("MainConfiguration.xml", "tracked_coordinates");
-    if (trackedJointAnglesVector_[0] == "none") {
-        trackedJointAnglesVector_.resize(0);
+    trackedCoordinateNames_ = ConfigReaderVector("MainConfiguration.xml", "tracked_coordinates");
+    if (trackedCoordinateNames_[0] == "none") {
+        trackedCoordinateNames_.resize(0);
     }
+    printTrackedCoordinates_ = ("true" == ConfigReader("MainConfiguration.xml", "print_tracked_coordinates"));
 
     // Ideally if we add a Reporter, we also remove it at the end for good hygiene but 
     // at the moment there's no interface to remove Reporter so we'll reuse one if exists
@@ -156,19 +157,19 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
 
         if (true) {
             // resize and reserve a proper number of elements in the vector that stores coordinate values
-            trackedCoordinateValues_.resize(trackedJointAnglesVector_.size());
+            trackedCoordinateValues_.resize(trackedCoordinateNames_.size());
             // add a slider to show the values of the selected coordinates
             // loop through all coordinates that have been named by the used in visualizedJointAnglesVector
-            for (unsigned int i = 0; i < trackedJointAnglesVector_.size(); ++i) {
+            for (unsigned int i = 0; i < trackedCoordinateNames_.size(); ++i) {
                 // loop through all coordinates found on the model itself
                 for (auto& coord : *modelCoordinates_) {
                     // if we find a user-named coordinate on the model, initialize its slider in the visualization window
-                    if (coord.getName() == trackedJointAnglesVector_[i]) {
+                    if (coord.getName() == trackedCoordinateNames_[i]) {
                         double minValue = SimTK::convertRadiansToDegrees(coord.getRangeMin());
                         double maxValue = SimTK::convertRadiansToDegrees(coord.getRangeMax());
                         double defaultValue = SimTK::convertRadiansToDegrees(coord.getDefaultValue());
                         // add the slider itself
-                        model_.updVisualizer().updSimbodyVisualizer().addSlider(trackedJointAnglesVector_[i], i, minValue, maxValue, defaultValue);
+                        model_.updVisualizer().updSimbodyVisualizer().addSlider(trackedCoordinateNames_[i], i, minValue, maxValue, defaultValue);
                         std::cout << "Added slider with ID " << i << " for coordinate " << coord.getName() << std::endl;
                         break;
                     }
@@ -438,13 +439,13 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
     s.updTime() = time;
 
     // populate trackedCoordinateValues_ with joint angle values for specified coordinates
-    if (trackedJointAnglesVector_.size() > 0) {
+    if (trackedCoordinateNames_.size() > 0) {
         // iterate through all coordinates that the user has named
-        for (unsigned int i = 0; i < trackedJointAnglesVector_.size(); ++i) {
+        for (unsigned int i = 0; i < trackedCoordinateNames_.size(); ++i) {
             // iterate through all coordinates defined on the model
             for (auto& coord : *modelCoordinates_) {
                 // if a user-specified coordinate is found on the model, update its value according to the latest solved state
-                if (coord.getName() == trackedJointAnglesVector_[i]) {
+                if (coord.getName() == trackedCoordinateNames_[i]) {
                     trackedCoordinateValues_[i] = SimTK::convertRadiansToDegrees(coord.getValue(s));
                 }
             }
@@ -452,13 +453,13 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
     }
 
     // create and print a string that reports coordinate outputs
-    if (trackedJointAnglesVector_.size() > 0) {
+    if (trackedCoordinateNames_.size() > 0 && printTrackedCoordinates_) {
         std::string coordinateReportString = "";
-        for (unsigned int i = 0; i < trackedJointAnglesVector_.size(); ++i) {
+        for (unsigned int i = 0; i < trackedCoordinateNames_.size(); ++i) {
             if (i > 0) {
                 coordinateReportString += ",   ";
             }
-            coordinateReportString += trackedJointAnglesVector_[i] + "(" + std::to_string(trackedCoordinateValues_[i]) + ")";
+            coordinateReportString += trackedCoordinateNames_[i] + "(" + std::to_string(trackedCoordinateValues_[i]) + ")";
         }
         // now print the string, mutex to avoid several threads printing in the same line
         {
@@ -487,9 +488,9 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
         }
 
         // if we are tracking any coordinates, update their sliders
-        if (trackedJointAnglesVector_.size() > 0) {
+        if (trackedCoordinateNames_.size() > 0) {
             // iterate through all coordinates that the user has specified
-            for (unsigned int i = 0; i < trackedJointAnglesVector_.size(); ++i) {
+            for (unsigned int i = 0; i < trackedCoordinateNames_.size(); ++i) {
                 model_.updVisualizer().updSimbodyVisualizer().setSliderValue(i, trackedCoordinateValues_[i]);
             }
         }
