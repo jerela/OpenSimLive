@@ -51,6 +51,10 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
     if (trackedCoordinateNames_[0] == "none") {
         trackedCoordinateNames_.resize(0);
     }
+    else {
+        // resize and reserve a proper number of elements in the vector that stores coordinate values
+        trackedCoordinateValues_.resize(trackedCoordinateNames_.size());
+    }
     printTrackedCoordinates_ = ("true" == ConfigReader("MainConfiguration.xml", "print_tracked_coordinates"));
 
     // Ideally if we add a Reporter, we also remove it at the end for good hygiene but 
@@ -155,9 +159,7 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
         model_.updVisualizer().updSimbodyVisualizer().setDesiredFrameRate(100);
         model_.updVisualizer().updSimbodyVisualizer().setDesiredBufferLengthInSec(0);
 
-        if (true) {
-            // resize and reserve a proper number of elements in the vector that stores coordinate values
-            trackedCoordinateValues_.resize(trackedCoordinateNames_.size());
+        if (trackedCoordinateNames_.size() > 0) {
             // add a slider to show the values of the selected coordinates
             // loop through all coordinates that have been named by the used in visualizedJointAnglesVector
             for (unsigned int i = 0; i < trackedCoordinateNames_.size(); ++i) {
@@ -491,7 +493,7 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
         if (trackedCoordinateNames_.size() > 0) {
             // iterate through all coordinates that the user has specified
             for (unsigned int i = 0; i < trackedCoordinateNames_.size(); ++i) {
-                model_.updVisualizer().updSimbodyVisualizer().setSliderValue(i, trackedCoordinateValues_[i]);
+                model_.updVisualizer().updSimbodyVisualizer().setSliderValue(i, round(trackedCoordinateValues_[i]*10)/10);
             }
         }
 
