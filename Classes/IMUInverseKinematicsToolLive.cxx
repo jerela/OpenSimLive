@@ -410,11 +410,14 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
     s.updTime() = times[0];
     //++debugCounter1_;
 
+    bool assemblySucceeded = false;
+
     // assemble state s_, solving the initial joint angles in the least squares sense
     if (offline) {
         std::unique_lock<std::mutex> concurrentIKMutex(IKMutex);
         try {
             ikSolver.assemble(s); // occasionally throws an exception "KeyNotFound" when using offline_IK_tool, but not when using OSL_core
+            assemblySucceeded = true;
         }
         catch (std::exception& e) {
             std::cerr << "Assemble failed: " << e.what() << std::endl;
@@ -427,6 +430,7 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
     else {
         try {
             ikSolver.assemble(s);
+            assemblySucceeded = true;
         }
         catch (std::exception& e) {
             std::cout << "Error in assembling IK solver: " << e.what() << std::endl;
@@ -477,10 +481,12 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
         // update the time to be shown in the visualization
         //s.updTime() = time;
         try {
-            std::unique_lock<std::mutex> concurrentIKMutex(IKMutex);
-            // ikTool.assemble() is using s_ and needs its time value, so we couldn't change it for s_; instead we created s for the visualization
-            model_.getVisualizer().show(s);
-            concurrentIKMutex.unlock();
+            if (assemblySucceeded) {
+                std::unique_lock<std::mutex> concurrentIKMutex(IKMutex);
+                // ikTool.assemble() is using s_ and needs its time value, so we couldn't change it for s_; instead we created s for the visualization
+                model_.getVisualizer().show(s);
+                concurrentIKMutex.unlock();
+            }
         }
         catch (std::exception& e) {
             std::cerr << "Exception in visualizing: " << e.what() << std::endl;
