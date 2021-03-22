@@ -11,7 +11,8 @@
   * [Run-time issues](#run-time-issues)
 - [Authors](#authors)
 - [License and copyright](#license-and-copyright)
-- [Acknowledgments](#acknowledgments)
+- [Acknowledgements](#acknowledgements)
+- [Similar projects](#similar-projects)
 <!-- toc -->
 
 
@@ -331,3 +332,8 @@ Thanks to Keith Vertanen for his [Java and C++ socket class](https://www.keithv.
 Thanks to Jacob Progsch and Václav Zeman for their [thread pool class](https://github.com/progschj/ThreadPool).
 
 This software library was developed while working in an European Regional Development Fund project: Digital Technology RDI Environment (Digi Center) (Project ID: A74338, www.digicenterns.fi).
+
+## Similar projects
+
+For marker-based real-time inverse kinematics using OpenSim 3.3 API, see C. Pizzolato's [RTOSIM](https://github.com/RealTimeBiomechanics/rtosim/).
+For marker and IMU-based real time kinematical and dynamical analysis using OpenSim 4.1 API, see D. Stanev's [OpenSimRT](https://github.com/mitkof6/OpenSimRT).
