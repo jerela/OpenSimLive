@@ -28,12 +28,6 @@ struct VariableManager {
 	std::string stationReferenceBody = ConfigReader("MainConfiguration.xml", "station_reference_body"); // get the name of the reference body used in mirror therapy
 	double calibTime = 0; // the time calibration is performed
 
-	//std::chrono::steady_clock::time_point clockStart = std::chrono::high_resolution_clock::now(); // get the starting time of IMU measurement loop
-	//std::chrono::steady_clock::time_point clockNow = std::chrono::high_resolution_clock::now(); // this value will be updated in the loop
-	//std::chrono::steady_clock::time_point clockPrev = clockStart; // this value will be updated in the loop to present the time point of the previous IK calculation
-	//std::chrono::duration<double> clockDuration;
-	//std::chrono::duration<double> prevDuration;
-
 	unsigned int orderIndex = 0;
 	std::queue<OpenSim::TimeSeriesTableQuaternion> orientationBuffer;
 	std::queue<double> timeBuffer;

@@ -36,4 +36,8 @@
 	<save_quaternions_to_file>true</save_quaternions_to_file>
 	<!--Whether to print information about drift and RPY angles for each sensor to command window. NOTE: If you use this with simulated IMU data, the command window will be cluttered.-->
 	<enable_imu_feedback>false</enable_imu_feedback>
+	<!--List of coordinates on the model. These coordinates will have a slider showing their value in the visualization window and their values will be printed on the console. Set "none" to disable tracking.-->
+	<tracked_coordinates>pelvis_rotation knee_angle_r</tracked_coordinates>
+	<!--Whether to print the angle values of tracked coordinates to console at the end of each IK operation.-->
+	<print_tracked_coordinates>false</print_tracked_coordinates>
 </MainConfiguration>

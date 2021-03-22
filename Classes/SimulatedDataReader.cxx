@@ -35,19 +35,7 @@ SimTK::Quaternion SimulatedDataReader::generateQuaternion() {
 
 // populate labels_ from config file
 void SimulatedDataReader::populateLabelVector() {
-	// read the user-given values from the config file
-	std::string IMULabelString = ConfigReader("MainConfiguration.xml", "simulated_bodies");
-	// stringstream is a simple way to separate the whitespace-separated numbers from the whole string
-	std::stringstream ss(IMULabelString);
-	// loop through all elements (loop as long as there is anything left in the stringstream)
-	do {
-		// represents a piece of text such as "pelvis_imu"
-		std::string IMULabel;
-		// write from stringstream to IMULabel
-		ss >> IMULabel;
-		// push IMULabel in a vector
-		labels_.push_back(IMULabel);
-	} while (!ss.eof());
+	labels_ = ConfigReaderVector("MainConfiguration.xml", "simulated_bodies");
 	labelsSize_ = labels_.size();
 
 	// resize quaternions_ to equal the number of sensors aka the number of quaternions that will be saved in quaternions_

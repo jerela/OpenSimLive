@@ -13,6 +13,7 @@
 #include <OpenSim.h>
 #include <mutex>
 #include <DecorationGeneratorLive.h>
+#include <XMLFunctions.h>
 
 using namespace OpenSimLive;
 using namespace SimTK;
@@ -45,6 +46,16 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
     OpenSim::Model& model, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable,
     const bool visualizeResults) {
     
+    // load the names of the coordinates to track from MainConfiguration.xml
+    trackedCoordinateNames_ = ConfigReaderVector("MainConfiguration.xml", "tracked_coordinates");
+    if (trackedCoordinateNames_[0] == "none") {
+        trackedCoordinateNames_.resize(0);
+    }
+    else {
+        // resize and reserve a proper number of elements in the vector that stores coordinate values
+        trackedCoordinateValues_.resize(trackedCoordinateNames_.size());
+    }
+    printTrackedCoordinates_ = ("true" == ConfigReader("MainConfiguration.xml", "print_tracked_coordinates"));
 
     // Ideally if we add a Reporter, we also remove it at the end for good hygiene but 
     // at the moment there's no interface to remove Reporter so we'll reuse one if exists
@@ -72,11 +83,11 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
     // define the model's internal data members and structure according to its properties, so we can use updComponentList to find all of its <Coordinate> elements
     std::cout << "Finalizing model from properties." << std::endl;
     model_.finalizeFromProperties();
-    auto coordinates = model_.updComponentList<OpenSim::Coordinate>();
-
+    modelCoordinates_ = std::make_unique<OpenSim::ComponentList<OpenSim::Coordinate>>(model_.updComponentList<OpenSim::Coordinate>());
+    
     // Hookup reporter inputs to the individual coordinate outputs
     // and lock coordinates that are translational since they cannot be
-    for (auto& coord : coordinates) {
+    for (auto& coord : *modelCoordinates_) {
         if (get_report_errors())
             ikReporter_->updInput("inputs").connect(coord.getOutput("value"), coord.getName());
         if (coord.getMotionType() == OpenSim::Coordinate::Translational) {
@@ -147,6 +158,27 @@ void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
         model_.updVisualizer().updSimbodyVisualizer().setMode(SimTK::Visualizer::Mode::PassThrough); // try RealTime mode instead for better FPS?
         model_.updVisualizer().updSimbodyVisualizer().setDesiredFrameRate(100);
         model_.updVisualizer().updSimbodyVisualizer().setDesiredBufferLengthInSec(0);
+
+        if (trackedCoordinateNames_.size() > 0) {
+            // add a slider to show the values of the selected coordinates
+            // loop through all coordinates that have been named by the used in visualizedJointAnglesVector
+            for (unsigned int i = 0; i < trackedCoordinateNames_.size(); ++i) {
+                // loop through all coordinates found on the model itself
+                for (auto& coord : *modelCoordinates_) {
+                    // if we find a user-named coordinate on the model, initialize its slider in the visualization window
+                    if (coord.getName() == trackedCoordinateNames_[i]) {
+                        double minValue = SimTK::convertRadiansToDegrees(coord.getRangeMin());
+                        double maxValue = SimTK::convertRadiansToDegrees(coord.getRangeMax());
+                        double defaultValue = SimTK::convertRadiansToDegrees(coord.getDefaultValue());
+                        // add the slider itself
+                        model_.updVisualizer().updSimbodyVisualizer().addSlider(trackedCoordinateNames_[i], i, minValue, maxValue, defaultValue);
+                        std::cout << "Added slider with ID " << i << " for coordinate " << coord.getName() << std::endl;
+                        break;
+                    }
+                }
+            }
+        }
+
         // prepare to visualize the mirrored point
         if (getPointTrackerEnabled())
         {
@@ -378,11 +410,14 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
     s.updTime() = times[0];
     //++debugCounter1_;
 
+    bool assemblySucceeded = false;
+
     // assemble state s_, solving the initial joint angles in the least squares sense
     if (offline) {
         std::unique_lock<std::mutex> concurrentIKMutex(IKMutex);
         try {
             ikSolver.assemble(s); // occasionally throws an exception "KeyNotFound" when using offline_IK_tool, but not when using OSL_core
+            assemblySucceeded = true;
         }
         catch (std::exception& e) {
             std::cerr << "Assemble failed: " << e.what() << std::endl;
@@ -393,22 +428,65 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
         concurrentIKMutex.unlock();
     }
     else {
-        ikSolver.assemble(s);
+        try {
+            ikSolver.assemble(s);
+            assemblySucceeded = true;
+        }
+        catch (std::exception& e) {
+            std::cout << "Error in assembling IK solver: " << e.what() << std::endl;
+        }
+        catch (...) {
+            std::cout << "Unknown error in assembling IK solver!" << std::endl;
+        }
     }
     
     //++debugCounter2_;
 
     s.updTime() = time;
 
+    // populate trackedCoordinateValues_ with joint angle values for specified coordinates
+    if (trackedCoordinateNames_.size() > 0) {
+        // iterate through all coordinates that the user has named
+        for (unsigned int i = 0; i < trackedCoordinateNames_.size(); ++i) {
+            // iterate through all coordinates defined on the model
+            for (auto& coord : *modelCoordinates_) {
+                // if a user-specified coordinate is found on the model, update its value according to the latest solved state
+                if (coord.getName() == trackedCoordinateNames_[i]) {
+                    trackedCoordinateValues_[i] = SimTK::convertRadiansToDegrees(coord.getValue(s));
+                }
+            }
+        }
+    }
+
+    // create and print a string that reports coordinate outputs
+    if (trackedCoordinateNames_.size() > 0 && printTrackedCoordinates_) {
+        std::string coordinateReportString = "";
+        for (unsigned int i = 0; i < trackedCoordinateNames_.size(); ++i) {
+            if (i > 0) {
+                coordinateReportString += ",   ";
+            }
+            coordinateReportString += trackedCoordinateNames_[i] + "(" + std::to_string(trackedCoordinateValues_[i]) + ")";
+        }
+        // now print the string, mutex to avoid several threads printing in the same line
+        {
+            std::unique_lock<std::mutex> concurrentIKMutex(IKMutex);
+            std::cout << "\33[2K";
+            std::cout << coordinateReportString << "\r";
+            std::cout.flush();
+        }
+    }
+
     // show a visualization of the state
     if (visualizeResults) {
         // update the time to be shown in the visualization
         //s.updTime() = time;
         try {
-            std::unique_lock<std::mutex> concurrentIKMutex(IKMutex);
-            // ikTool.assemble() is using s_ and needs its time value, so we couldn't change it for s_; instead we created s for the visualization
-            model_.getVisualizer().show(s);
-            concurrentIKMutex.unlock();
+            if (assemblySucceeded) {
+                std::unique_lock<std::mutex> concurrentIKMutex(IKMutex);
+                // ikTool.assemble() is using s_ and needs its time value, so we couldn't change it for s_; instead we created s for the visualization
+                model_.getVisualizer().show(s);
+                concurrentIKMutex.unlock();
+            }
         }
         catch (std::exception& e) {
             std::cerr << "Exception in visualizing: " << e.what() << std::endl;
@@ -416,6 +494,16 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
         catch (...) {
             std::cerr << "Unknown exception in visualizer" << std::endl;
         }
+
+        // if we are tracking any coordinates, update their sliders
+        if (trackedCoordinateNames_.size() > 0) {
+            // iterate through all coordinates that the user has specified
+            for (unsigned int i = 0; i < trackedCoordinateNames_.size(); ++i) {
+                model_.updVisualizer().updSimbodyVisualizer().setSliderValue(i, round(trackedCoordinateValues_[i]*10)/10);
+            }
+        }
+
+
     }
 
     // if this thread hadn't expired already before visualization, run PointTracker
