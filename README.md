@@ -60,6 +60,8 @@ Step by step instructions on how to install this project.
 3. Open Visual Studio. Open the solution you just generated in the build directory. Build **ALL_BUILD**. Visual Studio should now create the required executable(s) in a subdirectory in the build directory. It will probably be **.../BuildFolderName/MirrorTherapy/RelWithDebInfo/** for mirror therapy applications and **.../BuildFolderName/Tests/RelWithDebInfo/** for tests.
 4. Copy **xsensdeviceapi64.dll** and **xstypes64.dll** from .../Xsens/MT Software Suite 4.6/MT SDK/x64/lib to the directories where the executables are or add their locations to the *PATH* environmental variable. **This is required to run Xsens-related scripts, but is otherwise optional.**
 5. Go to **.../OpenSimLive/Config** and make sure the .xml files have the right values for your directory paths.
+- You need to download an .osim model file to use with the program. You can find several models here: https://simtk-confluence.stanford.edu/display/OpenSim/Musculoskeletal+Models
+- For testing, the gait2392 model and the Hamner full body model are recommended for lower-body and full-body kinematics, respectively.
 6. Installation complete. You are ready to run OpenSimLive.
 
 ### Running the program
