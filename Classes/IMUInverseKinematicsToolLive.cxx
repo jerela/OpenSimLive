@@ -444,6 +444,22 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
 
     s.updTime() = time;
 
+    // update PointTracker
+    if (getPointTrackerEnabled()) {
+
+        std::unique_lock<std::mutex> concurrentIKMutex(IKMutex);
+        // if thread hasn't expired, send data to PointTracker
+        if (assemblySucceeded) {
+            // give time to PointTracker only if we need it
+            if (getSavePointTrackerResults()) {
+                setPointTrackerCurrentTime(time);
+            }
+            updatePointTracker(s);
+        }
+        concurrentIKMutex.unlock();
+    }
+
+
     // populate trackedCoordinateValues_ with joint angle values for specified coordinates
     if (trackedCoordinateNames_.size() > 0) {
         // iterate through all coordinates that the user has named
@@ -504,21 +520,6 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
         }
 
 
-    }
-
-    // if this thread hadn't expired already before visualization, run PointTracker
-    if (getPointTrackerEnabled()) {
-
-        std::unique_lock<std::mutex> concurrentIKMutex(IKMutex);
-        // if thread hasn't expired, send data to PointTracker
-        if (s.getTime() < time) {
-            // give time to PointTracker only if we need it
-            if (getSavePointTrackerResults()) {
-                setPointTrackerCurrentTime(time);
-            }
-            updatePointTracker(s);
-        }
-        concurrentIKMutex.unlock();
     }
 
 

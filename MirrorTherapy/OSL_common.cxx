@@ -32,11 +32,24 @@ struct VariableManager {
 	std::chrono::steady_clock::time_point clockPrev = clockStart; // this value will be updated in the loop to present the time point of the previous IK calculation
 	std::chrono::duration<double> clockDuration;
 	std::chrono::duration<double> prevDuration;
+
+	double calibTime = 0; // the time calibration is performed
+
+	unsigned int orderIndex = 0;
+	std::queue<OpenSim::TimeSeriesTableQuaternion> orientationBuffer;
+	std::queue<double> timeBuffer;
+	std::atomic<bool> bufferInUse = false;
+	std::atomic<bool> dataReaderInUse = false;
+	unsigned int maxBufferSize = std::stoi(ConfigReader("MainConfiguration.xml", "max_buffer_size")); // maximum number of time points for orientations in the shared buffer in the producer-consumer scheme
+	std::atomic<bool> runProducerThread = true;
+	std::atomic<bool> runIKThread = true;
+	std::atomic<bool> runEMGThread = (manufacturer == "delsys"); // enable EMG thread only if manufacturer is delsys
+
 }; // struct dataHolder ends
 
 
 // IK for multithreading, each thread runs this function separately
-void concurrentIK(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, const VariableManager& vm, Server& myLink, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable) {
+/*void concurrentIK(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, const VariableManager& vm, Server& myLink, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable) {
 	IKTool.setTime(vm.clockDuration.count());
 	// calculate the IK and update the visualization
 	IKTool.update(true, quatTable);
@@ -52,10 +65,10 @@ void concurrentIK(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, const Varia
 		if (vm.sendMode)
 			myLink.SendDoubles(mirrorTherapyPacket, 6);
 	}
-}
+}*/
 
 // Runs IK and related shenanigans; this function is not yet multithreaded, but it contains the statement to begin multithreading
-void RunIKProcedure(OpenSimLive::IMUHandler& genericDataReader, OpenSimLive::IMUInverseKinematicsToolLive& IKTool, Server& myLink, OpenSimLive::ThreadPoolContainer& threadPoolContainer, const VariableManager& vm) {
+/*void RunIKProcedure(OpenSimLive::IMUHandler& genericDataReader, OpenSimLive::IMUInverseKinematicsToolLive& IKTool, Server& myLink, OpenSimLive::ThreadPoolContainer& threadPoolContainer, const VariableManager& vm) {
 	// fill a time series table with quaternion orientations of the IMUs
 	OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable(genericDataReader.getQuaternionTable());
 
@@ -87,7 +100,139 @@ void RunIKProcedure(OpenSimLive::IMUHandler& genericDataReader, OpenSimLive::IMU
 
 	// Send a function to be multithreaded
 	threadPoolContainer.offerFuture(concurrentIK, std::ref(IKTool), std::ref(vm), std::ref(myLink), quatTable);
+}*/
+
+
+
+
+
+
+
+
+bool visualize = true;
+
+void updateConcurrentIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, VariableManager& vm, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable, double time, unsigned int orderIndex, Server& myLink) {
+	IKTool.updateOrdered(visualize, quatTable, orderIndex, time);
+	if (vm.enableMirrorTherapy)
+	{
+		// get the data we want to send to Java program
+		std::array<double, 6> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
+		// get a double array from the double std::array
+		//double* mirrorTherapyPacket = &trackerResults[0];
+		// create mirrorTherapyPacket as a pointer to the underlying array of trackerResults
+		double* mirrorTherapyPacket = trackerResults.data();
+		// send the data
+		if (vm.sendMode)
+			myLink.SendDoubles(mirrorTherapyPacket, 6);
+	}
 }
+
+
+
+std::mutex mainMutex;
+
+// This function reads EMG values in a loop.
+void EMGThread(OpenSimLive::IMUHandler& genericDataReader, VariableManager& vm) {
+	std::cout << "Entering EMG thread." << std::endl;
+	do {
+		genericDataReader.updateEMG();
+	} while (vm.runEMGThread);
+	std::cout << "Exiting EMG thread." << std::endl;
+}
+
+
+
+void producerThread(OpenSimLive::IMUHandler& genericDataReader, VariableManager& vm) {
+	// boolean telling us if we got new quaternion data so we can avoid saving the same quaternion and time data to the buffer twice
+	bool newDataGot = false;
+	std::chrono::steady_clock::time_point clockCurrent = std::chrono::high_resolution_clock::now();
+	do {
+
+		// get time stamp
+		//std::chrono::duration<double> duration = std::chrono::high_resolution_clock::now() - vm.clockStart;
+		//double time = duration.count();
+
+		newDataGot = false;
+		if (!vm.dataReaderInUse) {
+			vm.dataReaderInUse = true;
+			// update new quaternion table but don't get it yet
+			genericDataReader.updateQuaternionTable();
+			newDataGot = true;
+			vm.dataReaderInUse = false;
+		}
+		// get time stamp
+		double time = genericDataReader.getTime();
+
+
+		// if consumer is not accessing the buffer and the buffer size is not maximal, push data to buffer
+		if (!vm.bufferInUse && vm.orientationBuffer.size() < vm.maxBufferSize && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - clockCurrent).count() > vm.continuousModeMsDelay && newDataGot)
+		{
+			// set bufferInUse to true to prevent consumer from accessing the buffer
+			vm.bufferInUse = true;
+			std::lock_guard<std::mutex> lock(mainMutex);
+			// push time stamp to the shared buffer
+			vm.timeBuffer.push(time);
+			// push the time series table to the shared buffer
+			vm.orientationBuffer.push(genericDataReader.getQuaternionTable());
+			vm.bufferInUse = false;
+			clockCurrent = std::chrono::high_resolution_clock::now();
+		}
+
+		// if consumer is not accessing the buffer and buffer size is maximal, update the buffer by popping old data and pushing new data
+		if (!vm.bufferInUse && vm.orientationBuffer.size() == vm.maxBufferSize && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - clockCurrent).count() > vm.continuousModeMsDelay && newDataGot)
+		{
+			// set bufferInUse to true to prevent consumer from accessing the buffer
+			vm.bufferInUse = true;
+			std::lock_guard<std::mutex> lock(mainMutex);
+			// pop data from time and orientation buffer to make room for new data
+			vm.timeBuffer.pop();
+			vm.orientationBuffer.pop();
+			// push time stamp to the shared buffer
+			vm.timeBuffer.push(time);
+			// push the time series table to the shared buffer
+			vm.orientationBuffer.push(genericDataReader.getQuaternionTable());
+			vm.bufferInUse = false;
+			clockCurrent = std::chrono::high_resolution_clock::now();
+		}
+
+	} while (vm.runProducerThread);
+
+	std::cout << "Producer done!" << std::endl;
+}
+
+// This function reads quaternion tables from a queue buffer and performs IK on them.
+void consumerThread(VariableManager& vm, OpenSimLive::IMUInverseKinematicsToolLive& IKTool, OpenSimLive::ThreadPoolContainer& threadPoolContainer, Server& myLink) {
+
+	do {
+		// if producer is not accessing the buffer and the buffer contains values
+		if (!vm.bufferInUse && vm.orientationBuffer.size() > 0) {
+			vm.bufferInUse = true;
+			std::lock_guard<std::mutex> lock(mainMutex);
+			// get and pop time from the buffer
+			double time = vm.timeBuffer.front();
+			vm.timeBuffer.pop();
+			// get and pop the front of the queue
+			OpenSim::TimeSeriesTableQuaternion quatTable(vm.orientationBuffer.front());
+			vm.orientationBuffer.pop();
+			vm.bufferInUse = false;
+			// start a new thread where the IK is calculated and increment the number of IK operations done
+			threadPoolContainer.offerFuture(updateConcurrentIKTool, std::ref(IKTool), std::ref(vm), quatTable, time, ++vm.orderIndex, std::ref(myLink));
+		}
+	} while (vm.runIKThread);
+	std::cout << "Consumer done!" << std::endl;
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -154,8 +299,10 @@ int main(int argc, char* argv[])
 		std::cout << "Client program connected." << std::endl;
 	}
 
-	auto givemetime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-	std::cout << ctime(&givemetime) << std::endl;
+	std::chrono::milliseconds msCalib;
+
+	//auto givemetime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	//std::cout << ctime(&givemetime) << std::endl;
 	std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
 	//auto days = (ms.count() / 86400000) % 365;
 	auto hours = (ms.count() / 3600000) % 24;
@@ -168,10 +315,16 @@ int main(int argc, char* argv[])
 
 	std::cout << "Entering data streaming and IK loop. Press C to calibrate model, Z to calculate IK once, N to enter continuous mode, M to exit continuous mode, V to enter send mode, B to exit send mode, L to save base reference orientation and X to quit." << std::endl;
 
+	std::thread producer(producerThread, std::ref(genericDataReader), std::ref(vm));
+	if (vm.runEMGThread) {
+		std::thread EMG(EMGThread, std::ref(genericDataReader), std::ref(vm));
+		EMG.detach();
+	}
+
 	do
 	{
 		// get IMU orientation data in quaternions
-		genericDataReader.updateQuaternionTable();
+		//genericDataReader.updateQuaternionTable();
 
 		// if user hits the key to save the current orientation of the station reference body IMU when it is placed against the mounting surface of the robot arm
 		if (referenceBaseRotationKeyHit)
@@ -204,20 +357,40 @@ int main(int argc, char* argv[])
 
 		// if user hits the calibration key and new data is available
 		if (calibrateModelKeyHit) {
-			// set clock to start from calibration
-			vm.clockStart = std::chrono::high_resolution_clock::now();
-			// fill a timeseriestable with quaternion orientations of IMUs
-			OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable = genericDataReader.getQuaternionTable();
+
+
+			threadPoolContainer.waitForFinish();
+			// reset order index
+			vm.orderIndex = 0;
+			// wait until buffer has data and we can access it
+			while (vm.bufferInUse || vm.orientationBuffer.size() == 0) {};
+			// save calibration time
+			msCalib = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+			// prevent producer and consumer threads from accessing the shared buffer
+			vm.bufferInUse = true;
+			std::lock_guard<std::mutex> lock(mainMutex);
+			// get and pop time from the buffer
+			vm.calibTime = vm.timeBuffer.front();
+			vm.timeBuffer.pop();
+			// get and pop the front of the queue
+			OpenSim::TimeSeriesTableQuaternion quaternionTimeSeriesTable(vm.orientationBuffer.front());
+			vm.orientationBuffer.pop();
+			// allow the shared buffer to be used again
+			vm.bufferInUse = false;
+			//lock.~lock_guard();
+
 			// calibrate the model and return its file name
 			vm.calibratedModelFile = calibrateModelFromSetupFile(OPENSIMLIVE_ROOT + "/Config/" + ConfigReader("MainConfiguration.xml", "imu_placer_setup_file"), quaternionTimeSeriesTable);
+
 			// reset the keyhit so that we won't re-enter this if-statement before hitting the key again
 			calibrateModelKeyHit = false;
 			// give IKTool the necessary inputs and run it
 			IKTool.setModelFile(vm.calibratedModelFile); // the model to perform IK on
 			IKTool.setQuaternion(quaternionTimeSeriesTable); // the orientations of IMUs
 			IKTool.setSensorToOpenSimRotations(sensorToOpenSimRotations);
-			IKTool.setTime(0); // set the time of the first state as 0 at calibration
+			IKTool.setTime(vm.calibTime); // set the time of the first state at calibration
 			IKTool.setOpenSimLiveRootDirectory(OPENSIMLIVE_ROOT); // this is needed for saving the IK report to file
+
 			// set private variables to be accessed in IK calculations
 			if (vm.enableMirrorTherapy == true) {
 				IKTool.setPointTrackerBodyName(ConfigReader("MainConfiguration.xml", "station_parent_body"));
@@ -226,24 +399,24 @@ int main(int argc, char* argv[])
 			else {
 				IKTool.setPointTrackerEnabled(false);
 			}
-			IKTool.run(true); // true for visualization
+			// finally, run IK
+			IKTool.run(visualize); // true for visualization
 			std::cout << "Model has been calibrated." << std::endl;
-
 
 		}
 
 		// if user hits the single IK calculation key, new data is available and the model has been calibrated
 		if (getDataKeyHit && !vm.calibratedModelFile.empty())
 		{
-			// use high resolution clock to count time since the IMU measurement began
-			vm.clockNow = std::chrono::high_resolution_clock::now();
-			vm.clockDuration = vm.clockNow - vm.clockStart; // time since calibration
-			RunIKProcedure(genericDataReader, IKTool, myLink, threadPoolContainer, vm);
+			vm.runIKThread = true;
+			std::thread consumer(consumerThread, std::ref(vm), std::ref(IKTool), std::ref(threadPoolContainer), std::ref(myLink));
+			vm.runIKThread = false;
+			consumer.join();
 			getDataKeyHit = false;
 		}
 
 		// if new data is available and continuous mode has been switched on
-		if (vm.continuousMode) {
+		/*if (vm.continuousMode) {
 			// use high resolution clock to count time since the IMU measurement began
 			vm.clockNow = std::chrono::high_resolution_clock::now();
 			// calculate the duration since the beginning of counting
@@ -256,18 +429,22 @@ int main(int argc, char* argv[])
 				vm.clockPrev = vm.clockNow;
 				RunIKProcedure(genericDataReader, IKTool, myLink, threadPoolContainer, vm);
 			}
-		}
+		}*/
 
 		if (!vm.continuousMode && startContinuousModeKeyHit && !vm.calibratedModelFile.empty()) {
 			std::cout << "Entering continuous mode." << std::endl;
 			vm.continuousMode = true;
 			startContinuousModeKeyHit = false;
-			if (vm.resetClockOnContinuousMode && !(vm.clockDuration.count() > 0)) // ensure that the config setting is set to true and that this is the first time continuous mode is entered
-				vm.clockStart = std::chrono::high_resolution_clock::now();
+			//if (vm.resetClockOnContinuousMode && !(vm.clockDuration.count() > 0)) // ensure that the config setting is set to true and that this is the first time continuous mode is entered
+			//	vm.clockStart = std::chrono::high_resolution_clock::now();
+			vm.runIKThread = true;
+			std::thread consumer(consumerThread, std::ref(vm), std::ref(IKTool), std::ref(threadPoolContainer), std::ref(myLink));
+			consumer.detach();
 		}
 
 		if (vm.continuousMode && stopContinuousModeKeyHit) {
 			std::cout << "Exiting continuous mode." << std::endl;
+			vm.runIKThread = false;
 			vm.continuousMode = false;
 			stopContinuousModeKeyHit = false;
 		}
@@ -300,6 +477,19 @@ int main(int argc, char* argv[])
 
 	} while (vm.mainDataLoop);
 
+	vm.runProducerThread = false;
+	if (vm.runEMGThread) {
+		vm.runEMGThread = false;
+	}
+
+	// wait for all IK threads called from the consumer thread to finish
+	threadPoolContainer.waitForFinish();
+
+	producer.join();
+	vm.runIKThread = false;
+
+	std::chrono::milliseconds msEnd = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+
 	std::cout << "Exiting main data loop!" << std::endl;
 
 	// when exiting, close socket communication
@@ -312,15 +502,54 @@ int main(int argc, char* argv[])
 		myLink.Close();
 	}
 
+	// close the connection to IMUs
+	genericDataReader.closeConnection();
+
 	// when exiting, save acquired data to file
 	if (IKTool.get_report_errors())
 	{
 		std::cout << "Reporting IK to file..." << std::endl;
-		IKTool.reportToFile();
+		try {
+			IKTool.reportToFile();
+		}
+		catch (std::exception& e) {
+			std::cerr << "Error while reporting IK to file: " << e.what() << std::endl;
+		}
+		catch (...) {
+			std::cerr << "Unknown error while reporting IK to file!" << std::endl;
+		}
+		std::cout << "IK reported to file." << std::endl;
 	}
 
-	// close the connection to IMUs
-	genericDataReader.closeConnection();
+	// print time to file
+	std::string filePath(OPENSIMLIVE_ROOT + "/OpenSimLive-results/" + "TimePoints-" + std::to_string(hours + GMTOffset) + "-" + std::to_string(minutes) + ".txt");
+	std::ofstream outputFile;
+	outputFile.open(filePath, std::ios_base::out | std::ios_base::trunc);
+	if (outputFile.is_open()) {
+		outputFile << "Main loop start time:" << std::endl;
+		outputFile << (hours + GMTOffset) << ":" << minutes << ":" << seconds << ":" << millisecs << std::endl;
+
+		auto hoursC = (msCalib.count() / 3600000) % 24;
+		auto minutesC = (msCalib.count() / 60000) % 60;
+		auto secondsC = (msCalib.count() / 1000) % 60;
+		auto millisecsC = msCalib.count() % 1000;
+		outputFile << "Calibration time:" << std::endl;
+		outputFile << (hoursC + GMTOffset) << ":" << minutesC << ":" << secondsC << ":" << millisecsC << std::endl;
+
+		outputFile << "Calibration time in time series table:" << std::endl;
+		outputFile << vm.calibTime << std::endl;
+
+		auto hoursE = (msEnd.count() / 3600000) % 24;
+		auto minutesE = (msEnd.count() / 60000) % 60;
+		auto secondsE = (msEnd.count() / 1000) % 60;
+		auto millisecsE = msEnd.count() % 1000;
+		outputFile << "End time:" << std::endl;
+		outputFile << (hoursE + GMTOffset) << ":" << minutesE << ":" << secondsE << ":" << millisecsE << std::endl;
+		outputFile.close();
+	}
+	else {
+		std::cout << "FAILED TO OPEN FILE " << filePath << " FOR TIME POINT SAVING!" << std::endl;
+	}
 
 	std::cout << "Program finished." << std::endl;
 	return 1;

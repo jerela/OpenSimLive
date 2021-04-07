@@ -34,7 +34,6 @@ struct VariableManager {
 	std::atomic<bool> bufferInUse = false;
 	std::atomic<bool> dataReaderInUse = false;
 	unsigned int maxBufferSize = std::stoi(ConfigReader("MainConfiguration.xml", "max_buffer_size")); // maximum number of time points for orientations in the shared buffer in the producer-consumer scheme
-	bool trialDone = false;
 	std::atomic<bool> runProducerThread = true;
 	std::atomic<bool> runIKThread = true;
 	std::atomic<bool> runEMGThread = (manufacturer == "delsys"); // enable EMG thread only if manufacturer is delsys
@@ -296,10 +295,15 @@ int main(int argc, char* argv[])
 
 	} while (vm.mainDataLoop);
 
+
 	vm.runProducerThread = false;
 	if (vm.runEMGThread) {
 		vm.runEMGThread = false;
 	}
+
+	// wait for all IK threads called from the consumer thread to finish
+	threadPoolContainer.waitForFinish();
+
 	producer.join();
 	vm.runIKThread = false;
 
