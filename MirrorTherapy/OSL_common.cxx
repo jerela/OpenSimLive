@@ -116,14 +116,15 @@ void updateConcurrentIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, V
 	if (vm.enableMirrorTherapy)
 	{
 		// get the data we want to send to Java program
-		std::array<double, 6> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
+		std::array<double, 7> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
 		// get a double array from the double std::array
 		//double* mirrorTherapyPacket = &trackerResults[0];
 		// create mirrorTherapyPacket as a pointer to the underlying array of trackerResults
 		double* mirrorTherapyPacket = trackerResults.data();
+
 		// send the data
 		if (vm.sendMode)
-			myLink.SendDoubles(mirrorTherapyPacket, 6);
+			myLink.SendDoubles(mirrorTherapyPacket, 7);
 	}
 }
 
@@ -279,7 +280,6 @@ int main(int argc, char* argv[])
 	IKTool.setReportErrors(vm.saveIKResults);
 	// whether PointTracker (through IKTool) writes calculated mirrored positions and rotations into a .sto file when program finishes
 	IKTool.setSavePointTrackerResults(vm.enableMirrorTherapy);
-
 	// get the sensor to opensim rotations for IMUInverseKinematicsToolLive
 	SimTK::Vec3 sensorToOpenSimRotations = get_sensor_to_opensim_rotations();
 
@@ -395,6 +395,7 @@ int main(int argc, char* argv[])
 			if (vm.enableMirrorTherapy == true) {
 				IKTool.setPointTrackerBodyName(ConfigReader("MainConfiguration.xml", "station_parent_body"));
 				IKTool.setPointTrackerReferenceBodyName(ConfigReader("MainConfiguration.xml", "station_reference_body"));
+				IKTool.setPointTrackerOutputFormat(ConfigReader("MainConfiguration.xml", "point_tracker_output_format"));
 			}
 			else {
 				IKTool.setPointTrackerEnabled(false);

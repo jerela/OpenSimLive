@@ -42,6 +42,23 @@ IMUInverseKinematicsToolLive::~IMUInverseKinematicsToolLive(){
 
 // PUBLIC MEMBER FUNCTIONS
 
+// Set point tracker output format (data that is sent to the Java client) to Euler angles or quaternions
+void IMUInverseKinematicsToolLive::setPointTrackerOutputFormat(const std::string& outputFormat) {
+    if (getPointTrackerEnabled())
+    {
+        if (outputFormat == "euler") {
+            setPointTrackerOutputRotation(EULER);
+        }
+        else if (outputFormat == "quaternion") {
+            setPointTrackerOutputRotation(QUATERNION);
+        }
+        else {
+            std::cout << "ERROR! Output format for PointTracker not recognized in IMUInverseKinematicsToolLive::setPointTrackerOutputFormat()!" << std::endl;
+            abort();
+        }
+    }
+}
+
 void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
     OpenSim::Model& model, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable,
     const bool visualizeResults) {
@@ -369,7 +386,7 @@ void IMUInverseKinematicsToolLive::updatePointTracker(SimTK::State s) {
     //model_.realizePosition(s_);
     model_.updMultibodySystem().realize(s, SimTK::Stage::Position); // Required to advance (or move back) system to a stage where we can use pointTracker
     // Run PointTracker functions
-    std::array<double, 6> trackerResults = runTracker(&s, &model_, getPointTrackerBodyName(), getPointTrackerReferenceBodyName());
+    std::array<double, 7> trackerResults = runTracker(&s, &model_, getPointTrackerBodyName(), getPointTrackerReferenceBodyName());
     // Save the results to a private variable
     setPointTrackerPositionsAndOrientations(trackerResults);
 }
