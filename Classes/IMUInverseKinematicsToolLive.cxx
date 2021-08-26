@@ -386,7 +386,7 @@ void IMUInverseKinematicsToolLive::updatePointTracker(SimTK::State s) {
     //model_.realizePosition(s_);
     model_.updMultibodySystem().realize(s, SimTK::Stage::Position); // Required to advance (or move back) system to a stage where we can use pointTracker
     // Run PointTracker functions
-    std::array<double, 7> trackerResults = runTracker(&s, &model_, getPointTrackerBodyName(), getPointTrackerReferenceBodyName());
+    std::vector<double> trackerResults = runTracker(&s, &model_, getPointTrackerBodyName(), getPointTrackerReferenceBodyName());
     // Save the results to a private variable
     setPointTrackerPositionsAndOrientations(trackerResults);
 }

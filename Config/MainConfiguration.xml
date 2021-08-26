@@ -22,6 +22,8 @@
 	<station_reference_body>pelvis</station_reference_body>
 	<!--Use "euler" or "quaternion" to define if rotations should be sent through socket as Euler angles or quaternions.-->
 	<point_tracker_output_format>quaternion</point_tracker_output_format>
+	<!--Whether to perform coordinate transformations on the rotations of PointTracker's mirrored point to take it from OpenSim coordinate system to KUKA coordinate system (and rotate it about the vertical axis by 180 degrees, unless defined otherwise by L-correction).-->
+	<transform_rotations_to_kuka>false</transform_rotations_to_kuka>
 	<!--Port that is used to transfer data between programs.-->
 	<socket_port>5010</socket_port>
 	<!--Maximum number of concurrent worker threads for multithreading.-->

@@ -22,7 +22,7 @@ namespace OpenSimLive {
 
 		// PUBLIC METHODS
 		void addStationToBody(const std::string& bodyName, const SimTK::Vec3& pointLocation, const std::string& modelFile); // adds the station to the desired body in the OpenSim model through XML manipulation
-		std::array<double, 7> runTracker(const SimTK::State* s, OpenSim::Model* model, const std::string& bodyName, const std::string& referenceBodyName); // runs the PointTracker methods that calculate mirrored position and orientation, called from IMUInverseKinematicsToolLive
+		std::vector<double> runTracker(const SimTK::State* s, OpenSim::Model* model, const std::string& bodyName, const std::string& referenceBodyName); // runs the PointTracker methods that calculate mirrored position and orientation, called from IMUInverseKinematicsToolLive
 		void setPointTrackerEnabled(const bool setting) { pointTrackerEnabled_ = setting; }
 		// Get the current orientation of the sensor on the reference body (placed where the robot arm is mounted when this method is called) and save it as a quaternion to a variable.
 		void setReferenceBaseRotation(SimTK::Quaternion_<SimTK::Real> quatVector) { referenceBaseRotation_ = quatVector; }
@@ -43,6 +43,7 @@ namespace OpenSimLive {
 		void setPointTrackerCurrentTime(double time) { timeSeriesCurrentTime_ = time; }
 		void savePointTrackerOutputToFile(std::string& rootDir, std::string& resultsDir);
 		void setPointTrackerOutputRotation(OutputRotation outputFormat) { outputFormat_ = outputFormat; }
+		void setTransformRotationsToKuka(bool setting) { transformRotationsToKuka_ = setting; }
 
 		// PROTECTED VARIABLES
 		OpenSimLive::DecorationGeneratorLive* decGen_;
@@ -67,11 +68,12 @@ namespace OpenSimLive {
 		bool savePointTrackerResults_ = false; // whether to save PointTracker output to file 
 		double timeSeriesCurrentTime_; // current time, obtained from IMUInverseKinematicsToolLive if savePOintTrackerResults_ is true
 		std::vector<double> timeSeriesTimeVector_; // simply a vector containing the time points of IK
-		std::vector<std::array<double, 7>> timeSeriesDepData_; // a vector that will contain the outputs of PointTracker (mirrored point locations and rotations)
+		std::vector<std::vector<double>> timeSeriesDepData_; // a vector that will contain the outputs of PointTracker (mirrored point locations and rotations)
 		SimTK::Rotation mirroredRotation_; // used to pass mirrored rotation to decoration generator
 		SimTK::Rotation bodyToBase_; // base segment (body) to robot base rotation for L-correction
 		
 		OutputRotation outputFormat_ = EULER;
+		bool transformRotationsToKuka_ = false;
 
 	}; // end of class
 }
