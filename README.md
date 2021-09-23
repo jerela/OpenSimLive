@@ -40,6 +40,7 @@ Step by step instructions on how to install this project.
 - Put YourFilePath/YourSourceCodeFolder-build or whatever else you want as the build folder and allow CMake to create a new folder when prompted.
 - Select **x64** as the generator when prompted.
 - Select **Configure**. CMake variables and their values should now be displayed. If any of them are not found, you can manually type in folders. An example file path of each is as follows:
+   - CMAKE_CONFIGURATION_TYPES  Debug;Release;MinSizeRel;RelWithDebInfo
    - CONFIG_PATH:               C:/Users/YourUserHere/Documents/OpenSimLive/Config
    - INCLUDE_CLASSES_PATH:      C:/Users/YourUserHere/Documents/OpenSimLive/Classes
    - INCLUDE_FUNCTIONS_PATH:    C:/Users/YourUserHere/Documents/OpenSimLive/Functions
@@ -54,7 +55,7 @@ Step by step instructions on how to install this project.
    - PYTHON_PATH:				  C:/Users/YourUserHere/AppData/Local/Programs/Python38
 - The two last entries are not required unless you wish to plot EMG data with Delsys IMUs.
 - Finally, select **Generate**.
-3. Open Visual Studio. Open the solution you just generated in the build directory. Build **ALL_BUILD**. Visual Studio should now create the required executable(s) in a subdirectory in the build directory. It will probably be **.../BuildFolderName/MirrorTherapy/RelWithDebInfo/** for mirror therapy applications and **.../BuildFolderName/Tests/RelWithDebInfo/** for tests.
+3. Open Visual Studio. Open the solution you just generated in the build directory. Make sure that the solution configuration in the top bar is set to RelWithDebInfo or Release instead of Debug, as Debug builds will not work without including the external .pdb debug information databases. Build **ALL_BUILD**. Visual Studio should now create the required executable(s) in a subdirectory in the build directory. It will probably be **.../BuildFolderName/MirrorTherapy/RelWithDebInfo/** for mirror therapy applications and **.../BuildFolderName/Tests/RelWithDebInfo/** for tests.
 4. Copy **xsensdeviceapi64.dll** and **xstypes64.dll** from .../Xsens/MT Software Suite 4.6/MT SDK/x64/lib to the directories where the executables are or add their locations to the *PATH* environmental variable. **This is required to run Xsens-related scripts, but is otherwise optional.**
 5. Go to **.../OpenSimLive/Config** and make sure the .xml files have the right values for your directory paths.
 - You need to download an .osim model file to use with the program. You can find several models here: https://simtk-confluence.stanford.edu/display/OpenSim/Musculoskeletal+Models
