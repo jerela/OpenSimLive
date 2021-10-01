@@ -104,10 +104,25 @@ public:
 		return packet;
 	}
 
+	// added 1.10.2021
+	XsDataPacket const* getNewestPacket() const
+	{
+		XsMutexLocker lock(m_mutex);
+		XsDataPacket const* packet = &m_packetBuffer.back();
+		return packet;
+	}
+
 	void deleteOldestPacket()
 	{
 		XsMutexLocker lock(m_mutex);
 		m_packetBuffer.pop_front();
+	}
+
+	// added 1.10.2021
+	void deleteNewestPacket()
+	{
+		XsMutexLocker lock(m_mutex);
+		m_packetBuffer.pop_back();
 	}
 
 	int getMtwIndex() const

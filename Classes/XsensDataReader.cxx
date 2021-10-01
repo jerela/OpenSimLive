@@ -304,7 +304,8 @@ std::vector<XsQuaternion> XsensDataReader::GetQuaternionData(std::vector<XsQuate
 		if (mtwCallbacks_[i]->dataAvailable())
 		{
 			newDataAvailable_ = true;
-			XsDataPacket const* packet = mtwCallbacks_[i]->getOldestPacket();
+			//XsDataPacket const* packet = mtwCallbacks_[i]->getOldestPacket();
+			XsDataPacket const* packet = mtwCallbacks_[i]->getNewestPacket();
 			quaternionData[i] = packet->orientationQuaternion();
 			// if saving quaternions to file, get the time of each data retrieval into a vector
 			if (saveQuaternionsToFile_ && !timeGot) {
@@ -314,6 +315,7 @@ std::vector<XsQuaternion> XsensDataReader::GetQuaternionData(std::vector<XsQuate
 				timeVector_.push_back(packet->timeOfArrival().secTime()-initialTime_);
 				timeGot = true;
 			}
+			//mtwCallbacks_[i]->deleteOldestPacket();
 			mtwCallbacks_[i]->deleteOldestPacket();
 		}
 	}
