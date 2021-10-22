@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <MainConfiguration>
 	<!--Update rate for Xsens IMUs-->
-	<desired_update_rate>60</desired_update_rate>
+	<desired_update_rate>40</desired_update_rate>
 	<!--File containing Xsens IMU labels on the model corresponding to IMU IDs.-->
 	<mappings_file>SensorMappings_full.xml</mappings_file>
 	<!--File that configures IMUPlacer.-->
@@ -9,17 +9,21 @@
 	<!--Boolean that determines if we want to save IK results (joint angles and their errors) to file when the program finishes. This can be very memory-heavy especially with long measurements.-->
 	<save_ik_results>true</save_ik_results>
 	<!--Delay that occurs between consequent IK calculations in continuous measurement mode. Given in milliseconds.-->
-	<continuous_mode_ms_delay>15</continuous_mode_ms_delay>
+	<continuous_mode_ms_delay>20</continuous_mode_ms_delay>
 	<!--Whether to print roll, pitch and yaw to command prompt whenever IK is calculated, or not.-->
 	<print_roll_pitch_yaw>false</print_roll_pitch_yaw>
 	<!--Whether to reset clock to zero when continuous mode begins instead of using the calibration moment as the zero time point.-->
 	<reset_clock_on_continuous_mode>false</reset_clock_on_continuous_mode>
 	<!--Body in the OpenSim model that we use as the parent frame for the station. This station is used as the point to track for mirror therapy. Use 'none' to skip mirror therapy functions.-->
-	<station_parent_body>none</station_parent_body>
+	<station_parent_body>hand_r</station_parent_body>
 	<!--Location of the station in its parent body, given in the coordinate system of the body.-->
 	<station_location>0.01 0.01 0.01</station_location>
 	<!--Body in the OpenSim model that we use as the reference frame while mirroring the station.-->
 	<station_reference_body>pelvis</station_reference_body>
+	<!--Use "euler" or "quaternion" to define if rotations should be sent through socket as Euler angles or quaternions.-->
+	<point_tracker_output_format>quaternion</point_tracker_output_format>
+	<!--Whether to perform coordinate transformations on the rotations of PointTracker's mirrored point to take it from OpenSim coordinate system to KUKA coordinate system (and rotate it about the vertical axis by 180 degrees, unless defined otherwise by L-correction).-->
+	<transform_rotations_to_kuka>false</transform_rotations_to_kuka>
 	<!--Port that is used to transfer data between programs.-->
 	<socket_port>5010</socket_port>
 	<!--Maximum number of concurrent worker threads for multithreading.-->
@@ -37,7 +41,7 @@
 	<!--Whether to print information about drift and RPY angles for each sensor to command window. NOTE: If you use this with simulated IMU data, the command window will be cluttered.-->
 	<enable_imu_feedback>false</enable_imu_feedback>
 	<!--List of coordinates on the model. These coordinates will have a slider showing their value in the visualization window and their values will be printed on the console. Set "none" to disable tracking.-->
-	<tracked_coordinates>pelvis_rotation knee_angle_r</tracked_coordinates>
+	<tracked_coordinates>neck_rot neck_flex neck_latbend wrist_dev_l wrist_dev_r wrist_flex_l wrist_flex_r</tracked_coordinates>
 	<!--Whether to print the angle values of tracked coordinates to console at the end of each IK operation.-->
 	<print_tracked_coordinates>false</print_tracked_coordinates>
 </MainConfiguration>

@@ -30,11 +30,12 @@ namespace OpenSimLive {
 		void IMUInverseKinematicsToolLive::update(const bool visualizeResults, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quat, const bool offline = false);
 		void IMUInverseKinematicsToolLive::updateOrdered(const bool visualizeResults, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quat, unsigned int orderIndex, double time, const bool offline = false);
 		void reportToFile();
+		void setPointTrackerOutputFormat(const std::string& outputFormat);
 
 		// PUBLIC METHODS DEFINED HERE
 		bool get_report_errors() { return report_errors; }
 		std::vector<double> getQ() { return q_; }
-		std::array<double, 6> getPointTrackerPositionsAndOrientations() { return pointTrackerPositionsAndOrientations_; }
+		std::vector<double> getPointTrackerPositionsAndOrientations() { return pointTrackerPositionsAndOrientations_; }
 		void setTime(const double time) { time_ = time; }
 		double getTime() { return time_; }
 		void setQuaternion(const OpenSim::TimeSeriesTable_<SimTK::Quaternion>& newQuat) { quat_ = newQuat; }
@@ -44,6 +45,7 @@ namespace OpenSimLive {
 		void setSensorToOpenSimRotations(const SimTK::Vec3& newRotations) { sensor_to_opensim_rotations = newRotations; }
 		void setPointTrackerReferenceBodyName(const std::string& referenceBodyName) { pointTrackerReferenceBodyName_ = referenceBodyName; }
 		void setPointTrackerBodyName(const std::string& bodyName) { pointTrackerBodyName_ = bodyName; }
+		void setPointTrackerTransformToKuka(bool setting) { setTransformRotationsToKuka(setting); }
 		void setReportErrors(bool report) { report_errors = report; }
 		// set accuracy for IK solver
 		void setAccuracy(double accuracy) { accuracy_ = accuracy; }
@@ -71,9 +73,10 @@ namespace OpenSimLive {
 		bool report_errors = true;
 		OpenSim::Model model_; // the OpenSim model that state s_ depicts
 		std::vector<double> q_; // joint angles calculated from IK are stored here
-		std::array<double, 6> pointTrackerPositionsAndOrientations_;
+		std::vector<double> pointTrackerPositionsAndOrientations_;
 		std::string pointTrackerBodyName_ = "";
 		std::string pointTrackerReferenceBodyName_ = "pelvis";
+		std::string pointTrackerOutputFormat_ = "euler"; // Euler angles by default
 		double lastUpdatedTime_ = 0;
 		// labels of sensors (e.g. "pelvis_imu")
 		SimTK::Array_<std::string> labels_;
@@ -102,7 +105,7 @@ namespace OpenSimLive {
 		OpenSim::TimeSeriesTable_<SimTK::Quaternion> get_quat() { return quat_; }
 		OpenSim::Model get_model() { return model_; }
 		void setQ(const std::vector<double>& q) { q_ = q; }
-		void setPointTrackerPositionsAndOrientations(const std::array<double, 6>& positionsAndOrientations) { pointTrackerPositionsAndOrientations_ = positionsAndOrientations; }
+		void setPointTrackerPositionsAndOrientations(const std::vector<double>& positionsAndOrientations) { pointTrackerPositionsAndOrientations_ = positionsAndOrientations; }
 		std::string getPointTrackerBodyName() { return pointTrackerBodyName_; }
 		std::string getPointTrackerReferenceBodyName() { return pointTrackerReferenceBodyName_; }
 

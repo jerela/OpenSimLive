@@ -24,7 +24,7 @@ PointTracker::~PointTracker() {
 }
 
 // This function performs all the necessary calculations to fetch the local position of the station, calculate it in another reference frame (body), mirror the position in that new reference frame, get the original body's orientation, mirror the orientation with respect to an axis and finally return a 6-element vector with mirrored positions and orientations.
-std::array<double, 6> PointTracker::runTracker(const SimTK::State* s, OpenSim::Model* model, const std::string& bodyName, const std::string& referenceBodyName) {
+std::vector<double> PointTracker::runTracker(const SimTK::State* s, OpenSim::Model* model, const std::string& bodyName, const std::string& referenceBodyName) {
 
 	// if we use L-correction, calculate body-to-base rotation matrix
 	if (useReferenceRotation_) {
@@ -39,8 +39,8 @@ std::array<double, 6> PointTracker::runTracker(const SimTK::State* s, OpenSim::M
 	// Get a pointer to the body we want to use as the new reference frame for the station's location
 	OpenSim::Body* referenceBody = &(model->updBodySet().get(referenceBodyName));
 	// Calculate the rotation of the station's original parent frame (body) and mirror those orientations with respect to an axis.
-	SimTK::Vec3 mirroredEuler = calculatePointRotation(s, model, body, referenceBody);
-		
+	SimTK::Rotation mirroredRotation = calculatePointRotation(s, model, body, referenceBody);
+	
 	// Calculate the location of the station in another body's reference frame
 	SimTK::Vec3 pointLocation = calculatePointLocation(stationLocationLocal, *s, body, referenceBody);
 	// Reflect the location of the station in another body's reference frame with respect to an axis
@@ -61,9 +61,30 @@ std::array<double, 6> PointTracker::runTracker(const SimTK::State* s, OpenSim::M
 		std::cout << "Mirrored point location in OpenSim coordinate system after L-correction: " << pointLocation << std::endl;
 	}
 
+	std::vector<double> positionsAndRotations;
+	positionsAndRotations.push_back(pointLocation[0]);
+	positionsAndRotations.push_back(pointLocation[1]);
+	positionsAndRotations.push_back(pointLocation[2]);
+
+	if (outputFormat_ == EULER) {
+		// get mirrored rotation as Euler angles
+		SimTK::Vec3 mirroredEuler = mirroredRotation.convertThreeAxesRotationToThreeAngles(SimTK::BodyOrSpaceType::BodyRotationSequence, SimTK::ZAxis, SimTK::YAxis, SimTK::XAxis);
+		positionsAndRotations.push_back(mirroredEuler[0]);
+		positionsAndRotations.push_back(mirroredEuler[1]);
+		positionsAndRotations.push_back(mirroredEuler[2]);
+	}
+	else if (outputFormat_ == QUATERNION) {
+		SimTK::Quaternion mirroredQuaternion = mirroredRotation.convertRotationToQuaternion();
+		positionsAndRotations.push_back(mirroredQuaternion[0]);
+		positionsAndRotations.push_back(mirroredQuaternion[1]);
+		positionsAndRotations.push_back(mirroredQuaternion[2]);
+		positionsAndRotations.push_back(mirroredQuaternion[3]);
+	}
+		
+
 	// Save the calculated results in a double array and return it
 	//std::vector<double> positionsAndRotations = { pointLocation[0], pointLocation[1], pointLocation[2], mirroredEuler[0], mirroredEuler[1], mirroredEuler[2] };
-	std::array<double, 6> positionsAndRotations = { pointLocation[0], pointLocation[1], pointLocation[2], mirroredEuler[0], mirroredEuler[1], mirroredEuler[2] };
+	
 	
 	if (savePointTrackerResults_) {
 		timeSeriesTimeVector_.push_back(timeSeriesCurrentTime_);
@@ -127,7 +148,7 @@ SimTK::Vec3 PointTracker::calculatePointLocation(const SimTK::Vec3& localLocatio
 }
 
 // This function calculates the rotation of the station by getting the rotation of its parent frame (body) and mirroring it with respect to the sagittal plane
-SimTK::Vec3 PointTracker::calculatePointRotation(const SimTK::State* s, OpenSim::Model* model, const OpenSim::Body* body, const OpenSim::Body* referenceBody) {
+SimTK::Rotation PointTracker::calculatePointRotation(const SimTK::State* s, OpenSim::Model* model, const OpenSim::Body* body, const OpenSim::Body* referenceBody) {
 	// Get the rotation of the parent body in ground reference frame
 	SimTK::Rotation mirroringBodyRotation = body->getRotationInGround(*s);
 	SimTK::Rotation referenceBodyRotation = referenceBody->getRotationInGround(*s);
@@ -143,28 +164,36 @@ SimTK::Vec3 PointTracker::calculatePointRotation(const SimTK::State* s, OpenSim:
 	// set rotation for line in decoration generator
 	mirroredRotation_ = mirroredRotation;
 
-	// Now that we have the mirrored rotation w.r.t. to the OpenSim coordinate system, we have to rotate it so that it's in the KUKA coordinate system
+	// if we have set transform_rotations_to_kuka in MainConfiguration.xml to true, do the transformations to take the mirrored body rotation from OpenSim coordinate system to KUKA coordinates
+	if (transformRotationsToKuka_) {
+		// Now that we have the mirrored rotation w.r.t. to the OpenSim coordinate system, we have to rotate it so that it's in the KUKA coordinate system
 	// create a rotation matrix to hold the rotation in KUKA coordinate system
-	SimTK::Rotation mirroredRotationWrtKuka;
-	// we must rotate the OpenSim coordinate system -90 degrees about X to match the coordinate axes with the KUKA coordinate system
-	SimTK::Rotation deg90AboutX;
-	deg90AboutX.setRotationFromAngleAboutX(-1.570796326794897);
-	
-	if (useReferenceRotation_) // if reference base rotation has been defined
-	{
-		// rotate mirroredRotation to correct for the difference between orientation on the base of the robot arm and current orientation of the station reference body (and 90 degrees to match OpenSim coordinate system to KUKA)
-		mirroredRotationWrtKuka = bodyToBase_ * (deg90AboutX*mirroredRotation);
+		SimTK::Rotation mirroredRotationWrtKuka;
+		// we must rotate the OpenSim coordinate system -90 degrees about X to match the coordinate axes with the KUKA coordinate system
+		SimTK::Rotation deg90AboutX;
+		deg90AboutX.setRotationFromAngleAboutX(-1.570796326794897);
+
+		if (useReferenceRotation_) // if reference base rotation has been defined
+		{
+			// rotate mirroredRotation to correct for the difference between orientation on the base of the robot arm and current orientation of the station reference body (and 90 degrees to match OpenSim coordinate system to KUKA)
+			mirroredRotationWrtKuka = bodyToBase_ * (deg90AboutX * mirroredRotation);
+		}
+		else // if reference base rotation has not been defined
+		{
+			// we assume that KUKA coordinate system is facing opposite the station reference body's coordinate system (180 degrees about the vertical axis)
+			SimTK::Rotation deg180AboutZ;
+			deg180AboutZ.setRotationFromAngleAboutZ(3.14159265358979323);
+			mirroredRotationWrtKuka = deg180AboutZ * (deg90AboutX * mirroredRotation);
+		}
+
+		// return the 3x3 rotation matrix
+		return mirroredRotationWrtKuka;
 	}
-	else // if reference base rotation has not been defined
-	{
-		// we assume that KUKA coordinate system is facing opposite the station reference body's coordinate system (180 degrees about the vertical axis)
-		SimTK::Rotation deg180AboutZ;
-		deg180AboutZ.setRotationFromAngleAboutZ(3.14159265358979323);
-		mirroredRotationWrtKuka = deg180AboutZ * (deg90AboutX * mirroredRotation);
+	else {
+		return mirroredRotation;
 	}
 
-	// convert the 3x3 rotation matrix into body fixed ZYX euler angles
-	return mirroredRotationWrtKuka.convertThreeAxesRotationToThreeAngles(SimTK::BodyOrSpaceType::BodyRotationSequence, SimTK::ZAxis, SimTK::YAxis, SimTK::XAxis);
+	
 }
 
 // This function reflects a point with respect to an axis by multiplying the element corresponding to that axis by -1
