@@ -191,6 +191,9 @@ This XML file contains most user-defined settings that can be easily changed wit
 - **station_parent_body**: The body on the OpenSim model that we want to mirror, such as a rehabilitation patient's healthy hand whose movement we want to mirror. Relevant only if you use PointTracker for mirror therapy applications. Set to "none" if you don't need it.
 - **station_location**: Location of the station to be mirrored in the coordinate system of station_parent_body. Given in metres. Relevant only if you use mirror therapy applications, ignored otherwise.
 - **station_reference_body**: The body on the OpenSim model with respect to which we mirror station_parent_body. The mirroring is done with respect to the XY plane of station_reference_body. Relevant only if you use mirror therapy applications, ignored otherwise.
+- **point_tracker_output_format**: "euler" or "quaternion" depending on which format you want to use while sending the mirrored rotations to the Java client. Relevant only if you use mirror therapy applications, ignored otherwise.
+- **euler_convention**: Body or space-fixed coordinate axes and the order of rotations around the axes while converting rotations to Euler angles. Separate with a hyphen, e.g. "space-zyx". Relevant only if you use mirror therapy applications and **point_tracker_output_format** is "euler", ignored otherwise.
+- **transform_rotations_to_kuka**: If true, the mirrored rotations are transformed from OpenSim coordinate system (Y up) to KUKA coordinate system (Z up) and then rotated 180 degrees around the vertical axis (because the rehabilitation robot is facing the patient). Relevant only if you use mirror therapy applications, ignored otherwise.
 - **socket_port**: Port for socket communication between the server (OpenSimLive) and the client (such as a Java program that controls a robotic rehabilitation arm). Relevant only if you use mirror therapy applications, ignored otherwise.
 - **threads**: The maximum allowed number of concurrent IK threads to use for multithreading.
 - **max_buffer_size**: Maximum number of points that can be saved into the buffers that are shared between the producer thread and the consumer thread. It is recommended that this is at least the number of concurrent IK threads.
@@ -198,6 +201,11 @@ This XML file contains most user-defined settings that can be easily changed wit
 - **IMU_manufacturer**: Either "simulated", "delsys" or "xsens". See [Running the program](#running-the-program) for more information.
 - **simulated_bodies**: List of bodies on the OpenSim model, with suffix "\_imu". If we are simulating IMU data, random orientations will be generated for these bodies. Irrelevant otherwise.
 - **save_quaternions_to_file**: Boolean that toggles if quaternion data is saved to file after the program finishes.
+- **enable_imu_feedback**: If true, information about IMU drift and RPY angles is printed to the console during real-time IK.
+- **tracked_coordinates**: List of OpenSim model coordinates (joint angles) that you want to track with a slider in the visualization window. Does not affect the calculations, the effect is only visual.
+- **print_tracked_coordinates**: If true, the angles of tracked coordinates are printed to console whenever an IK operation finishes.
+- **subject_height**: Height of the human subject in cm. Used in scaling the model after IMU calibration.
+- **model_height**: Height of the generic musculoskeletal model in cm. Used in scaling the model after IMU calibration. 
 
 ### DelsysMappings.xml
 
