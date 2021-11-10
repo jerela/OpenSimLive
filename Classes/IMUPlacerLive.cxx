@@ -219,6 +219,10 @@ bool IMUPlacerLive::run(bool visualizeResults) {
         silo->waitForKeyHit(key, modifiers);
         viz.shutdown();
     }
+
+    // Scale model according to the height of the subject given in MainConfiguration.xml
+    scaleModel();
+
     return true;
 }
 
@@ -298,6 +302,42 @@ SimTK::Vec3 IMUPlacerLive::computeHeadingCorrection(
         OPENSIM_THROW(OpenSim::Exception,
             "Heading correction attempted without base imu specification. Aborting.'");
     return rotations;
+}
+
+// Determines and applies a global scale factor for all bodies of the model based on subject height and generic model height. The height are user-defined in MainConfiguration.xml. Finally, the calibrated model is overwritten with the scaled (and calibrated) model.
+void IMUPlacerLive::scaleModel() {
+
+
+    double scaleFactor = subjectHeight_ / modelHeight_;
+
+    OpenSim::ScaleSet scaleSet;
+
+    /* Make a scale set with a Scale for each physical frame.
+    * Initialize scales in all dimensions to scaleFactor.
+     */
+    for (const auto& segment : _model->getComponentList<OpenSim::PhysicalFrame>()) {
+        OpenSim::Scale* segmentScale = new OpenSim::Scale();
+        segmentScale->setSegmentName(segment.getName());
+        segmentScale->setScaleFactors({scaleFactor, scaleFactor, scaleFactor});
+        segmentScale->setApply(true);
+        scaleSet.adoptAndAppend(segmentScale);
+        std::cout << "Set scale factor " << scaleFactor << " for " << (segment.getName()) << std::endl;
+    }
+
+    SimTK::State& s = _model->initSystem();
+    _model->getMultibodySystem().realize(s, SimTK::Stage::Position);
+
+    // scale and save the scaled model as the calibrated model
+    bool scaled = _model->scale(s, scaleSet, true);
+    _model->print(get_output_model_file());
+
+
+    //return true;
+
+
+
+
+
 }
 
 

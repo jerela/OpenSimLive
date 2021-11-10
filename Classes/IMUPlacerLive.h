@@ -26,6 +26,8 @@ namespace OpenSimLive {
 		//OpenSim::Model& getCalibratedModel() const; // can be used directly from base class
 
 		void setQuaternion(const OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quat) { quat_ = quat; };
+		void setSubjectHeight(const double height) { subjectHeight_ = height; }
+		void setModelHeight(const double height) { modelHeight_ = height; }
 
 
 	private:
@@ -45,6 +47,12 @@ namespace OpenSimLive {
 			const std::string& baseImuName,
 			const SimTK::CoordinateDirection baseHeadingDirection);
 
+		void scaleModel();
+
+		// height of the human subject in cm, used in scaling the generic model
+		double subjectHeight_ = 180;
+		// height of the generic model, used in comparing to subject height for determining the scale factor
+		double modelHeight_ = 180;
 
 
 	}; // end of IMUPlacerLive

@@ -68,7 +68,7 @@ std::vector<double> PointTracker::runTracker(const SimTK::State* s, OpenSim::Mod
 
 	if (outputFormat_ == EULER) {
 		// get mirrored rotation as Euler angles
-		SimTK::Vec3 mirroredEuler = mirroredRotation.convertThreeAxesRotationToThreeAngles(SimTK::BodyOrSpaceType::BodyRotationSequence, SimTK::ZAxis, SimTK::YAxis, SimTK::XAxis);
+		SimTK::Vec3 mirroredEuler = mirroredRotation.convertThreeAxesRotationToThreeAngles(bodyOrSpaceType_, coordinateAxes_[0], coordinateAxes_[1], coordinateAxes_[2]);
 		positionsAndRotations.push_back(mirroredEuler[0]);
 		positionsAndRotations.push_back(mirroredEuler[1]);
 		positionsAndRotations.push_back(mirroredEuler[2]);

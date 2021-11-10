@@ -113,6 +113,15 @@ std::string calibrateModelFromSetupFile(const std::string& IMUPlacerSetupFile, c
 	// construct IMUPlacer
 	OpenSimLive::IMUPlacerLive IMUPlacer(IMUPlacerSetupFile);
 
+	// set the value of subjectHeight_ for model scaling
+	double subjectHeight = std::stod(ConfigReader("MainConfiguration.xml", "subject_height"));
+	double modelHeight = std::stod(ConfigReader("MainConfiguration.xml", "model_height"));
+	if (subjectHeight > 0) {
+		IMUPlacer.setSubjectHeight(subjectHeight);
+		IMUPlacer.setModelHeight(modelHeight);
+		std::cout << "Set subject height to " << subjectHeight << std::endl;
+	}
+
 	// give the TimeSeriesTable of quaternions to IMUPlacer and run IMUPlacer to calibrate the model
 	IMUPlacer.setQuaternion(quaternionTimeSeriesTable);
 	IMUPlacer.run(false); // false as argument = do not visualize

@@ -31,6 +31,7 @@ namespace OpenSimLive {
 		void IMUInverseKinematicsToolLive::updateOrdered(const bool visualizeResults, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quat, unsigned int orderIndex, double time, const bool offline = false);
 		void reportToFile();
 		void setPointTrackerOutputFormat(const std::string& outputFormat);
+		void setPointTrackerEulerConvention(const std::string& eulerConvention);
 
 		// PUBLIC METHODS DEFINED HERE
 		bool get_report_errors() { return report_errors; }

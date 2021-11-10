@@ -397,6 +397,7 @@ int main(int argc, char* argv[])
 				IKTool.setPointTrackerBodyName(ConfigReader("MainConfiguration.xml", "station_parent_body"));
 				IKTool.setPointTrackerReferenceBodyName(ConfigReader("MainConfiguration.xml", "station_reference_body"));
 				IKTool.setPointTrackerOutputFormat(ConfigReader("MainConfiguration.xml", "point_tracker_output_format"));
+				IKTool.setPointTrackerEulerConvention(ConfigReader("MainConfiguration.xml", "euler_convention"));
 				IKTool.setPointTrackerTransformToKuka(ConfigReader("MainConfiguration.xml", "transform_rotations_to_kuka") == "true");
 			}
 			else {

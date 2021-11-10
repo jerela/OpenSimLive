@@ -22,6 +22,8 @@
 	<station_reference_body>pelvis</station_reference_body>
 	<!--Use "euler" or "quaternion" to define if rotations should be sent through socket as Euler angles or quaternions.-->
 	<point_tracker_output_format>quaternion</point_tracker_output_format>
+	<!--If point_tracker_output_format is euler, define the convention that is used to transform rotation matrices to Euler angles. Options are "space-zxz", "space-zyx", "body-zxz" and "body-zyx".-->
+	<euler_convention>space-zyx</euler_convention>
 	<!--Whether to perform coordinate transformations on the rotations of PointTracker's mirrored point to take it from OpenSim coordinate system to KUKA coordinate system (and rotate it about the vertical axis by 180 degrees, unless defined otherwise by L-correction).-->
 	<transform_rotations_to_kuka>false</transform_rotations_to_kuka>
 	<!--Port that is used to transfer data between programs.-->
@@ -44,4 +46,8 @@
 	<tracked_coordinates>neck_rot neck_flex neck_latbend wrist_dev_l wrist_dev_r wrist_flex_l wrist_flex_r</tracked_coordinates>
 	<!--Whether to print the angle values of tracked coordinates to console at the end of each IK operation.-->
 	<print_tracked_coordinates>false</print_tracked_coordinates>
+	<!--Height of the human subject in cm, used for scaling the model. Same value as model_height model dimensions remain unchanged.-->
+	<subject_height>360</subject_height>
+	<!--Height of the generic model in cm, used for scaling the model.-->
+	<model_height>180</model_height>
 </MainConfiguration>

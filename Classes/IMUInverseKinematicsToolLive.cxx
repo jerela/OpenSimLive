@@ -59,6 +59,50 @@ void IMUInverseKinematicsToolLive::setPointTrackerOutputFormat(const std::string
     }
 }
 
+// Set point tracker euler convention (space or body fixed, and order of coordinate axes), used if output rotation is set to EULER.
+void IMUInverseKinematicsToolLive::setPointTrackerEulerConvention(const std::string& eulerConvention) {
+    if (getPointTrackerEnabled())
+    {
+        // Substringify string of type "body-xyz" into "body" and "xyz"
+        std::string bodyOrSpaceType = eulerConvention.substr(0,eulerConvention.find("-"));
+        std::string convention = eulerConvention.substr(eulerConvention.find("-") + 1);
+
+        // Set private variable bodyOrSpaceType_ in PointTracker accordingly
+        if (bodyOrSpaceType == "body") {
+            setPointTrackerBodyOrSpaceType(SimTK::BodyOrSpaceType::BodyRotationSequence);
+        }
+        else if (bodyOrSpaceType == "space") {
+            setPointTrackerBodyOrSpaceType(SimTK::BodyOrSpaceType::BodyRotationSequence);
+        }
+        else {
+            std::cout << "ERROR! Body or space type for PointTracker not recognized in IMUInverseKinematicsToolLive::setPointTrackerEulerConvention()!" << std::endl;
+            abort();
+        }
+
+        // set variable coordinateAxes_ accordingly
+        for (size_t i = 0; i < 3; ++i) {
+            if (convention[i] == 'x') {
+                setPointTrackerCoordinateAxes(i, SimTK::XAxis);
+            }
+            else if (convention[i] == 'y') {
+                setPointTrackerCoordinateAxes(i, SimTK::YAxis);
+            }
+            else if (convention[i] == 'z') {
+                setPointTrackerCoordinateAxes(i, SimTK::ZAxis);
+            }
+            else {
+                std::cout << "ERROR! Coordinate axis letter for PointTracker not recognized in IMUInverseKinematicsToolLive::setPointTrackerEulerConvention()!" << std::endl;
+                abort();
+            }
+
+        }
+        
+
+    }
+}
+
+
+
 void IMUInverseKinematicsToolLive::runInverseKinematicsWithLiveOrientations(
     OpenSim::Model& model, OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable,
     const bool visualizeResults) {

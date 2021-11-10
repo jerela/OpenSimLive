@@ -44,6 +44,8 @@ namespace OpenSimLive {
 		void savePointTrackerOutputToFile(std::string& rootDir, std::string& resultsDir);
 		void setPointTrackerOutputRotation(OutputRotation outputFormat) { outputFormat_ = outputFormat; }
 		void setTransformRotationsToKuka(bool setting) { transformRotationsToKuka_ = setting; }
+		void setPointTrackerBodyOrSpaceType(SimTK::BodyOrSpaceType type) { bodyOrSpaceType_ = type; }
+		void setPointTrackerCoordinateAxes(size_t index, SimTK::CoordinateAxis axis) { coordinateAxes_[index] = axis; }
 
 		// PROTECTED VARIABLES
 		OpenSimLive::DecorationGeneratorLive* decGen_;
@@ -74,6 +76,10 @@ namespace OpenSimLive {
 		
 		OutputRotation outputFormat_ = EULER;
 		bool transformRotationsToKuka_ = false;
+
+
+		SimTK::BodyOrSpaceType bodyOrSpaceType_ = SimTK::BodyOrSpaceType::BodyRotationSequence;
+		std::array<SimTK::CoordinateAxis, 3> coordinateAxes_ = {SimTK::ZAxis, SimTK::YAxis, SimTK::XAxis};
 
 	}; // end of class
 }
