@@ -229,6 +229,13 @@ This XML file contains settings specific to Xsens IMUs. The settings are as foll
 
 Currently OpenSimLive has been tested on 64-bit Windows 7 and 64-bit Windows 10.
 
+#### Which project am I supposed to build and run?
+
+**OSL_core** is the main project of the solution and probably the one you should be building and using. It supports real-time inverse kinematics with Delsys and Xsens IMUs and simulated IMU data (without real IMUs).
+There is also **OSL_common**, which is used in [our research lab](https://sites.uef.fi/humea/) to control a KUKA iiwa robot arm for mirror therapy. It is practically **OSL_core** with mirror therapy features on top.
+Then there are a bunch of projects starting with **test_**. They were created for performance testing for a publication about this repository, and while they might still work, they are meant to be used with the **study-measurements** branch.
+Similarly, **OSL_Xsens** and **OSL_Delsys** might still work, but they are have been replaced by **OSL_core**, which can handle both IMU types.
+
 ### Run-time issues
 
 #### The program crashes right after printing "IMUPlacerLive run initiated"
