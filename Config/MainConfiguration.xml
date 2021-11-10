@@ -22,7 +22,7 @@
 	<station_reference_body>pelvis</station_reference_body>
 	<!--Use "euler" or "quaternion" to define if rotations should be sent through socket as Euler angles or quaternions.-->
 	<point_tracker_output_format>quaternion</point_tracker_output_format>
-	<!--If point_tracker_output_format is euler, define the convention that is used to transform rotation matrices to Euler angles. Options are "space-zxz", "space-zyx", "body-zxz" and "body-zyx".-->
+	<!--If point_tracker_output_format is euler, define the convention that is used to transform rotation matrices to Euler angles. Options include "space-zxz", "space-zyx", "body-zxz" and "body-zyx".-->
 	<euler_convention>space-zyx</euler_convention>
 	<!--Whether to perform coordinate transformations on the rotations of PointTracker's mirrored point to take it from OpenSim coordinate system to KUKA coordinate system (and rotate it about the vertical axis by 180 degrees, unless defined otherwise by L-correction).-->
 	<transform_rotations_to_kuka>false</transform_rotations_to_kuka>
