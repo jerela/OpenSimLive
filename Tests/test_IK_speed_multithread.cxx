@@ -27,7 +27,8 @@ void updateConcurrentIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, s
 
 	IKTool.update(false, quatTable);
 	
-	std::array<double, 6> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
+	std::vector<double> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
+	size_t packetSize = trackerResults.size();
 	//double* mirrorTherapyPacket = &trackerResults[0];
 	double* mirrorTherapyPacket = trackerResults.data();
 	//finishTimes.push_back((std::chrono::high_resolution_clock::now() - clockStart).count());

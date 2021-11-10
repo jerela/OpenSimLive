@@ -54,14 +54,15 @@ void concurrentIK(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, const Varia
 	if (vm.enableMirrorTherapy)
 	{
 		// get the data we want to send to Java program
-		std::array<double, 6> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
+		std::vector<double> trackerResults = IKTool.getPointTrackerPositionsAndOrientations();
+		size_t packetSize = trackerResults.size();
 		// get a double array from the double std::array
 		//double* mirrorTherapyPacket = &trackerResults[0];
 		// create mirrorTherapyPacket as a pointer to the underlying array of trackerResults
 		double* mirrorTherapyPacket = trackerResults.data();
 		// send the data
 		if (vm.sendMode)
-			myLink.SendDoubles(mirrorTherapyPacket, 6);
+			myLink.SendDoubles(mirrorTherapyPacket, packetSize);
 	}
 }
 
