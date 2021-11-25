@@ -27,6 +27,8 @@ These instructions will get you a copy of the project up and running on your loc
 
 OpenSim 4.1 is required for core functionality. XDA 4.6 is required to use Xsens IMUs. Delsys Trigno Control Utility is required to communicate with Delsys SDK and read data from Delsys IMUs. CMake and Visual Studio are used to configure, generate and build the project.
 
+You can get XDA 4.6 from [the Xsens website](https://www.xsens.com/software-downloads) by downloading MT Software Suite under MTw Awinda. Make sure not to download MT Software Suite under MTi Products if you use MTw Awinda IMUs.
+
 ~~Python 3.7+ is optional and enables using the PythonPlotter class, which can be used to plot OpenSimLive data.~~ Python-based plotting is not supported in the latest version.
 
 ### Installing
