@@ -18,3 +18,11 @@ std::string calibrateModelFromSetupFile(const std::string& IMUPlacerSetupFile, c
 // Generic function to save time series as .txt files.
 template<typename myType>
 void saveTimeSeriesToTxtFile(std::vector<myType> timeVector, std::vector<myType> dataVector, const std::string& rootDir, const std::string& resultsDir, const std::string& fileName, const std::string& description, const std::string& labels);
+
+// Function that parses delimited-separated tokens from a string
+template <typename elementType>
+void parse(std::vector<elementType>& vector, std::string& targetString, std::string delimiter);
+// Function that parses quaternions from a string containing several quaternions
+void parseQuaternion(std::vector<SimTK::Quaternion>& quatVector, std::string quatString);
+// Function that constructs a time series table of quaternions, which is used in IK, from a time series of quaternions in .txt file
+OpenSim::TimeSeriesTable_<SimTK::Quaternion> quaternionTableFromTextFile(std::string quatFileName);
