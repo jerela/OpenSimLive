@@ -632,7 +632,7 @@ void IMUInverseKinematicsToolLive::reportToFile() {
         return;
     }
 
-    std::cout << "Debug counter 1: " << debugCounter1_ << ", debug counter 2: " << debugCounter2_ << std::endl;
+    //std::cout << "Debug counter 1: " << debugCounter1_ << ", debug counter 2: " << debugCounter2_ << std::endl;
 
     // organized vectors should contain the measures in time-ascending order; we must create them
     std::vector<double> organizedTimeVector;
@@ -691,7 +691,7 @@ void IMUInverseKinematicsToolLive::reportToFile() {
         
     }
 
-    std::cout << "Debug counter 1: " << debugCounter1_ << ", debug counter 2: " << debugCounter2_ << std::endl;
+    //std::cout << "Debug counter 1: " << debugCounter1_ << ", debug counter 2: " << debugCounter2_ << std::endl;
 
     std::cout << "Size of organizedTimeVector: " << organizedTimeVector.size() << std::endl;
     std::cout << "Number of time points in orderedTimeVector_: " << orderedTimeVector_.size() << std::endl;

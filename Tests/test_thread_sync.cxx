@@ -92,13 +92,13 @@ void ConnectToDataStream(double inputSeconds, int inputThreads) {
 	OpenSimLive::IMUHandler genericDataReader;
 
 	std::string manufacturerStr = ConfigReader("MainConfiguration.xml", "IMU_manufacturer");
-	IMUType manufacturer = simulated; // default to simulated in case the following if-statements fail
+	OpenSimLive::IMUHandler::IMUType manufacturer = OpenSimLive::IMUHandler::IMUType::simulated; // default to simulated in case the following if-statements fail
 	if (manufacturerStr == "delsys")
-		manufacturer = delsys;
+		manufacturer = OpenSimLive::IMUHandler::IMUType::delsys;
 	else if (manufacturerStr == "xsens")
-		manufacturer = xsens;
+		manufacturer = OpenSimLive::IMUHandler::IMUType::xsens;
 	else if (manufacturerStr == "simulated")
-		manufacturer = simulated;
+		manufacturer = OpenSimLive::IMUHandler::IMUType::simulated;
 
 	genericDataReader.setManufacturer(manufacturer);
 

@@ -44,8 +44,31 @@ void SimulatedDataReader::populateLabelVector() {
 	quaternionData_.reserve(100000);
 }
 
-// updates quatTable_ with new quaternion values
-void SimulatedDataReader::updateQuaternionTable() {
+
+// updates quatTable_ with new quaternion values that are all identity quaternions; used for performance testing purposes
+void SimulatedDataReader::generateIdentityQuaternions() {
+	// create a quaternion matrix for time series table
+	SimTK::Matrix_<SimTK::Quaternion> quatMatrix(1, labelsSize_);
+	// generate a new identity quaternion on a spot in the matrix
+	SimTK::Quaternion quat(1, 0, 0, 0);
+	// loop through all elements of labels_ (the vector containing labels for IMUs on the model)
+	for (unsigned int m = 0; m < labelsSize_; ++m) {
+		quatMatrix.set(0, m, quat);
+		if (saveQuaternionsToFile_) {
+			//std::cout << quat << std::endl;
+			quaternions_[m] = quat;
+		}
+	}
+
+	updateTime();
+
+	// finally create/overwrite the time series table using the identity quaternion data
+	quatTable_ = OpenSim::TimeSeriesTable_<SimTK::Quaternion>({ 0 }, quatMatrix, labels_);
+}
+
+
+// update quat table with random unit quaternions
+void SimulatedDataReader::generateRandomQuaternions() {
 	// create a quaternion matrix for time series table
 	SimTK::Matrix_<SimTK::Quaternion> quatMatrix(1, labelsSize_);
 	// loop through all elements of labels_ (the vector containing labels for IMUs on the model)
@@ -58,21 +81,22 @@ void SimulatedDataReader::updateQuaternionTable() {
 		}
 	}
 
-	// get current time
-	clockNow_ = std::chrono::high_resolution_clock::now();
-	// update elapsed time (clockDuration_)
-	clockDuration_ = (clockNow_ - clockStart_);
-
-	// if we are going to save quaternions to file later, push current quaternions to relevant vectors and update timevector
-	if (saveQuaternionsToFile_) {
-		// push quaternions into vector
-		quaternionData_.push_back(quaternions_);
-		// push time into vector
-		timeVector_.push_back(clockDuration_.count());
-	}
+	updateTime();
 
 	// finally create/overwrite the time series table using the randomized quaternion data
 	quatTable_ = OpenSim::TimeSeriesTable_<SimTK::Quaternion>({ 0 }, quatMatrix, labels_);
+}
+
+
+// updates quatTable_ with new quaternion values that are either identity quaternions or randomized unit quaternions
+void SimulatedDataReader::updateQuaternionTable() {
+
+	if (is_random_) {
+		generateRandomQuaternions();
+	}
+	else {
+		generateIdentityQuaternions();
+	}
 }
 
 
@@ -127,23 +151,7 @@ void SimulatedDataReader::saveQuaternionsToFile(const std::string& rootDir, cons
 
 
 
-
-
-// updates quatTable_ with new quaternion values that are all identity quaternions; used for performance testing purposes
-void SimulatedDataReader::generateIdentityQuaternions() {
-	// create a quaternion matrix for time series table
-	SimTK::Matrix_<SimTK::Quaternion> quatMatrix(1, labelsSize_);
-	// loop through all elements of labels_ (the vector containing labels for IMUs on the model)
-	for (unsigned int m = 0; m < labelsSize_; ++m) {
-		// generate a new identity quaternion on a spot in the matrix
-		SimTK::Quaternion quat(1, 0, 0, 0);
-		quatMatrix.set(0, m, quat);
-		if (saveQuaternionsToFile_) {
-			//std::cout << quat << std::endl;
-			quaternions_[m] = quat;
-		}
-	}
-
+void SimulatedDataReader::updateTime() {
 	// if we are going to save quaternions to file later, push current quaternions to relevant vectors and update timevector
 	if (saveQuaternionsToFile_) {
 		// push quaternions into vector
@@ -155,7 +163,4 @@ void SimulatedDataReader::generateIdentityQuaternions() {
 		// push time into vector
 		timeVector_.push_back(clockDuration_.count());
 	}
-
-	// finally create/overwrite the time series table using the randomized quaternion data
-	quatTable_ = OpenSim::TimeSeriesTable_<SimTK::Quaternion>({ 0 }, quatMatrix, labels_);
 }

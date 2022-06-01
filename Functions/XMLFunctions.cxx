@@ -318,3 +318,51 @@ OpenSim::TimeSeriesTable_<SimTK::Quaternion> quaternionTableFromTextFile(std::st
 }
 
 
+// Calibrate model and return the name of the calibrated model file, and update calibTime to match the closest similar entry in the time series table.
+std::string calibrateModel(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, double& calibTime)
+{
+	size_t calibIndex = quatTable.getNearestRowIndexForTime(calibTime);
+	auto calibLabels = quatTable.getColumnLabels();
+	auto calibMatrix = quatTable.updNearestRow(calibTime);
+	//auto calibMatrix = quatTable.updDependentColumnAtIndex(calibIndex);
+	//auto calibMatrix = quatTable.getDependentColumnAtIndex(calibIndex);
+	double trueCalibTime = quatTable.getIndependentColumn()[calibIndex];
+	std::cout << "Calibrating for time " << trueCalibTime << " found at row index " << calibIndex << "." << std::endl;
+	std::cout << "Quaternion for calibration: " << std::endl << calibMatrix << std::endl;
+	OpenSim::TimeSeriesTable_<SimTK::Quaternion> calibQuatTable(std::vector<double>({ trueCalibTime }), calibMatrix.getAsMatrix(), calibLabels);
+	// calibrate model
+	std::cout << "Calibrating..." << std::endl;
+	std::string calibratedModelFile = calibrateModelFromSetupFile(OPENSIMLIVE_ROOT + "/Config/" + ConfigReader("MainConfiguration.xml", "imu_placer_setup_file"), calibQuatTable);
+	std::cout << " done." << std::endl;
+
+	calibTime = trueCalibTime;
+	return calibratedModelFile;
+}
+
+// Remove rows that are not within the bounds of [startTime, endTime] in the time series table.
+OpenSim::TimeSeriesTable_<SimTK::Quaternion> clipTable(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, double startTime, double endTime)
+{
+	// prepare clipped quaternion time series table
+	size_t startIndex = quatTable.getNearestRowIndexForTime(startTime);
+	size_t endIndex = quatTable.getNearestRowIndexForTime(endTime);
+
+	// get the original number of rows in the time series table before removing any of them
+	size_t numRowsOriginal = quatTable.getNumRows();
+
+	std::cout << "Preparing to clip the time series table from " << numRowsOriginal << " rows to " << endIndex - startIndex + 1 << " rows." << std::endl;
+
+	// clip the end of the quat table by removing rows right after the index of endTime
+	for (size_t i = endIndex + 1; i < numRowsOriginal; ++i) {
+		quatTable.removeRowAtIndex(endIndex + 1);
+	}
+
+	// clip the beginning of the quat table by removing rows at the beginning of the table
+	for (size_t i = 0; i < startIndex; ++i) {
+		quatTable.removeRowAtIndex(0);
+	}
+
+	std::cout << "Clipping done. Time series table now has " << quatTable.getNumRows() << " rows." << std::endl;
+
+	return quatTable;
+}
+

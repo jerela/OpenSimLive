@@ -26,3 +26,7 @@ void parse(std::vector<elementType>& vector, std::string& targetString, std::str
 void parseQuaternion(std::vector<SimTK::Quaternion>& quatVector, std::string quatString);
 // Function that constructs a time series table of quaternions, which is used in IK, from a time series of quaternions in .txt file
 OpenSim::TimeSeriesTable_<SimTK::Quaternion> quaternionTableFromTextFile(std::string quatFileName);
+// Calibrate model and return the name of the calibrated model file, and update calibTime to match the closest similar entry in the time series table.
+std::string calibrateModel(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, double& calibTime);
+// Remove rows that are not within the bounds of [startTime, endTime] in the time series table.
+OpenSim::TimeSeriesTable_<SimTK::Quaternion> clipTable(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, double startTime, double endTime);

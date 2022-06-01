@@ -7,37 +7,36 @@
 #include <ThreadPoolContainer.h>
 #include "conio.h" // for non-ANSI _kbhit() and _getch()
 #include <XMLFunctions.h>
-#include <XMLFunctionsXsens.h>
 #include <thread>
 #include <future>
 #include <functional>
-#include <IMUHandler.h>
 
 const std::string OPENSIMLIVE_ROOT = OPENSIMLIVE_ROOT_PATH;
 
 
 // Holds various variables that are passed to several functions so that function arguments can be reduced by passing only this struct or a reference to it.
 struct VariableManager {
-	std::string calibratedModelFile; // the file name of the calibrated OpenSim model will be stored here
 	bool saveIKResults = ("true" == ConfigReader("MainConfiguration.xml", "save_ik_results")); // Boolean that determines if we want to save IK results (joint angles and their errors) to file when the program finishes. This can be very memory-heavy especially with long measurements.
 	bool enableMirrorTherapy = false;
-	unsigned int maxThreads = stoi(ConfigReader("MainConfiguration.xml", "threads")); // get the maximum number of concurrent threads for multithreading
-	std::string manufacturer = ConfigReader("MainConfiguration.xml", "IMU_manufacturer");
-
+	
 	std::chrono::steady_clock::time_point clockStart = std::chrono::high_resolution_clock::now(); // get the starting time of IMU measurement loop
-
 
 	unsigned int orderIndex = 0;
 	std::queue<OpenSim::TimeSeriesTableQuaternion> orientationBuffer;
 	std::queue<double> timeBuffer;
 	bool bufferInUse = false;
 	unsigned int maxBufferSize = 8;
-	bool trialDone = false;
 	std::atomic<bool> runProducerThread = true;
 	std::atomic<bool> runIKThread = true;
 	double trialDuration = 0;
 
 }; // struct dataHolder ends
+
+
+
+
+
+
 
 
 
@@ -50,33 +49,37 @@ void updateConcurrentIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, V
 std::mutex mainMutex;
 
 // This function reads quaternion values in a loop and saves them in a queue buffer.
-void producerThread(OpenSimLive::IMUHandler& genericDataReader, VariableManager& vm) {
-	
-	
-	// update new quaternion table but don't get it yet; do this ONLY ONCE to do all the IK with the same orientations
-	genericDataReader.updateQuaternionTable();
-	
+void producerThread(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, VariableManager& vm) {
+
+	unsigned int data_index = 0;
+	const std::vector<double> timeVector = quatTable.getIndependentColumn();
+	unsigned int data_n = timeVector.size();
+		
 	do {
 
 		// get time stamp
 		std::chrono::duration<double> duration = std::chrono::high_resolution_clock::now() - vm.clockStart;
 		double time = duration.count();
 
-		
-
 		// if consumer is not accessing the buffer and the buffer size is not maximal
 		if (!vm.bufferInUse && vm.orientationBuffer.size() < vm.maxBufferSize)
 		{
+			double currentTime = timeVector[data_index];
+			auto currentMatrix = quatTable.updRowAtIndex(data_index);
+			OpenSim::TimeSeriesTable_<SimTK::Quaternion> currentQuatTable(std::vector<double>({ currentTime }), currentMatrix.getAsMatrix(), quatTable.getColumnLabels());
+
 			// set bufferInUse to true to prevent consumer from accessing the buffer
 			vm.bufferInUse = true;
 			std::lock_guard<std::mutex> lock(mainMutex);
 			// push time stamp to the shared buffer
-			vm.timeBuffer.push(time);
+			vm.timeBuffer.push(currentTime);
 			// push the time series table to the shared buffer
-			vm.orientationBuffer.push(genericDataReader.getQuaternionTable());
+			vm.orientationBuffer.push(currentQuatTable);
 			vm.bufferInUse = false;
+			++data_index;
 		}
-		if (time > vm.trialDuration) {
+		// If set duration elapses OR we reach the end of the data, finish program.
+		if (time > vm.trialDuration || data_index == data_n) {
 			vm.runIKThread = false;
 			vm.runProducerThread = false;
 		}
@@ -116,31 +119,12 @@ void consumerThread(VariableManager& vm, OpenSimLive::IMUInverseKinematicsToolLi
 
 
 
-void manageIK(double inputSeconds, int inputThreads) {
+void manageIK(double inputSeconds, int inputThreads, double calibTime, double startTime, double endTime, std::string calibratedModelFile, OpenSim::TimeSeriesTable_<SimTK::Quaternion> clippedTable) {
 
-	bool saveQuaternions = (ConfigReader("MainConfiguration.xml", "save_quaternions_to_file") == "true");
-	
 
 	VariableManager vm;
 
-	// create Xsens connection object and connect the program to IMUs
-	OpenSimLive::IMUHandler genericDataReader;
-
-	OpenSimLive::IMUHandler::IMUType manufacturer = OpenSimLive::IMUHandler::IMUType::simulated; // default to simulated if the if-statement below fails
-	if (vm.manufacturer == "delsys")
-		manufacturer = OpenSimLive::IMUHandler::IMUType::delsys;
-	else if (vm.manufacturer == "xsens")
-		manufacturer = OpenSimLive::IMUHandler::IMUType::xsens;
-	else if (vm.manufacturer == "simulated")
-		manufacturer = OpenSimLive::IMUHandler::IMUType::simulated;
-	// set the value in the IMUHandler object
-	genericDataReader.setManufacturer(manufacturer);
-	// establish connection to IMUs
-	genericDataReader.initialize();
-
 	vm.trialDuration = inputSeconds;
-		
-	//std::string calibratedModelFile; // the file name of the calibrated OpenSim model will be stored here
 	vm.saveIKResults = ("true" == ConfigReader("MainConfiguration.xml", "save_ik_results")); // Boolean that determines if we want to save IK results (joint angles and their errors) to file when the program finishes. This can be very memory-heavy especially with long measurements.
 	vm.enableMirrorTherapy = (ConfigReader("MainConfiguration.xml", "station_parent_body") != "none"); // if "none", then set to false
 
@@ -152,16 +136,11 @@ void manageIK(double inputSeconds, int inputThreads) {
 	// get the sensor to opensim rotations for IMUInverseKinematicsToolLive
 	SimTK::Vec3 sensorToOpenSimRotations = get_sensor_to_opensim_rotations();
 	
-	// CALIBRATION STEP
-	// fill a timeseriestable with quaternion orientations of IMUs
-	OpenSim::TimeSeriesTable_<SimTK::Quaternion>  quaternionTimeSeriesTable = genericDataReader.getQuaternionTable();
-	// calibrate the model and return its file name
-	vm.calibratedModelFile = calibrateModelFromSetupFile(OPENSIMLIVE_ROOT + "/Config/" + ConfigReader("MainConfiguration.xml", "imu_placer_setup_file"), quaternionTimeSeriesTable);
 	// give IKTool the necessary inputs and run it
-	IKTool.setModelFile(vm.calibratedModelFile); // the model to perform IK on
-	IKTool.setQuaternion(quaternionTimeSeriesTable); // the orientations of IMUs
+	IKTool.setModelFile(calibratedModelFile); // the model to perform IK on
+	IKTool.setQuaternion(clippedTable); // the orientations of IMUs
 	IKTool.setSensorToOpenSimRotations(sensorToOpenSimRotations);
-	IKTool.setTime(0); // set the time of the first state as 0 at calibration
+	IKTool.setTime(calibTime); // set the time of the first state at calibration
 	IKTool.setOpenSimLiveRootDirectory(OPENSIMLIVE_ROOT); // this is needed for saving the IK report to file
 	IKTool.run(false); // true for visualization
 	std::cout << "Model has been calibrated." << std::endl;
@@ -185,7 +164,7 @@ void manageIK(double inputSeconds, int inputThreads) {
 	// reset clock
 	vm.clockStart = std::chrono::high_resolution_clock::now();
 
-	std::thread producer(producerThread, std::ref(genericDataReader), std::ref(vm));
+	std::thread producer(producerThread, std::ref(clippedTable), std::ref(vm));
 	std::thread consumer(consumerThread, std::ref(vm), std::ref(IKTool), std::ref(threadPoolContainer));
 
 	producer.join();
@@ -211,8 +190,6 @@ void manageIK(double inputSeconds, int inputThreads) {
 		}
 	}
 
-	// close the connection to IMUs
-	genericDataReader.closeConnection();
 
 	return;
 }
@@ -220,18 +197,69 @@ void manageIK(double inputSeconds, int inputThreads) {
 
 int main(int argc, char *argv[])
 {
+
+
+
+	std::string quatFileName;
+	std::string inputThreadsStr;
+	std::string calibTimeStr;
+	std::string startTimeStr;
+	std::string endTimeStr;
+
+	if (argc == 6) {
+		quatFileName = argv[1];
+		inputThreadsStr = argv[2];
+		calibTimeStr = argv[3];
+		startTimeStr = argv[4];
+		endTimeStr = argv[5];
+	}
+	else if (argc == 1) {
+
+		std::cout << "Please input the name of the text file to be analyzed in /OpenSimLive-results/ folder: ";
+		std::cin >> quatFileName;
+
+		std::cout << "Please input the number of threads to be used: ";
+		std::cin >> inputThreadsStr;
+
+
+		std::cout << "Please input the time of IMU calibration: ";
+		std::cin >> calibTimeStr;
+
+
+		std::cout << "Please input IK start time: ";
+		std::cin >> startTimeStr;
+
+
+		std::cout << "Please input IK end time: ";
+		std::cin >> endTimeStr;
+
+	}
+	else {
+		std::cout << "Give command line in the following format: test_ik_throughput_from_file.exe quaternionTimeSeriesFileName.txt number_of_IK_threads calib_time IK_start_time IK_end_time" << std::endl;
+		std::cout << "Alternatively, do not give any command line arguments and the program will let you input them manually." << std::endl;
+	}
+
 	std::string inputSecsStr;
-	std::cout << "Please input test duration in seconds: ";
+	std::cout << "Please input test maximum duration in seconds: ";
 	std::cin >> inputSecsStr;
 	double inputSecs = stod(inputSecsStr);
 
-	std::string inputThreadsStr;
-	std::cout << "Please input the number of threads to be used: ";
-	std::cin >> inputThreadsStr;
+
 	int inputThreads = stoi(inputThreadsStr);
+	double calibTime = stod(calibTimeStr);
+	double startTime = stod(startTimeStr);
+	double endTime = stod(endTimeStr);
+
+
+	// function that constructs a time series table of quaternions from quaternion time series text file
+	OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable = quaternionTableFromTextFile(quatFileName);
+	// function that calibrates the model and updates calibTime to match the closest similar time in the time series table
+	std::string calibratedModelFile = calibrateModel(quatTable, calibTime);
+	// function that clips the time series table for IK
+	OpenSim::TimeSeriesTable_<SimTK::Quaternion> clippedTable = clipTable(quatTable, startTime, endTime);
 
 	// perform IK etc
-	manageIK(inputSecs, inputThreads);
+	manageIK(inputSecs, inputThreads, calibTime, startTime, endTime, calibratedModelFile, clippedTable);
 
 	std::cout << "Program finished." << std::endl;
 	return 1;

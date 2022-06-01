@@ -21,13 +21,18 @@ namespace OpenSimLive {
 		OpenSim::TimeSeriesTable_<SimTK::Quaternion> getTimeSeriesTable() { return quatTable_; }
 		// enable or disable quaternion saving to file
 		void setSaveQuaternions(bool setting) { saveQuaternionsToFile_ = setting; }
-		// generates identity quaternions (for example for IK throughput testing)
-		void generateIdentityQuaternions();
+		// enable or disable random quaternion generation instead of identity quaternions
+		void setIsRandom(bool setting) { is_random_ = setting; }
 		// returns current time as double
 		double getTime() { return clockDuration_.count(); }
+		// generates identity quaternions (for example for IK throughput testing)
+		void generateIdentityQuaternions();
+		// generates random quaternions (for example for IK throughput testing)
+		void generateRandomQuaternions();
 		
 	protected:
-			
+		// update time stamp after generating quatenrions
+		void updateTime();
 	private:
 		// PRIVATE METHODS
 		// returns a randomized unit quaternion
@@ -58,6 +63,8 @@ namespace OpenSimLive {
 		std::chrono::steady_clock::time_point clockNow_ = std::chrono::high_resolution_clock::now();
 		std::chrono::steady_clock::time_point clockStart_ = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> clockDuration_;
+		// whether the generated quaternions should be random; otherwise they are identity quaternions
+		bool is_random_ = true;
 
 	}; // end of class
 }

@@ -36,8 +36,12 @@
 	<enable_EMG_plotting>false</enable_EMG_plotting>
 	<!--If given the option to choose, use Xsens IMUs, Delsys IMUs or simulated data?-->
 	<IMU_manufacturer>simulated</IMU_manufacturer>
+	<!--If "true", simulated IMU data comprises random quaternions. If "false", they will be identity quaternions.-->
+	<simulation_is_random>true</simulation_is_random>
 	<!--If using simulated IMU data, which IMUs do we simulate?-->
 	<simulated_bodies>pelvis_imu femur_r_imu femur_l_imu tibia_r_imu tibia_l_imu humerus_r_imu humerus_l_imu radius_r_imu radius_l_imu</simulated_bodies>
+	<!--Whether to show IK results in a visualizer window or not.-->
+	<visualize_ik>true</visualize_ik>
 	<!--Whether to save quaternions that represent IMU orientations to file.-->
 	<save_quaternions_to_file>true</save_quaternions_to_file>
 	<!--Whether to print information about drift and RPY angles for each sensor to command window. NOTE: If you use this with simulated IMU data, the command window will be cluttered.-->
@@ -47,7 +51,7 @@
 	<!--Whether to print the angle values of tracked coordinates to console at the end of each IK operation.-->
 	<print_tracked_coordinates>false</print_tracked_coordinates>
 	<!--Height of the human subject in cm, used for scaling the model. Same value as model_height model dimensions remain unchanged.-->
-	<subject_height>360</subject_height>
+	<subject_height>180</subject_height>
 	<!--Height of the generic model in cm, used for scaling the model.-->
 	<model_height>180</model_height>
 </MainConfiguration>

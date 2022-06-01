@@ -27,7 +27,7 @@ void IMUHandler::setManufacturer(IMUType manufacturer) {
 // establish connection to the IMUs
 void IMUHandler::initialize() {
 	bool saveQuaternions = (ConfigReader("MainConfiguration.xml", "save_quaternions_to_file") == "true");
-	if (IMUType_ == xsens) {
+	if (IMUType_ == IMUType::xsens) {
 		xsensObject_.reset(new OpenSimLive::XsensDataReader);
 		xsensObject_->SetDesiredUpdateRate(stoi(ConfigReader("MainConfiguration.xml", "desired_update_rate")));
 		xsensObject_->setSaveQuaternions(saveQuaternions);
@@ -45,30 +45,36 @@ void IMUHandler::initialize() {
 		// initialize quatVector_
 		quatVector_ = xsensObject_->getQuaternionData();
 	}
-	else if (IMUType_ == delsys) {
+	else if (IMUType_ == IMUType::delsys) {
 		delsysObject_.reset(new OpenSimLive::DelsysDataReader);
 		delsysObject_->setSaveQuaternions(saveQuaternions);
 		// loop until startup is successful
 		while (!delsysObject_->initiateConnection()) {}
 	}
-	else if (IMUType_ == simulated) {
+	else if (IMUType_ == IMUType::simulated) {
+		// get whether random or identity quaternions will be used
+		bool isRandom = (ConfigReader("MainConfiguration.xml", "simulation_is_random") == "true");
 		simulatedObject_.reset(new OpenSimLive::SimulatedDataReader);
 		simulatedObject_->setSaveQuaternions(saveQuaternions);
+		simulatedObject_->setIsRandom(isRandom);
+		// initially generate a set of identity quaternions for uniform calibration
+		simulatedObject_->generateIdentityQuaternions();
+		quaternionTimeSeriesTable_ = simulatedObject_->getTimeSeriesTable();
 	}
 }
 
 // update the value of quaternionTimeSeriesTable_
 void IMUHandler::updateQuaternionTable() {
-	if (IMUType_ == xsens) {
+	if (IMUType_ == IMUType::xsens) {
 		//quaternionTimeSeriesTable_ = (fillQuaternionTable(xsensObject_->GetMtwCallbacks(), xsensObject_->GetQuaternionData(quatVector_)));
 		quaternionTimeSeriesTable_ = (fillQuaternionTable(xsensObject_->GetMtwCallbacks(), xsensObject_->getQuaternionData()));
 	}
-	else if (IMUType_ == delsys) {
+	else if (IMUType_ == IMUType::delsys) {
 		//delsysObject_->updateQuaternionData();
 		delsysObject_->updateQuaternionDataNoOffset();
 		quaternionTimeSeriesTable_ = delsysObject_->getTimeSeriesTable();
 	}
-	else if (IMUType_ == simulated) {
+	else if (IMUType_ == IMUType::simulated) {
 		simulatedObject_->updateQuaternionTable();
 		quaternionTimeSeriesTable_ = simulatedObject_->getTimeSeriesTable();
 	}
@@ -80,15 +86,15 @@ void IMUHandler::updateQuaternionTable() {
 
 // This is an option that combines updateQuaternionTable() and getQuaternionTable(), resulting in better performance because quaternionTimeSeriesTable_ variable is not needlessly initialized in this class.
 OpenSim::TimeSeriesTableQuaternion IMUHandler::updateAndGetQuaternionTable() {
-	if (IMUType_ == xsens) {
+	if (IMUType_ == IMUType::xsens) {
 		return (fillQuaternionTable(xsensObject_->GetMtwCallbacks(), xsensObject_->GetQuaternionData(quatVector_)));
 	}
-	else if (IMUType_ == delsys) {
+	else if (IMUType_ == IMUType::delsys) {
 		//delsysObject_->updateQuaternionData();
 		delsysObject_->updateQuaternionDataNoOffset();
 		return delsysObject_->getTimeSeriesTable();
 	}
-	else if (IMUType_ == simulated) {
+	else if (IMUType_ == IMUType::simulated) {
 		simulatedObject_->updateQuaternionTable();
 		return simulatedObject_->getTimeSeriesTable();
 	}
@@ -97,21 +103,21 @@ OpenSim::TimeSeriesTableQuaternion IMUHandler::updateAndGetQuaternionTable() {
 
 // update EMG values
 void IMUHandler::updateEMG() {
-	if (IMUType_ == xsens)
+	if (IMUType_ == IMUType::xsens)
 	{
 		std::cout << "Xsens has no EMG capabilities, updateEMG() will do nothing!" << std::endl;
 	}
-	else if (IMUType_ == delsys) {
+	else if (IMUType_ == IMUType::delsys) {
 		delsysObject_->updateEMG();
 	}
-	else if (IMUType_ == simulated)
+	else if (IMUType_ == IMUType::simulated)
 	{
 		std::cout << "Simulation has no EMG capabilities, updateEMG() will do nothing!" << std::endl;
 	}
 }
 
 // generate identity quaternions
-void IMUHandler::generateIdentityQuaternions() {
+/*void IMUHandler::generateIdentityQuaternions() {
 	if (IMUType_ == xsens)
 	{
 		std::cout << "Xsens cannot generate identity quaternions!" << std::endl;
@@ -124,17 +130,17 @@ void IMUHandler::generateIdentityQuaternions() {
 		simulatedObject_->generateIdentityQuaternions();
 		quaternionTimeSeriesTable_ = simulatedObject_->getTimeSeriesTable();
 	}
-}
+}*/
 
 // close the connection, save to file etc
 void IMUHandler::closeConnection() {
-	if (IMUType_ == xsens) {
+	if (IMUType_ == IMUType::xsens) {
 		xsensObject_->CloseConnection();
 	}
-	else if (IMUType_ == delsys) {
+	else if (IMUType_ == IMUType::delsys) {
 		delsysObject_->closeConnection();
 	}
-	else if (IMUType_ == simulated) {
+	else if (IMUType_ == IMUType::simulated) {
 		simulatedObject_->closeConnection();
 	}
 }
@@ -142,13 +148,13 @@ void IMUHandler::closeConnection() {
 // return current time from IMU classes; if none is found, return -1
 double IMUHandler::getTime() {
 	double time = -1;
-	if (IMUType_ == xsens) {
+	if (IMUType_ == IMUType::xsens) {
 		time = xsensObject_->getTime();
 	}
-	else if (IMUType_ == delsys) {
+	else if (IMUType_ == IMUType::delsys) {
 		time = delsysObject_->getOrientationTime();
 	}
-	else if (IMUType_ == simulated) {
+	else if (IMUType_ == IMUType::simulated) {
 		time = simulatedObject_->getTime();
 	}
 	return time;

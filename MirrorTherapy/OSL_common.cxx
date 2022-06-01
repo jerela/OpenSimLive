@@ -248,13 +248,13 @@ int main(int argc, char* argv[])
 	//int desiredUpdateRate = stoi(ConfigReader("MainConfiguration.xml", "desired_update_rate"));
 	//xsensDataReader.SetDesiredUpdateRate(desiredUpdateRate);
 
-	IMUType manufacturer = simulated; // default to simulated if the if-statement below fails
+	OpenSimLive::IMUHandler::IMUType manufacturer = OpenSimLive::IMUHandler::IMUType::simulated; // default to simulated if the if-statement below fails
 	if (vm.manufacturer == "delsys")
-		manufacturer = delsys;
+		manufacturer = OpenSimLive::IMUHandler::IMUType::delsys;
 	else if (vm.manufacturer == "xsens")
-		manufacturer = xsens;
+		manufacturer = OpenSimLive::IMUHandler::IMUType::xsens;
 	else if (vm.manufacturer == "simulated")
-		manufacturer = simulated;
+		manufacturer = OpenSimLive::IMUHandler::IMUType::simulated;
 	// set the value in the IMUHandler object
 	genericDataReader.setManufacturer(manufacturer);
 	// establish connection to IMUs

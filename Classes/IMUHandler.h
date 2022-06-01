@@ -7,13 +7,15 @@
 #include <OpenSim.h>
 
 
-enum IMUType { xsens = 0, delsys = 1, simulated = 2 };
+
 
 namespace OpenSimLive {
 
 	class IMUHandler {
 
 	public:
+
+		enum class IMUType { xsens = 0, delsys = 1, simulated = 2 };
 		// CONSTRUCTORS AND DECONSTRUCTORS
 		IMUHandler();
 		~IMUHandler();
@@ -40,7 +42,7 @@ namespace OpenSimLive {
 		// enable or disable IMU feedback
 		void setEnableIMUFeedback(bool setting) { enable_IMU_feedback_ = setting; }
 		// generate identity quaternions
-		void generateIdentityQuaternions();
+		//void generateIdentityQuaternions();
 
 	protected:
 			
@@ -53,7 +55,7 @@ namespace OpenSimLive {
 
 		// PRIVATE VARIABLES
 		// holds the enumerable that is delsys, xsens or simulated
-		IMUType IMUType_;
+		OpenSimLive::IMUHandler::IMUType IMUType_ = OpenSimLive::IMUHandler::IMUType::simulated;
 		// smart pointer to XsensDataReader object
 		std::unique_ptr<OpenSimLive::XsensDataReader> xsensObject_;
 		// smart pointer to DelsysDataReader object

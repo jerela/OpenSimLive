@@ -28,6 +28,10 @@ struct VariableManager {
 	std::string stationReferenceBody = ConfigReader("MainConfiguration.xml", "station_reference_body"); // get the name of the reference body used in mirror therapy
 	double calibTime = 0; // the time calibration is performed
 
+	std::chrono::steady_clock::time_point ikStart; // Start and end time used for tracking the duration of the latest continuous IK period.
+	std::chrono::steady_clock::time_point ikEnd;
+	bool visualize = ("true" == ConfigReader("MainConfiguration.xml", "visualize_ik")); // Boolen that determines if solved IK is shown in the visualization window; will slow down IK.
+
 	unsigned int orderIndex = 0;
 	std::queue<OpenSim::TimeSeriesTableQuaternion> orientationBuffer;
 	std::queue<double> timeBuffer;
@@ -40,10 +44,8 @@ struct VariableManager {
 	
 }; // struct dataHolder ends
 
-bool visualize = true;
-
 void updateConcurrentIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, VariableManager& vm, OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable, double time, unsigned int orderIndex) {
-	IKTool.updateOrdered(visualize, quatTable, orderIndex, time);
+	IKTool.updateOrdered(vm.visualize, quatTable, orderIndex, time);
 }
 
 
@@ -149,13 +151,13 @@ int main(int argc, char* argv[])
 	OpenSimLive::IMUHandler genericDataReader;
 	genericDataReader.setEnableIMUFeedback(vm.enableIMUFeedback);
 
-	IMUType manufacturer = simulated; // default to simulated if the if-statement below fails
+	OpenSimLive::IMUHandler::IMUType manufacturer = OpenSimLive::IMUHandler::IMUType::simulated; // default to simulated if the if-statement below fails
 	if (vm.manufacturer == "delsys")
-		manufacturer = delsys;
+		manufacturer = OpenSimLive::IMUHandler::IMUType::delsys;
 	else if (vm.manufacturer == "xsens")
-		manufacturer = xsens;
+		manufacturer = OpenSimLive::IMUHandler::IMUType::xsens;
 	else if (vm.manufacturer == "simulated")
-		manufacturer = simulated;
+		manufacturer = OpenSimLive::IMUHandler::IMUType::simulated;
 	// set the value in the IMUHandler object
 	genericDataReader.setManufacturer(manufacturer);
 	// establish connection to IMUs
@@ -250,7 +252,7 @@ int main(int argc, char* argv[])
 			// set private variables to be accessed in IK calculations
 			IKTool.setPointTrackerEnabled(false);
 			// finally, run IK
-			IKTool.run(visualize); // true for visualization
+			IKTool.run(vm.visualize); // true for visualization
 			std::cout << "Model has been calibrated." << std::endl;
 		}
 
@@ -271,6 +273,7 @@ int main(int argc, char* argv[])
 			//if (vm.resetClockOnContinuousMode && !(vm.clockDuration.count() > 0)) // ensure that the config setting is set to true and that this is the first time continuous mode is entered
 			//	vm.clockStart = std::chrono::high_resolution_clock::now();
 			vm.runIKThread = true;
+			vm.ikStart = std::chrono::high_resolution_clock::now();
 			std::thread consumer(consumerThread, std::ref(vm), std::ref(IKTool), std::ref(threadPoolContainer));
 			consumer.detach();
 		}
@@ -280,6 +283,7 @@ int main(int argc, char* argv[])
 			vm.runIKThread = false;
 			vm.continuousMode = false;
 			stopContinuousModeKeyHit = false;
+			vm.ikEnd = std::chrono::high_resolution_clock::now();
 		}
 
 		char hitKey = ' ';
@@ -312,6 +316,15 @@ int main(int argc, char* argv[])
 	std::cout << "Exiting main data loop!" << std::endl;
 
 	std::cout << "Performed " << vm.orderIndex << " IK operations." << std::endl;
+
+
+	
+	std::chrono::duration<double> clockDuration = vm.ikEnd - vm.ikStart;
+	double finalTime = clockDuration.count();
+
+	
+	std::cout << "Performed " << vm.orderIndex << " iterations in " << finalTime << " seconds." << std::endl;
+	std::cout << "Frame rate: " << ((double)vm.orderIndex / finalTime) << " iterations per second." << std::endl;
 
 	// close the connection to IMUs
 	genericDataReader.closeConnection();

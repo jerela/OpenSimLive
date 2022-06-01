@@ -398,6 +398,53 @@ target_include_directories(test_IK_delay PUBLIC
 
 
 
+set(TEST_IK_DELAY_FROM_FILE_SOURCES
+	"${INCLUDE_CLASSES_PATH}/IMUPlacerLive.h"
+	"${INCLUDE_CLASSES_PATH}/IMUPlacerLive.cxx"
+	"${INCLUDE_CLASSES_PATH}/IMUInverseKinematicsToolLive.h"
+	"${INCLUDE_CLASSES_PATH}/IMUInverseKinematicsToolLive.cxx"
+	"${INCLUDE_CLASSES_PATH}/PointTracker.h"
+	"${INCLUDE_CLASSES_PATH}/PointTracker.cxx"
+	"${INCLUDE_CLASSES_PATH}/DecorationGeneratorLive.h"
+	"${INCLUDE_CLASSES_PATH}/DecorationGeneratorLive.cxx"
+	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctions.h"
+	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctions.cxx"
+	"${INCLUDE_CLASSES_PATH}/ThreadPool.h"
+	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.h"
+	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.tpp"
+	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.cxx"
+	)	
+
+
+add_executable(test_IK_delay_from_file
+			   test_IK_delay_from_file.cxx
+			   "${TEST_IK_DELAY_FROM_FILE_SOURCES}")
+
+target_link_libraries(test_IK_delay_from_file
+						PRIVATE "${OPENSIM_LIBRARY}"
+						PRIVATE "${SIMBODY_LIBRARY}"
+						PRIVATE "ws2_32.lib")
+						
+target_include_directories(test_IK_delay_from_file PRIVATE
+						"${INCLUDE_CLASSES_PATH}"
+						"${INCLUDE_FUNCTIONS_PATH}")
+						
+target_include_directories(test_IK_delay_from_file PUBLIC
+						   "${PROJECT_BINARY_DIR}"
+						   "${OPENSIM_INCLUDE_PATH}"
+						   "${OPENSIM_INCLUDE_PATH_TWO}"
+						   "${SIMBODY_INCLUDE_PATH}"
+						   )						   
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -460,5 +507,46 @@ target_include_directories(test_IK_throughput PUBLIC
 
 
 
+
+
+
+
+set(TEST_IK_THROUGHPUT_FROM_FILE_SOURCES
+	"${INCLUDE_CLASSES_PATH}/IMUPlacerLive.h"
+	"${INCLUDE_CLASSES_PATH}/IMUPlacerLive.cxx"
+	"${INCLUDE_CLASSES_PATH}/IMUInverseKinematicsToolLive.h"
+	"${INCLUDE_CLASSES_PATH}/IMUInverseKinematicsToolLive.cxx"
+	"${INCLUDE_CLASSES_PATH}/PointTracker.h"
+	"${INCLUDE_CLASSES_PATH}/PointTracker.cxx"
+	"${INCLUDE_CLASSES_PATH}/DecorationGeneratorLive.h"
+	"${INCLUDE_CLASSES_PATH}/DecorationGeneratorLive.cxx"
+	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctions.h"
+	"${INCLUDE_FUNCTIONS_PATH}/XMLFunctions.cxx"
+	"${INCLUDE_CLASSES_PATH}/ThreadPool.h"
+	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.h"
+	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.tpp"
+	"${INCLUDE_CLASSES_PATH}/ThreadPoolContainer.cxx"
+	)	
+
+
+add_executable(test_IK_throughput_from_file
+			   test_IK_throughput_from_file.cxx
+			   "${TEST_IK_THROUGHPUT_FROM_FILE_SOURCES}")
+
+target_link_libraries(test_IK_throughput_from_file
+						PRIVATE "${OPENSIM_LIBRARY}"
+						PRIVATE "${SIMBODY_LIBRARY}"
+						PRIVATE "ws2_32.lib")
+						
+target_include_directories(test_IK_throughput_from_file PRIVATE
+						"${INCLUDE_CLASSES_PATH}"
+						"${INCLUDE_FUNCTIONS_PATH}")
+						
+target_include_directories(test_IK_throughput_from_file PUBLIC
+						   "${PROJECT_BINARY_DIR}"
+						   "${OPENSIM_INCLUDE_PATH}"
+						   "${OPENSIM_INCLUDE_PATH_TWO}"
+						   "${SIMBODY_INCLUDE_PATH}"
+						   )						   
 
 
