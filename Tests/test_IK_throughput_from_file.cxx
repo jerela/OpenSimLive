@@ -49,11 +49,13 @@ void updateConcurrentIKTool(OpenSimLive::IMUInverseKinematicsToolLive& IKTool, V
 std::mutex mainMutex;
 
 // This function reads quaternion values in a loop and saves them in a queue buffer.
-void producerThread(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, VariableManager& vm) {
+void producerThread(std::vector< OpenSim::TimeSeriesTable_<SimTK::Quaternion>>& quaternionVector, const std::vector<double>& timeVector, VariableManager& vm) {
 
 	unsigned int data_index = 0;
-	const std::vector<double> timeVector = quatTable.getIndependentColumn();
+	
 	unsigned int data_n = timeVector.size();
+
+
 		
 	do {
 
@@ -64,17 +66,13 @@ void producerThread(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, Var
 		// if consumer is not accessing the buffer and the buffer size is not maximal
 		if (!vm.bufferInUse && vm.orientationBuffer.size() < vm.maxBufferSize)
 		{
-			double currentTime = timeVector[data_index];
-			auto currentMatrix = quatTable.updRowAtIndex(data_index);
-			OpenSim::TimeSeriesTable_<SimTK::Quaternion> currentQuatTable(std::vector<double>({ currentTime }), currentMatrix.getAsMatrix(), quatTable.getColumnLabels());
-
 			// set bufferInUse to true to prevent consumer from accessing the buffer
 			vm.bufferInUse = true;
 			std::lock_guard<std::mutex> lock(mainMutex);
 			// push time stamp to the shared buffer
-			vm.timeBuffer.push(currentTime);
+			vm.timeBuffer.push(timeVector[data_index]);
 			// push the time series table to the shared buffer
-			vm.orientationBuffer.push(currentQuatTable);
+			vm.orientationBuffer.push(quaternionVector[data_index]);
 			vm.bufferInUse = false;
 			++data_index;
 		}
@@ -159,12 +157,23 @@ void manageIK(double inputSeconds, int inputThreads, double calibTime, double st
 
 	OpenSimLive::ThreadPoolContainer threadPoolContainer(maxThreads);
 
+
+	const std::vector<double> timeVector = clippedTable.getIndependentColumn();
+	std::vector< OpenSim::TimeSeriesTable_<SimTK::Quaternion>> quatVector;
+	for (unsigned int i = 0; i < timeVector.size(); ++i) {
+		auto currentMatrix = clippedTable.updRowAtIndex(i);
+		double currentTime = timeVector[i];
+		OpenSim::TimeSeriesTable_<SimTK::Quaternion> currentQuatTable(std::vector<double>({ currentTime }), currentMatrix.getAsMatrix(), clippedTable.getColumnLabels());
+		quatVector.push_back(currentQuatTable);
+	}
+
+
 	std::cout << "Entering measurement loop." << std::endl;
 
 	// reset clock
 	vm.clockStart = std::chrono::high_resolution_clock::now();
 
-	std::thread producer(producerThread, std::ref(clippedTable), std::ref(vm));
+	std::thread producer(producerThread, std::ref(quatVector), std::ref(timeVector), std::ref(vm));
 	std::thread consumer(consumerThread, std::ref(vm), std::ref(IKTool), std::ref(threadPoolContainer));
 
 	producer.join();
