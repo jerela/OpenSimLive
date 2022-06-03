@@ -366,3 +366,36 @@ OpenSim::TimeSeriesTable_<SimTK::Quaternion> clipTable(OpenSim::TimeSeriesTable_
 	return quatTable;
 }
 
+
+// Remove all columns from a TimeSeriesTable that are not specified in function arguments
+OpenSim::TimeSeriesTable_<SimTK::Quaternion> clipDependentData(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, std::vector<std::string> labelsToKeep) {
+
+	std::vector<std::string> labelsVector = quatTable.getColumnLabels();
+
+	std::cout << "Initial quaternion time series table has " << quatTable.getNumColumns() << " dependent columns, but we aim to keep " << labelsToKeep.size() << " dependent columns." << std::endl;
+
+	// iterate through all labels in the table, and if the label is not found in user-specified list of labels, remove it from column
+	for (unsigned int i = 0; i < labelsVector.size(); ++i) {
+		std::string currentLabel = labelsVector[i];
+		// check if currentLabel is found in user-specified list of labels to keep
+		bool labelFound = false;
+		for (unsigned int j = 0; j < labelsToKeep.size(); ++j) {
+			if (currentLabel == labelsToKeep[j]) {
+				labelFound = true;
+			}
+		}
+
+		// if label wasn't found in user-specified list of labels to keep, remove it from the quat Table
+		if (!labelFound) {
+			quatTable.removeColumn(currentLabel);
+		}
+		
+	}
+
+	std::cout << "The quaternion time series table now has " << quatTable.getNumColumns() << " dependent columns." << std::endl;
+
+	return quatTable;
+
+}
+
+

@@ -120,12 +120,14 @@ int main(int argc, char *argv[])
 	std::string calibTimeStr;
 	std::string startTimeStr;
 	std::string endTimeStr;
+	std::string bodyStr;
 
-	if (argc == 5) {
+	if (argc == 6) {
 		quatFileName = argv[1];
 		calibTimeStr = argv[2];
 		startTimeStr = argv[3];
 		endTimeStr = argv[4];
+		bodyStr = argv[5];
 	}
 	else if (argc == 1) {
 
@@ -154,14 +156,16 @@ int main(int argc, char *argv[])
 	double startTime = stod(startTimeStr);
 	double endTime = stod(endTimeStr);
 
-	bool visualize = false;
+	// parse the list of bodies given as command line argument into a vector of strings
+	std::vector<std::string> bodiesToInclude;
+	parse(bodiesToInclude, bodyStr, ",");
 
 	// function that constructs a time series table of quaternions from quaternion time series text file
 	OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable = quaternionTableFromTextFile(quatFileName);
 	// function that calibrates the model and updates calibTime to match the closest similar time in the time series table
 	std::string calibratedModelFile = calibrateModel(quatTable, calibTime);
 	// function that clips the time series table for IK
-	OpenSim::TimeSeriesTable_<SimTK::Quaternion> clippedTable = clipTable(quatTable, startTime, endTime);
+	OpenSim::TimeSeriesTable_<SimTK::Quaternion> clippedTable = clipDependentData(clipTable(quatTable, startTime, endTime), bodiesToInclude);
 
 	// perform IK etc
 	manageIK(calibTime, startTime, endTime, calibratedModelFile, clippedTable);

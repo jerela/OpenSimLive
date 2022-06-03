@@ -28,7 +28,6 @@ struct VariableManager {
 	unsigned int maxBufferSize = 8;
 	std::atomic<bool> runProducerThread = true;
 	std::atomic<bool> runIKThread = true;
-	double trialDuration = 0;
 
 }; // struct dataHolder ends
 
@@ -76,8 +75,8 @@ void producerThread(std::vector< OpenSim::TimeSeriesTable_<SimTK::Quaternion>>& 
 			vm.bufferInUse = false;
 			++data_index;
 		}
-		// If set duration elapses OR we reach the end of the data, finish program.
-		if (time > vm.trialDuration || data_index == data_n) {
+		// If we reach the end of the data, finish program.
+		if (data_index == data_n) {
 			vm.runIKThread = false;
 			vm.runProducerThread = false;
 		}
@@ -117,12 +116,11 @@ void consumerThread(VariableManager& vm, OpenSimLive::IMUInverseKinematicsToolLi
 
 
 
-void manageIK(double inputSeconds, int inputThreads, double calibTime, double startTime, double endTime, std::string calibratedModelFile, OpenSim::TimeSeriesTable_<SimTK::Quaternion> clippedTable) {
+void manageIK(int inputThreads, double calibTime, double startTime, double endTime, std::string calibratedModelFile, OpenSim::TimeSeriesTable_<SimTK::Quaternion> clippedTable) {
 
 
 	VariableManager vm;
 
-	vm.trialDuration = inputSeconds;
 	vm.saveIKResults = ("true" == ConfigReader("MainConfiguration.xml", "save_ik_results")); // Boolean that determines if we want to save IK results (joint angles and their errors) to file when the program finishes. This can be very memory-heavy especially with long measurements.
 	vm.enableMirrorTherapy = (ConfigReader("MainConfiguration.xml", "station_parent_body") != "none"); // if "none", then set to false
 
@@ -214,13 +212,15 @@ int main(int argc, char *argv[])
 	std::string calibTimeStr;
 	std::string startTimeStr;
 	std::string endTimeStr;
+	std::string bodyStr;
 
-	if (argc == 6) {
+	if (argc == 7) {
 		quatFileName = argv[1];
 		inputThreadsStr = argv[2];
 		calibTimeStr = argv[3];
 		startTimeStr = argv[4];
 		endTimeStr = argv[5];
+		bodyStr = argv[6];
 	}
 	else if (argc == 1) {
 
@@ -248,27 +248,30 @@ int main(int argc, char *argv[])
 		std::cout << "Alternatively, do not give any command line arguments and the program will let you input them manually." << std::endl;
 	}
 
-	std::string inputSecsStr;
-	std::cout << "Please input test maximum duration in seconds: ";
-	std::cin >> inputSecsStr;
-	double inputSecs = stod(inputSecsStr);
-
 
 	int inputThreads = stoi(inputThreadsStr);
 	double calibTime = stod(calibTimeStr);
 	double startTime = stod(startTimeStr);
 	double endTime = stod(endTimeStr);
 
+	// parse the list of bodies given as command line argument into a vector of strings
+	std::vector<std::string> bodiesToInclude;
+	parse(bodiesToInclude, bodyStr, ",");
+
 
 	// function that constructs a time series table of quaternions from quaternion time series text file
 	OpenSim::TimeSeriesTable_<SimTK::Quaternion> quatTable = quaternionTableFromTextFile(quatFileName);
 	// function that calibrates the model and updates calibTime to match the closest similar time in the time series table
 	std::string calibratedModelFile = calibrateModel(quatTable, calibTime);
-	// function that clips the time series table for IK
-	OpenSim::TimeSeriesTable_<SimTK::Quaternion> clippedTable = clipTable(quatTable, startTime, endTime);
+	// function that clips the time series table for IK both time-wise and column-wise
+	OpenSim::TimeSeriesTable_<SimTK::Quaternion> clippedTable = clipDependentData(clipTable(quatTable, startTime, endTime), bodiesToInclude);
+
+	/*for (unsigned int i = 0; i < bodiesToInclude.size(); ++i) {
+		std::cout << bodiesToInclude[i] << std::endl;
+	}*/
 
 	// perform IK etc
-	manageIK(inputSecs, inputThreads, calibTime, startTime, endTime, calibratedModelFile, clippedTable);
+	manageIK(inputThreads, calibTime, startTime, endTime, calibratedModelFile, clippedTable);
 
 	std::cout << "Program finished." << std::endl;
 	return 1;

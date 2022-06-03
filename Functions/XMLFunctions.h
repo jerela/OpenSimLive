@@ -30,3 +30,5 @@ OpenSim::TimeSeriesTable_<SimTK::Quaternion> quaternionTableFromTextFile(std::st
 std::string calibrateModel(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, double& calibTime);
 // Remove rows that are not within the bounds of [startTime, endTime] in the time series table.
 OpenSim::TimeSeriesTable_<SimTK::Quaternion> clipTable(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, double startTime, double endTime);
+// Remove all columns that are not specified from a TimeSeriesTable
+OpenSim::TimeSeriesTable_<SimTK::Quaternion> clipDependentData(OpenSim::TimeSeriesTable_<SimTK::Quaternion>& quatTable, std::vector<std::string> labelsToKeep);
