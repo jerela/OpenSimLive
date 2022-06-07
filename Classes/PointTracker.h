@@ -62,7 +62,7 @@ namespace OpenSimLive {
 		//PRIVATE VARIABLES
 		std::string referenceBodyName_ = "pelvis";
 		std::string bodyName_ = "";
-		bool pointTrackerEnabled_ = true;
+		bool pointTrackerEnabled_ = false;
 		bool visualize_ = false;
 		bool useReferenceRotation_ = false;
 		SimTK::Quaternion_<SimTK::Real> referenceBaseRotation_; // quaternion rotation of the IMU that is now on station_reference_body, but was on the base of the robot arm when this variable was saved 
