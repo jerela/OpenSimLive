@@ -30,7 +30,8 @@ struct VariableManager {
 
 	std::chrono::steady_clock::time_point ikStart; // Start and end time used for tracking the duration of the latest continuous IK period.
 	std::chrono::steady_clock::time_point ikEnd;
-	bool visualize = ("true" == ConfigReader("MainConfiguration.xml", "visualize_ik")); // Boolen that determines if solved IK is shown in the visualization window; will slow down IK.
+	bool visualize = ("true" == ConfigReader("MainConfiguration.xml", "visualize_ik")); // Boolean that determines if solved IK is shown in the visualization window; will slow down IK.
+	bool visualizeAllFrames = ("true" == ConfigReader("MainConfiguration.xml", "visualize_all_frames")); // Boolean that determines if solved IK is shown even if the visualizer window already contains newer IK pose.
 
 	unsigned int orderIndex = 0;
 	std::queue<OpenSim::TimeSeriesTableQuaternion> orientationBuffer;
@@ -184,6 +185,7 @@ int main(int argc, char* argv[])
 	IKTool.setReportErrors(vm.saveIKResults);
 	// whether PointTracker (through IKTool) writes calculated mirrored positions and rotations into a .sto file when program finishes
 	IKTool.setSavePointTrackerResults(vm.enableMirrorTherapy);
+	IKTool.setVisualizeAllFrames(vm.visualizeAllFrames);
 
 	// get the sensor to opensim rotations for IMUInverseKinematicsToolLive
 	SimTK::Vec3 sensorToOpenSimRotations = get_sensor_to_opensim_rotations();

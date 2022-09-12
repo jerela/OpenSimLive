@@ -42,6 +42,8 @@
 	<simulated_bodies>pelvis_imu femur_r_imu femur_l_imu tibia_r_imu tibia_l_imu humerus_r_imu humerus_l_imu radius_r_imu radius_l_imu</simulated_bodies>
 	<!--Whether to show IK results in a visualizer window or not.-->
 	<visualize_ik>true</visualize_ik>
+	<!--When visualizer is enabled, whether to visualize IK even if the latest visualized pose is newer or to skip visualizing old poses.-->
+	<visualize_all_frames>false</visualize_all_frames>
 	<!--Whether to save quaternions that represent IMU orientations to file.-->
 	<save_quaternions_to_file>true</save_quaternions_to_file>
 	<!--Whether to print information about drift and RPY angles for each sensor to command window. NOTE: If you use this with simulated IMU data, the command window will be cluttered.-->

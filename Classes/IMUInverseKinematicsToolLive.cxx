@@ -560,8 +560,21 @@ void IMUInverseKinematicsToolLive::updateOrderedInverseKinematics(OpenSim::TimeS
         try {
             if (assemblySucceeded) {
                 std::unique_lock<std::mutex> concurrentIKMutex(IKMutex);
-                // ikTool.assemble() is using s_ and needs its time value, so we couldn't change it for s_; instead we created s for the visualization
-                model_.getVisualizer().show(s);
+
+                if (visualizeAllFrames_) {
+                    // ikTool.assemble() is using s_ and needs its time value, so we couldn't change it for s_; instead we created s for the visualization
+                    model_.getVisualizer().show(s);
+                }
+                else {
+                    // check if another thread is already further; if not, visualize this thread and update it as the last updated time
+                    if (lastUpdatedTime_ < time) {
+                        lastUpdatedTime_ = time;
+                        // ikTool.assemble() is using s_ and needs its time value, so we couldn't change it for s_; instead we created s for the visualization
+                        model_.getVisualizer().show(s);
+                    }
+                }
+
+                
                 concurrentIKMutex.unlock();
             }
         }

@@ -55,6 +55,7 @@ namespace OpenSimLive {
 		// set the name of the data inside the IK output file
 		void setOutputDataName(std::string newDataName) { outputDataName_ = newDataName; }
 		//void setVisualizedJointAnglesVector(std::vector<std::string> vector) { visualizedJointAnglesVector_ = vector; }
+		void setVisualizeAllFrames(bool setting) { visualizeAllFrames_ = setting; }
 
 	private:
 		// PRIVATE VARIABLES
@@ -90,6 +91,9 @@ namespace OpenSimLive {
 		// for ordered IK
 		std::vector<unsigned int> orderedIndexVector_;
 		std::vector<double> orderedTimeVector_;
+
+		// for visualizing IK
+		bool visualizeAllFrames_ = false;
 
 		// all coordinates that are defined in the model; defined after calibration
 		std::unique_ptr<OpenSim::ComponentList<OpenSim::Coordinate>> modelCoordinates_;
