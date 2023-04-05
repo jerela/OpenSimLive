@@ -352,6 +352,10 @@ Thanks to Jacob Progsch and Václav Zeman for their [thread pool class](https://
 
 This software library was developed while working in an European Regional Development Fund project: Digital Technology RDI Environment (Digi Center) (Project ID: A74338, www.digicenterns.fi).
 
+## Publication and citation
+
+A peer-reviewed research article describing the software library is published by PeerJ as [Open-source software library for real-time inertial measurement unit data-based inverse kinematics using OpenSim](https://doi.org/10.7717/peerj.15097). Please cite this publication if you use OpenSimLive in your work.
+
 ## Similar projects
 
 For marker-based real-time inverse kinematics using OpenSim 3.3 API, see C. Pizzolato's [RTOSIM](https://github.com/RealTimeBiomechanics/rtosim/).
